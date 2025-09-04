@@ -3,48 +3,57 @@
 // -----------------------CONSTRUCTION AND DESTRUCTION-------------------------
 
 // Default constructor
-NetworkEndpoint::NetworkEndpoint()
+NetworkEndpoint::NetworkEndpoint(NetworkInterface interface, int port)
+  : m_interface(interface)
+  , m_port(port)
 {
 }
 
 // Copy constructor
-NetworkEndpoint::NetworkEndpoint(const NetworkEndpoint &other)
+NetworkEndpoint::NetworkEndpoint(const NetworkEndpoint& other)
+  : m_interface(other.m_interface)
+  , m_port(other.m_port)
 {
 }
 
 // Copy assignment operator
-NetworkEndpoint &NetworkEndpoint::operator=(const NetworkEndpoint &other)
+NetworkEndpoint& NetworkEndpoint::operator=(const NetworkEndpoint& other)
 {
     if (this != &other)
     {
-        // Copy data
+        m_interface = other.m_interface;
+        m_port = other.m_port;
     }
     return (*this);
 }
 
 // Move constructor
 NetworkEndpoint::NetworkEndpoint(NetworkEndpoint&& other) noexcept
+  : m_interface(other.m_interface)
+  , m_port(other.m_port)
 {
 }
 
 // Move assignment operator
 NetworkEndpoint& NetworkEndpoint::operator=(NetworkEndpoint&& other) noexcept
 {
-	if (this != &other)
-	{
-		// Free old data (inside this)
-        // Steal new data (from other)
-	    // Clean up the traces (data in other has to set to null)
-		// std::move(other);
-	}
-	return (*this);
+    if (this != &other)
+    {
+        m_interface = other.m_interface;
+        m_port = other.m_port;
+    }
+    return (*this);
 }
 
 // Destructor
-NetworkEndpoint::~NetworkEndpoint()
-{
-}
+NetworkEndpoint::~NetworkEndpoint() {}
 
 // ---------------------------ACCESSORS-----------------------------
-
-// ---------------------------METHODS-----------------------------
+NetworkInterface NetworkEndpoint::getInterface(void)
+{
+    return (m_interface);
+}
+int NetworkEndpoint::getPort(void)
+{
+    return (m_port);
+}

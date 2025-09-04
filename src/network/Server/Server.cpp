@@ -3,7 +3,7 @@
 // --------------CONSTRUCTION AND DESTRUCTION--------------
 
 // Default constructor
-Server::Server(int* port)
+Server::Server(int port)
 {
     fillAddressInfo(port);
 
@@ -73,10 +73,10 @@ void Server::run(void)
     addSocketToEPoll(m_socket, EPOLLIN);
 
     t_event FDs[MAX_EVENTS];
-    while (true)
+    while (g_running)
     {
         // server life cycle loop code
-        int readyFDs = epoll_wait(epfd, FDs, MAX_EVENTS, -1);
+        int readyFDs = epoll_wait(m_epfd, FDs, MAX_EVENTS, -1);
         if (readyFDs == -1)
         {
             if (errno == EINTR)
@@ -86,8 +86,8 @@ void Server::run(void)
         }
         for (int i = 0; i < readyFDs; ++i)
         {
-            if (FDs[i].data.fd == serverSocket)
-                result = acceptNewClient(epfd, serverSocket);
+            if (FDs[i].data.fd == m_socket)
+                acceptNewClient();
             else
                 processClient(FDs[i].data.fd);
         }
@@ -103,4 +103,33 @@ void Server::addSocketToEPoll(int socket, uint32_t events)
     int result = epoll_ctl(m_epfd, EPOLL_CTL_ADD, socket, &e);
     if (result == -1)
         throw std::runtime_error("epoll_ctl");
+}
+
+void Server::acceptNewClient()
+{
+    int clientSocket = accept(m_socket, NULL, NULL);
+    if (clientSocket == -1)
+        throw std::runtime_error("accept");
+
+    setNonBlockingAndCloexec(clientSocket);
+
+    addSocketToEPoll(clientSocket, EPOLLIN);
+}
+
+void Server::processClient(int clientSocket)
+{
+    // Data ready to read from client
+    char buf[512];
+    int n = read(clientSocket, buf, sizeof(buf) - 1);
+    if (n <= 0)
+    {
+        // Client disconnected
+        close(clientSocket);
+        printf("Client disconnected: %d\n", clientSocket);
+    }
+    else
+    {
+        buf[n] = '\0';
+        printf("Received: %s\n", buf);
+    }
 }

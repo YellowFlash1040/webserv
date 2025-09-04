@@ -3,7 +3,7 @@
 #include <string.h>
 #include <csignal>
 
-volatile bool g_running = true;
+volatile std::sig_atomic_t g_running = true;
 
 void handle_signal(int)
 {
@@ -17,8 +17,8 @@ int main(void)
 
     try
     {
-        Server s(8080);
-        (void)s;
+        Server s(8081);
+        s.run();
     }
     catch (const std::runtime_error& e)
     {

@@ -6,11 +6,13 @@
 # include <utility>
 # include <string>
 
+# include "NetworkInterface.hpp"
+
 class NetworkEndpoint
 {
     // Construction and destruction
   public:
-    NetworkEndpoint();
+    NetworkEndpoint(NetworkInterface interface, int port);
     NetworkEndpoint(const NetworkEndpoint& other);
     NetworkEndpoint& operator=(const NetworkEndpoint& other);
     NetworkEndpoint(NetworkEndpoint&& other) noexcept;
@@ -21,6 +23,8 @@ class NetworkEndpoint
   public:
     // Constants
     // Accessors
+    NetworkInterface getInterface(void);
+    int getPort(void);
     // Methods
 
   protected:
@@ -29,9 +33,8 @@ class NetworkEndpoint
 
   private:
     // Properties
-    std::string interface;
-
-    int port;
+    NetworkInterface m_interface;
+    int m_port;
     // Methods
 };
 

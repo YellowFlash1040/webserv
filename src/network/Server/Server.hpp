@@ -13,12 +13,15 @@
 # include <errno.h>
 # include <cstdlib>
 # include <stdexcept>
+# include <csignal>
 
 # include "MemoryUtils.hpp"
 
 typedef struct sockaddr t_sockaddr;
 typedef struct sockaddr_in t_sockaddr_in;
 typedef struct epoll_event t_event;
+
+extern volatile std::sig_atomic_t g_running;
 
 class Server
 {
@@ -48,7 +51,9 @@ class Server
     // Methods
     void fillAddressInfo(int port);
     void setNonBlockingAndCloexec(int fd);
-    void Server::addSocketToEPoll(int socket, uint32_t events);
+    void addSocketToEPoll(int socket, uint32_t events);
+    void acceptNewClient(void);
+    void processClient(int clientSocket);
 };
 
 #endif

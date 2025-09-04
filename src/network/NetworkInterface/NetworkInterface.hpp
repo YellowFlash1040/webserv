@@ -5,6 +5,8 @@
 
 # include <utility>
 # include <string>
+# include <stdexcept>
+# include <algorithm>
 
 typedef int t_hex;
 
@@ -25,6 +27,7 @@ class NetworkInterface
   public:
     // Constants
     // Accessors
+    t_hex getValue(void);
     // Methods
 
   protected:
@@ -33,6 +36,7 @@ class NetworkInterface
 
   private:
     // Properties
+    t_hex m_value;
     // Methods
 };
 
