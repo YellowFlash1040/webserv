@@ -12,7 +12,8 @@ class NetworkEndpoint
 {
     // Construction and destruction
   public:
-    NetworkEndpoint(NetworkInterface interface, int port);
+    NetworkEndpoint(int interface, int port);
+    // NetworkEndpoint(NetworkInterface interface, int port);
     NetworkEndpoint(const NetworkEndpoint& other);
     NetworkEndpoint& operator=(const NetworkEndpoint& other);
     NetworkEndpoint(NetworkEndpoint&& other) noexcept;
@@ -23,8 +24,9 @@ class NetworkEndpoint
   public:
     // Constants
     // Accessors
-    NetworkInterface getInterface(void);
-    int getPort(void);
+    // NetworkInterface ip(void);
+    int ip(void);
+    int port(void);
     // Methods
 
   protected:
@@ -33,7 +35,8 @@ class NetworkEndpoint
 
   private:
     // Properties
-    NetworkInterface m_interface;
+    // NetworkInterface m_interface;
+    int m_interface;
     int m_port;
     // Methods
 };

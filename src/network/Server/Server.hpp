@@ -16,6 +16,7 @@
 # include <csignal>
 
 # include "MemoryUtils.hpp"
+# include "NetworkEndpoint.hpp"
 
 typedef struct sockaddr t_sockaddr;
 typedef struct sockaddr_in t_sockaddr_in;
@@ -27,7 +28,7 @@ class Server
 {
     // Construction and destruction
   public:
-    Server(int port);
+    Server(NetworkEndpoint endpoint);
     ~Server();
 
     // Class specific features
@@ -45,11 +46,11 @@ class Server
     static constexpr int QUEUE_SIZE = 100;
     static constexpr int MAX_EVENTS = 50;
     // Properties
-    int m_socket = -1;
+    int m_listeningSocket = -1;
     int m_epfd = -1; // event poll fd
     t_sockaddr_in m_address;
     // Methods
-    void fillAddressInfo(int port);
+    void fillAddressInfo(NetworkEndpoint e);
     void setNonBlockingAndCloexec(int fd);
     void addSocketToEPoll(int socket, uint32_t events);
     void acceptNewClient(void);

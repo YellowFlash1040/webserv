@@ -8,7 +8,7 @@
 # include <stdexcept>
 # include <algorithm>
 
-typedef int t_hex;
+typedef uint32_t t_hex;
 
 class NetworkInterface
 {
