@@ -17,7 +17,8 @@ int main(void)
 
     try
     {
-        Server s(8081);
+        NetworkEndpoint endpoint(0x7F000001, 8083);
+        Server s(endpoint);
         s.run();
     }
     catch (const std::runtime_error& e)

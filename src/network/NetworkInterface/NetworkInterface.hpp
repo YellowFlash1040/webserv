@@ -7,6 +7,7 @@
 # include <string>
 # include <stdexcept>
 # include <algorithm>
+# include <sstream>
 
 typedef uint32_t t_hex;
 
@@ -29,6 +30,9 @@ class NetworkInterface
     // Accessors
     t_hex getValue(void);
     // Methods
+    // Conversion to int/uint32_t
+    operator uint32_t() const { return m_hex; }
+    operator std::string() const { return m_str; }
 
   protected:
     // Properties
@@ -36,7 +40,8 @@ class NetworkInterface
 
   private:
     // Properties
-    t_hex m_value;
+    std::string m_str;
+    uint32_t m_hex;
     // Methods
 };
 
