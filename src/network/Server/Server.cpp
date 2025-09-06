@@ -79,6 +79,7 @@ void Server::run(void)
     while (g_running)
     {
         int readyFDs = epoll_wait(m_epfd, FDs, MAX_EVENTS, -1);
+        printf ("readyFDs is %d\n", readyFDs);
         if (readyFDs == -1)
         {
             if (errno == EINTR)
@@ -88,7 +89,9 @@ void Server::run(void)
         for (int i = 0; i < readyFDs; ++i)
         {
             if (FDs[i].data.fd == m_listeningSocket)
+            {
                 acceptNewClient();
+            }
             else
                 processClient(FDs[i].data.fd);
         }
@@ -125,6 +128,17 @@ void Server::processClient(int clientSocket)
     if (n > 0)
     {
         buf[n] = '\0';
+        if(buf[n - 1] == '\n' && buf[n - 2] == '\r' && buf[n - 3] == '\n' && buf[n - 4] == '\r')
+        {
+            const char *response =
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: text/plain\r\n"
+            "Content-Length: 5\r\n"
+            "\r\n"
+            "hello";
+
+    write(clientSocket, response, strlen(response));
+        }
         printf("Received: %s\n", buf);
     }
     else if (n == 0)

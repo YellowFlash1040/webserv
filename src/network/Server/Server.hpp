@@ -14,6 +14,7 @@
 # include <cstdlib>
 # include <stdexcept>
 # include <csignal>
+# include <string.h>
 
 # include "MemoryUtils.hpp"
 # include "NetworkEndpoint.hpp"
