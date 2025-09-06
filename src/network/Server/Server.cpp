@@ -3,9 +3,9 @@
 // --------------CONSTRUCTION AND DESTRUCTION--------------
 
 // Default constructor
-Server::Server(NetworkEndpoint endpoint)
+Server::Server(int port)
 {
-    fillAddressInfo(endpoint);
+    fillAddressInfo(port);
 
     m_listeningSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (m_listeningSocket == -1)
@@ -37,13 +37,13 @@ Server::~Server()
 
 // ---------------------------METHODS-----------------------------
 
-void Server::fillAddressInfo(NetworkEndpoint e)
+void Server::fillAddressInfo(int port)
 {
     ft::bzero(&m_address, sizeof(m_address));
 
     m_address.sin_family = AF_INET;
-    m_address.sin_port = htons(e.port());
-    m_address.sin_addr.s_addr = htonl(e.ip());
+    m_address.sin_port = htons(port);
+    m_address.sin_addr.s_addr = htonl(INADDR_ANY);
 }
 
 void Server::setNonBlockingAndCloexec(int fd)

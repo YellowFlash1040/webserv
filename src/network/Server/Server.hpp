@@ -28,7 +28,7 @@ class Server
 {
     // Construction and destruction
   public:
-    Server(NetworkEndpoint endpoint);
+    Server(int port);
     ~Server();
 
     // Class specific features
@@ -50,7 +50,7 @@ class Server
     int m_epfd = -1; // event poll fd
     t_sockaddr_in m_address;
     // Methods
-    void fillAddressInfo(NetworkEndpoint e);
+    void fillAddressInfo(int port);
     void setNonBlockingAndCloexec(int fd);
     void addSocketToEPoll(int socket, uint32_t events);
     void acceptNewClient(void);
