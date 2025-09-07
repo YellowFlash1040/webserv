@@ -5,7 +5,6 @@
 
 # include <stdexcept>
 # include <sys/socket.h>
-# include <sys/types.h>
 # include <netinet/in.h>
 # include <unistd.h>
 # include <fcntl.h>
@@ -25,7 +24,7 @@ class Socket
   public:
     // Constants
     // Accessors
-    int fd(void);
+    int fd(void) const;
     // Operators
     operator int() const;
     // Methods

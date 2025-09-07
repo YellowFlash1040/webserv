@@ -1,7 +1,6 @@
 #include "Server.hpp"
 #include <iostream>
 #include <string.h>
-#include <csignal>
 
 volatile std::sig_atomic_t g_running = true;
 
@@ -17,8 +16,8 @@ int main(void)
 
     try
     {
-        NetworkEndpoint endpoint(0x7F000001, 8080);
-        Server s(endpoint);
+        Server s;
+        s.addEndpoint({std::string("127.0.0.1"), 8080});
         s.run();
     }
     catch (const std::runtime_error& e)

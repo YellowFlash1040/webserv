@@ -3,12 +3,7 @@
 // --------------CONSTRUCTION AND DESTRUCTION--------------
 
 // Default constructor
-Server::Server(NetworkEndpoint endpoint)
-{
-    ServerSocket s(endpoint, QUEUE_SIZE);
-
-    m_listeners.insert(std::move(s));
-}
+Server::Server() {}
 
 // Destructor
 Server::~Server()
@@ -29,8 +24,8 @@ void Server::run(void)
     if (m_epfd == -1)
         throw std::runtime_error("epoll_create");
 
-    for (int listener : m_listeners)
-        addSocketToEPoll(listener, EPOLLIN);
+    for (int listenerFd : m_listenerFds)
+        addSocketToEPoll(listenerFd, EPOLLIN);
 
     t_event FDs[MAX_EVENTS];
     while (g_running)
@@ -45,12 +40,20 @@ void Server::run(void)
         for (int i = 0; i < readyFDs; ++i)
         {
             int fd = FDs[i].data.fd;
-            if (listenerSet.count(fd))
+            if (m_listenerFds.count(fd))
                 acceptNewClient(fd);
             else
                 processClient(fd);
         }
     }
+}
+
+void Server::addEndpoint(const NetworkEndpoint& endpoint)
+{
+    ServerSocket s(endpoint, QUEUE_SIZE);
+
+    m_listenerFds.insert(s.fd());
+    m_listeners.push_back(std::move(s));
 }
 
 void Server::addSocketToEPoll(int socket, uint32_t events)

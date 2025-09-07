@@ -3,17 +3,11 @@
 // -----------------------CONSTRUCTION AND DESTRUCTION-------------------------
 
 // Default constructor
-NetworkEndpoint::NetworkEndpoint(int interface, int port)
+NetworkEndpoint::NetworkEndpoint(NetworkInterface interface, int port)
   : m_interface(interface)
   , m_port(port)
 {
 }
-
-// NetworkEndpoint::NetworkEndpoint(NetworkInterface interface, int port)
-//   : m_interface(interface)
-//   , m_port(port)
-// {
-// }
 
 // Copy constructor
 NetworkEndpoint::NetworkEndpoint(const NetworkEndpoint& other)
@@ -55,6 +49,7 @@ NetworkEndpoint& NetworkEndpoint::operator=(NetworkEndpoint&& other) noexcept
 NetworkEndpoint::~NetworkEndpoint() {}
 
 // ---------------------------ACCESSORS-----------------------------
+
 NetworkInterface NetworkEndpoint::ip(void) const
 {
     return (m_interface);

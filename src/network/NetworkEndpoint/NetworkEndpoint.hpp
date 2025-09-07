@@ -12,8 +12,7 @@ class NetworkEndpoint
 {
     // Construction and destruction
   public:
-    NetworkEndpoint(int interface, int port);
-    // NetworkEndpoint(NetworkInterface interface, int port);
+    NetworkEndpoint(NetworkInterface interface, int port);
     NetworkEndpoint(const NetworkEndpoint& other);
     NetworkEndpoint& operator=(const NetworkEndpoint& other);
     NetworkEndpoint(NetworkEndpoint&& other) noexcept;
@@ -34,8 +33,7 @@ class NetworkEndpoint
 
   private:
     // Properties
-    // NetworkInterface m_interface;
-    int m_interface;
+    NetworkInterface m_interface;
     int m_port;
     // Methods
 };

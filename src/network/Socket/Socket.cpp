@@ -38,7 +38,7 @@ Socket::~Socket()
 
 // -------------------------ACCESSORS-----------------------------
 
-int Socket::fd(void)
+int Socket::fd(void) const
 {
     return (m_fd);
 }
