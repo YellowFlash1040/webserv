@@ -17,7 +17,7 @@ int main(void)
 
     try
     {
-        NetworkEndpoint endpoint(0x7F000001, 8083);
+        NetworkEndpoint endpoint(0x7F000001, 8080);
         Server s(endpoint);
         s.run();
     }

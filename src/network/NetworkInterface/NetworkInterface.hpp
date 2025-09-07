@@ -28,11 +28,10 @@ class NetworkInterface
   public:
     // Constants
     // Accessors
-    t_hex getValue(void);
     // Methods
-    // Conversion to int/uint32_t
-    operator uint32_t() const { return m_hex; }
-    operator std::string() const { return m_str; }
+    // Operators
+    operator uint32_t() const;
+    operator std::string() const;
 
   protected:
     // Properties
@@ -40,9 +39,11 @@ class NetworkInterface
 
   private:
     // Properties
-    std::string m_str;
     uint32_t m_hex;
+    std::string m_str;
     // Methods
+    uint32_t parseIp(const std::string& value);
+    int parseOctet(const std::string& part);
 };
 
 #endif

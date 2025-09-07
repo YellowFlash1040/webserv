@@ -14,9 +14,11 @@
 # include <cstdlib>
 # include <stdexcept>
 # include <csignal>
+# include <unordered_set>
 
 # include "MemoryUtils.hpp"
 # include "NetworkEndpoint.hpp"
+# include "ServerSocket.hpp"
 
 typedef struct sockaddr t_sockaddr;
 typedef struct sockaddr_in t_sockaddr_in;
@@ -32,28 +34,32 @@ class Server
     ~Server();
 
     // Class specific features
+
   public:
+    // Constants
+    static constexpr int QUEUE_SIZE = 100;
+    static constexpr int MAX_EVENTS = 50;
     // Accessors
     // Methods
     void run(void);
+    void addEndpoint(const NetworkEndpoint& endpoint,
+                     int queueSize = QUEUE_SIZE);
 
   protected:
     // Properties
     // Methods
 
   private:
-    // constants
-    static constexpr int QUEUE_SIZE = 100;
-    static constexpr int MAX_EVENTS = 50;
     // Properties
     int m_listeningSocket = -1;
     int m_epfd = -1; // event poll fd
-    t_sockaddr_in m_address;
+    //
+    std::unordered_set<ServerSocket> m_listeners;
     // Methods
     void fillAddressInfo(NetworkEndpoint e);
     void setNonBlockingAndCloexec(int fd);
     void addSocketToEPoll(int socket, uint32_t events);
-    void acceptNewClient(void);
+    void acceptNewClient(int listeningSocket);
     void processClient(int clientSocket);
 };
 

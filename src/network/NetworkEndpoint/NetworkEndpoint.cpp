@@ -55,12 +55,12 @@ NetworkEndpoint& NetworkEndpoint::operator=(NetworkEndpoint&& other) noexcept
 NetworkEndpoint::~NetworkEndpoint() {}
 
 // ---------------------------ACCESSORS-----------------------------
-NetworkInterface NetworkEndpoint::ip(void)
+NetworkInterface NetworkEndpoint::ip(void) const
 {
     return (m_interface);
 }
 
-int NetworkEndpoint::port(void)
+int NetworkEndpoint::port(void) const
 {
     return (m_port);
 }

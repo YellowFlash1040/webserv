@@ -5,23 +5,9 @@
 // Default constructor
 Server::Server(NetworkEndpoint endpoint)
 {
-    fillAddressInfo(endpoint);
+    ServerSocket s(endpoint, QUEUE_SIZE);
 
-    m_listeningSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (m_listeningSocket == -1)
-        throw std::runtime_error("socket");
-    setNonBlockingAndCloexec(m_listeningSocket);
-
-    int opt = 1;
-    if (setsockopt(m_listeningSocket, SOL_SOCKET, SO_REUSEADDR, &opt,
-                   sizeof(opt))
-        == -1)
-        throw std::runtime_error("setsockopt");
-    if (bind(m_listeningSocket, (t_sockaddr*)(&m_address), sizeof(m_address))
-        == -1)
-        throw std::runtime_error("bind");
-    if (listen(m_listeningSocket, QUEUE_SIZE) == -1)
-        throw std::runtime_error("listen");
+    m_listeners.insert(std::move(s));
 }
 
 // Destructor
@@ -37,43 +23,14 @@ Server::~Server()
 
 // ---------------------------METHODS-----------------------------
 
-void Server::fillAddressInfo(NetworkEndpoint e)
-{
-    ft::bzero(&m_address, sizeof(m_address));
-
-    m_address.sin_family = AF_INET;
-    m_address.sin_port = htons(e.port());
-    m_address.sin_addr.s_addr = htonl(e.ip());
-}
-
-void Server::setNonBlockingAndCloexec(int fd)
-{
-    // Non-blocking
-    int status_flags = fcntl(fd, F_GETFL, 0);
-    if (status_flags == -1)
-        throw std::runtime_error("fcntl getfl");
-
-    int result = fcntl(fd, F_SETFL, status_flags | O_NONBLOCK);
-    if (result == -1)
-        throw std::runtime_error("fcntl setfl");
-
-    // Close-on-exec
-    int fd_flags = fcntl(fd, F_GETFD, 0);
-    if (fd_flags == -1)
-        throw std::runtime_error("fcntl getfd");
-
-    result = fcntl(fd, F_SETFD, fd_flags | FD_CLOEXEC);
-    if (result == -1)
-        throw std::runtime_error("fcntl setfd");
-}
-
 void Server::run(void)
 {
     m_epfd = epoll_create(1);
     if (m_epfd == -1)
         throw std::runtime_error("epoll_create");
 
-    addSocketToEPoll(m_listeningSocket, EPOLLIN);
+    for (int listener : m_listeners)
+        addSocketToEPoll(listener, EPOLLIN);
 
     t_event FDs[MAX_EVENTS];
     while (g_running)
@@ -87,10 +44,11 @@ void Server::run(void)
         }
         for (int i = 0; i < readyFDs; ++i)
         {
-            if (FDs[i].data.fd == m_listeningSocket)
-                acceptNewClient();
+            int fd = FDs[i].data.fd;
+            if (listenerSet.count(fd))
+                acceptNewClient(fd);
             else
-                processClient(FDs[i].data.fd);
+                processClient(fd);
         }
     }
 }
@@ -106,13 +64,13 @@ void Server::addSocketToEPoll(int socket, uint32_t events)
         throw std::runtime_error("epoll_ctl");
 }
 
-void Server::acceptNewClient()
+void Server::acceptNewClient(int listeningSocket)
 {
-    int clientSocket = accept(m_listeningSocket, NULL, NULL);
+    int clientSocket = accept(listeningSocket, NULL, NULL);
     if (clientSocket == -1)
         throw std::runtime_error("accept");
 
-    setNonBlockingAndCloexec(clientSocket);
+    Socket::setNonBlockingAndCloexec(clientSocket);
     addSocketToEPoll(clientSocket, EPOLLIN);
 }
 

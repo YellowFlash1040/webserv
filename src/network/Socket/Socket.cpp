@@ -36,11 +36,39 @@ Socket::~Socket()
         close(m_fd);
 }
 
-// ---------------------------ACCESSORS-----------------------------
+// -------------------------ACCESSORS-----------------------------
 
 int Socket::fd(void)
 {
     return (m_fd);
 }
 
+// --------------------------OPERATORS----------------------------
+
+Socket::operator int() const
+{
+    return (m_fd);
+}
+
 // ---------------------------METHODS-----------------------------
+
+void Socket::setNonBlockingAndCloexec(int fd)
+{
+    // Non-blocking
+    int status_flags = fcntl(fd, F_GETFL, 0);
+    if (status_flags == -1)
+        throw std::runtime_error("fcntl getfl");
+
+    int result = fcntl(fd, F_SETFL, status_flags | O_NONBLOCK);
+    if (result == -1)
+        throw std::runtime_error("fcntl setfl");
+
+    // Close-on-exec
+    int fd_flags = fcntl(fd, F_GETFD, 0);
+    if (fd_flags == -1)
+        throw std::runtime_error("fcntl getfd");
+
+    result = fcntl(fd, F_SETFD, fd_flags | FD_CLOEXEC);
+    if (result == -1)
+        throw std::runtime_error("fcntl setfd");
+}

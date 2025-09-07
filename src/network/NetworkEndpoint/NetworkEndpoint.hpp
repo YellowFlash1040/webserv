@@ -24,8 +24,8 @@ class NetworkEndpoint
   public:
     // Constants
     // Accessors
-    NetworkInterface ip(void);
-    int port(void);
+    NetworkInterface ip(void) const;
+    int port(void) const;
     // Methods
 
   protected:
