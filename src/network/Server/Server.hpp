@@ -3,6 +3,8 @@
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
+# include <iostream>
+
 # include <stdexcept>
 # include <sys/epoll.h>
 # include <errno.h>
@@ -25,7 +27,6 @@ class Server
     ~Server();
 
     // Class specific features
-
   public:
     // Constants
     static constexpr int QUEUE_SIZE = 100;
@@ -41,9 +42,7 @@ class Server
 
   private:
     // Properties
-    int m_listeningSocket = -1;
     int m_epfd = -1; // event poll fd
-    //
     std::vector<ServerSocket> m_listeners;
     std::unordered_set<int> m_listenerFds;
     // Methods

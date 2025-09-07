@@ -10,8 +10,6 @@ Server::~Server()
 {
     if (m_epfd != -1)
         close(m_epfd);
-    if (m_listeningSocket != -1)
-        close(m_listeningSocket);
 }
 
 // ---------------------------ACCESSORS-----------------------------
@@ -86,16 +84,20 @@ void Server::processClient(int clientSocket)
     if (n > 0)
     {
         buf[n] = '\0';
-        printf("Received: %s\n", buf);
+        std::cout << "Received:\n" << buf << "\n";
     }
     else if (n == 0)
     {
         // Client disconnected
+        epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr);
         close(clientSocket);
-        printf("Client disconnected: %d\n", clientSocket);
+        std::cout << "Client disconnected: " << clientSocket << "\n";
     }
     else
     {
-        throw std::runtime_error("read");
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+            return; // not a real error
+        else
+            throw std::runtime_error("read");
     }
 }
