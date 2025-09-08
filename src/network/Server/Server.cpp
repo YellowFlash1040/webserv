@@ -5,32 +5,32 @@
 // Default constructor
 Server::Server(int port)
 {
-    fillAddressInfo(port);
+	fillAddressInfo(port);
 
-    m_listeningSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (m_listeningSocket == -1)
-        throw std::runtime_error("socket");
-    setNonBlockingAndCloexec(m_listeningSocket);
+	m_listeningSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (m_listeningSocket == -1)
+		throw std::runtime_error("socket");
+	setNonBlockingAndCloexec(m_listeningSocket);
 
-    int opt = 1;
-    if (setsockopt(m_listeningSocket, SOL_SOCKET, SO_REUSEADDR, &opt,
-                   sizeof(opt))
-        == -1)
-        throw std::runtime_error("setsockopt");
-    if (bind(m_listeningSocket, (t_sockaddr*)(&m_address), sizeof(m_address))
-        == -1)
-        throw std::runtime_error("bind");
-    if (listen(m_listeningSocket, QUEUE_SIZE) == -1)
-        throw std::runtime_error("listen");
+	int opt = 1;
+	if (setsockopt(m_listeningSocket, SOL_SOCKET, SO_REUSEADDR, &opt,
+				   sizeof(opt))
+		== -1)
+		throw std::runtime_error("setsockopt");
+	if (bind(m_listeningSocket, (t_sockaddr*)(&m_address), sizeof(m_address))
+		== -1)
+		throw std::runtime_error("bind");
+	if (listen(m_listeningSocket, QUEUE_SIZE) == -1)
+		throw std::runtime_error("listen");
 }
 
 // Destructor
 Server::~Server()
 {
-    if (m_epfd != -1)
-        close(m_epfd);
-    if (m_listeningSocket != -1)
-        close(m_listeningSocket);
+	if (m_epfd != -1)
+		close(m_epfd);
+	if (m_listeningSocket != -1)
+		close(m_listeningSocket);
 }
 
 // ---------------------------ACCESSORS-----------------------------
@@ -39,116 +39,141 @@ Server::~Server()
 
 void Server::fillAddressInfo(int port)
 {
-    ft::bzero(&m_address, sizeof(m_address));
+	ft::bzero(&m_address, sizeof(m_address));
 
-    m_address.sin_family = AF_INET;
-    m_address.sin_port = htons(port);
-    m_address.sin_addr.s_addr = htonl(INADDR_ANY);
+	m_address.sin_family = AF_INET;
+	m_address.sin_port = htons(port);
+	m_address.sin_addr.s_addr = htonl(INADDR_ANY);
 }
 
 void Server::setNonBlockingAndCloexec(int fd)
 {
-    // Non-blocking
-    int status_flags = fcntl(fd, F_GETFL, 0);
-    if (status_flags == -1)
-        throw std::runtime_error("fcntl getfl");
+	// Non-blocking
+	int status_flags = fcntl(fd, F_GETFL, 0);
+	if (status_flags == -1)
+		throw std::runtime_error("fcntl getfl");
 
-    int result = fcntl(fd, F_SETFL, status_flags | O_NONBLOCK);
-    if (result == -1)
-        throw std::runtime_error("fcntl setfl");
+	int result = fcntl(fd, F_SETFL, status_flags | O_NONBLOCK);
+	if (result == -1)
+		throw std::runtime_error("fcntl setfl");
 
-    // Close-on-exec
-    int fd_flags = fcntl(fd, F_GETFD, 0);
-    if (fd_flags == -1)
-        throw std::runtime_error("fcntl getfd");
+	// Close-on-exec
+	int fd_flags = fcntl(fd, F_GETFD, 0);
+	if (fd_flags == -1)
+		throw std::runtime_error("fcntl getfd");
 
-    result = fcntl(fd, F_SETFD, fd_flags | FD_CLOEXEC);
-    if (result == -1)
-        throw std::runtime_error("fcntl setfd");
+	result = fcntl(fd, F_SETFD, fd_flags | FD_CLOEXEC);
+	if (result == -1)
+		throw std::runtime_error("fcntl setfd");
 }
 
 void Server::run(void)
 {
-    m_epfd = epoll_create(1);
-    if (m_epfd == -1)
-        throw std::runtime_error("epoll_create");
+	m_epfd = epoll_create(1);
+	if (m_epfd == -1)
+		throw std::runtime_error("epoll_create");
 
-    addSocketToEPoll(m_listeningSocket, EPOLLIN);
+	addSocketToEPoll(m_listeningSocket, EPOLLIN);
 
-    t_event FDs[MAX_EVENTS];
-    while (g_running)
-    {
-        int readyFDs = epoll_wait(m_epfd, FDs, MAX_EVENTS, -1);
-        printf ("readyFDs is %d\n", readyFDs);
-        if (readyFDs == -1)
-        {
-            if (errno == EINTR)
-                continue; // interrupted by signal, retry
-            throw std::runtime_error("epoll_wait");
-        }
-        for (int i = 0; i < readyFDs; ++i)
-        {
-            if (FDs[i].data.fd == m_listeningSocket)
-            {
-                acceptNewClient();
-            }
-            else
-                processClient(FDs[i].data.fd);
-        }
-    }
+	t_event FDs[MAX_EVENTS];
+	while (g_running)
+	{
+		int readyFDs = epoll_wait(m_epfd, FDs, MAX_EVENTS, -1);
+		printf ("readyFDs is %d\n", readyFDs);
+		if (readyFDs == -1)
+		{
+			if (errno == EINTR)
+				continue; // interrupted by signal, retry
+			throw std::runtime_error("epoll_wait");
+		}
+		for (int i = 0; i < readyFDs; ++i)
+		{
+			if (FDs[i].data.fd == m_listeningSocket)
+			{
+				acceptNewClient();
+			}
+			else
+				processClient(FDs[i].data.fd);
+		}
+	}
 }
 
 void Server::addSocketToEPoll(int socket, uint32_t events)
 {
-    t_event e;
-    e.data.fd = socket;
-    e.events = events;
+	t_event e;
+	e.data.fd = socket;
+	e.events = events;
 
-    int result = epoll_ctl(m_epfd, EPOLL_CTL_ADD, socket, &e);
-    if (result == -1)
-        throw std::runtime_error("epoll_ctl");
+	int result = epoll_ctl(m_epfd, EPOLL_CTL_ADD, socket, &e);
+	if (result == -1)
+		throw std::runtime_error("epoll_ctl");
 }
 
 void Server::acceptNewClient()
 {
-    int clientSocket = accept(m_listeningSocket, NULL, NULL);
-    if (clientSocket == -1)
-        throw std::runtime_error("accept");
+	int clientSocket = accept(m_listeningSocket, NULL, NULL);
+	if (clientSocket == -1)
+		throw std::runtime_error("accept");
 
-    setNonBlockingAndCloexec(clientSocket);
-    addSocketToEPoll(clientSocket, EPOLLIN);
+	setNonBlockingAndCloexec(clientSocket);
+	addSocketToEPoll(clientSocket, EPOLLIN);
 }
 
 void Server::processClient(int clientSocket)
 {
-    // Data ready to read from client
-    char buf[512];
-    int n = read(clientSocket, buf, sizeof(buf) - 1);
+	HttpRequest		request;
+	HttpResponse	response;
+	std::string		rawResponse;
+	
+	// Data ready to read from client
+	char buf[8192];
+	int n = read(clientSocket, buf, sizeof(buf) - 1);
 
-    if (n > 0)
-    {
-        buf[n] = '\0';
-        if(buf[n - 1] == '\n' && buf[n - 2] == '\r' && buf[n - 3] == '\n' && buf[n - 4] == '\r')
-        {
-            const char *response =
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Type: text/plain\r\n"
-            "Content-Length: 5\r\n"
-            "\r\n"
-            "hello";
+	if (n > 0)
+	{
+		std::string rawRequest(buf, n);
+		HttpRequest request = parseRequest(rawRequest);
+		HttpResponse response = handleRequest(request);
+		rawResponse = response.toString();
 
-    write(clientSocket, response, strlen(response));
-        }
-        printf("Received: %s\n", buf);
-    }
-    else if (n == 0)
-    {
-        // Client disconnected
-        close(clientSocket);
-        printf("Client disconnected: %d\n", clientSocket);
-    }
-    else
-    {
-        throw std::runtime_error("read");
-    }
+		std::cout << "\033[32m\nHTTP Request: raw\033[0m\n"
+				<< rawRequest << "\n\n";
+				
+		std::cout << "\033[32mHTTP Request: parsed\033[0m\n";
+		std::cout << "Method: " << request.getMethod() << "\n";
+		std::cout << "URI: " << request.getUri() << "\n";
+		std::cout << "HTTP Version: " << request.getHttpVersion() << "\n";
+		std::cout << "Headers:\n";
+		for (const auto& header : request.getHeaders())
+		{
+			std::cout << "  " << header.first << ": " << header.second << "\n";
+		}
+		std::cout << "Body: " << request.getBody() << "\n\n";
+
+		std::cout << "\033[36mHTTP Response: parsed\033[0m\n";
+		std::cout << "Status: " << response.getStatusCode()
+				<< "\n";
+		std::cout << "Headers:\n";
+		for (const auto& header : response.getHeaders())
+		{
+			std::cout << "  " << header.first << ": " << header.second << "\n";
+		}
+		std::cout << "Body: " << response.getBody() << "\n\n";
+
+		std::cout << "\033[36mHTTP Response: stringified\033[0m\n"
+				<< rawResponse << "\n\n";
+		
+		// Send response
+		write(clientSocket, rawResponse.c_str(), rawResponse.size());
+	}
+	else if (n == 0)
+	{
+		std::cout << "Client closed the socket on their end, fd=" << clientSocket << "\n";
+		close(clientSocket);
+	}
+		
+	else
+	{
+		throw std::runtime_error("read");
+	}
 }

@@ -14,10 +14,15 @@
 # include <cstdlib>
 # include <stdexcept>
 # include <csignal>
-# include <string.h>
+# include <iostream>
 
 # include "MemoryUtils.hpp"
 # include "NetworkEndpoint.hpp"
+
+#include "../http/HttpRequest/handler.hpp"
+#include "../http/HttpRequest/parser.hpp"
+#include "../http/HttpRequest/HttpRequest.hpp"
+#include "../http/HttpResponse/HttpResponse.hpp"
 
 typedef struct sockaddr t_sockaddr;
 typedef struct sockaddr_in t_sockaddr_in;

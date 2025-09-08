@@ -7,6 +7,7 @@
 # include <string>
 # include <stdexcept>
 # include <algorithm>
+# include <cstdint>
 
 typedef uint32_t t_hex;
 
