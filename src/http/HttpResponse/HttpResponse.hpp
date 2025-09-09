@@ -26,6 +26,8 @@ class HttpResponse
 		const std::map<std::string, std::string>& getHeaders() const;
 		const std::string& getBody() const;
 
+		bool hasHeader(const std::string& key) const;
+
 		void setStatusCode(int code);
 		void setStatusMessage(const std::string& message);
 		void addHeader(const std::string& key, const std::string& value);

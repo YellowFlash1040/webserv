@@ -9,10 +9,30 @@ HttpResponse& HttpResponse::operator=(const HttpResponse& other) = default;
 HttpResponse::HttpResponse(HttpResponse&& other) noexcept = default;
 HttpResponse& HttpResponse::operator=(HttpResponse&& other) noexcept = default;
 
-int HttpResponse::getStatusCode() const { return _statusCode; }
-const std::string& HttpResponse::getStatusMessage() const { return _statusMessage; }
-const std::map<std::string, std::string>& HttpResponse::getHeaders() const { return _headers; }
-const std::string& HttpResponse::getBody() const { return _body; }
+int HttpResponse::getStatusCode() const
+{
+	return _statusCode;
+}
+
+const std::string& HttpResponse::getStatusMessage() const
+{ 
+	return _statusMessage;
+}
+
+const std::map<std::string, std::string>& HttpResponse::getHeaders() const
+{ 
+	return _headers;
+}
+
+const std::string& HttpResponse::getBody() const
+{
+	return _body;
+}
+
+bool HttpResponse::hasHeader(const std::string& key) const
+{
+		return _headers.find(key) != _headers.end();
+}
 
 void HttpResponse::setStatusCode(int code)
 {
@@ -37,13 +57,26 @@ void HttpResponse::setBody(const std::string& body)
 
 std::string HttpResponse::toString() const
 {
-	std::ostringstream oss;
-	oss << "HTTP/1.1 " << _statusCode << " " << _statusMessage << "\r\n";
-	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
+	std::ostringstream outStream;
+
+	// Status line
+	outStream << "HTTP/1.1 " << _statusCode << " " << _statusMessage << "\r\n";
+	
+	// Ensure Content-Length header is present (if body exists and not chunked)
+	if (!hasHeader("Content-Length") && !hasHeader("Transfer-Encoding"))
+		outStream << "Content-Length: " << _body.size() << "\r\n";
+	
+	// Default headers (e.g., Content-Type)
+	for (const auto& header : _headers)
 	{
-		oss << it->first << ": " << it->second << "\r\n";
+		outStream << header.first << ": " << header.second << "\r\n";
 	}
-	oss << "\r\n";
-	oss << _body;
-	return oss.str();
+	
+	// End of headers
+	outStream << "\r\n";
+
+	//Body
+	outStream << _body;
+	
+	return outStream.str();
 }
