@@ -125,3 +125,37 @@ void Lexer::addToken(TokenType type, std::string& value)
     m_tokens.push_back({type, value});
     value.clear();
 }
+
+/*
+if it's NOT a DELIMITER, add character to the value string
+
+else if it is a DELIMITER
+then if there is a previous token
+and it's either an OPEN_BRACE or SEMICOLON,
+it means that it has to be one of
+the directives, and I need to figure out which one,
+if it's none of the directives I think I can give an error and quit
+
+otherwise if the DELIMITER is not an OPEN_BRACE or SEMICOLON, I need to add
+previous token to the toke list with type VALUE. If it is a semicolom or one of
+the braces, I still need to add the value to the tokens list as token with type
+VALUE, but also I need to figure out the type of the delimiter and add it to the
+tokens list with the right type
+
+if I see an OPEN_BRACE, I need to check if the previous token has
+value server, because if it is, it means that it's not a token
+of type VALUE, but the token of type SERVER
+
+token that is after open brace or after semicolon has to be one of the
+directives
+
+all of the tokens after a directive and before semicolon have to be values
+
+if I see a '\n' or a ' ' or a '\t' it means that the token has ended,
+and therefore if it's not empty I need to add it to the list of the tokens
+
+
+if I found a directive and I haven't found a semicolon yet, it means
+that the token type has to be VALUE
+
+*/
