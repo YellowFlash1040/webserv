@@ -1,6 +1,6 @@
 #-----------------------COMPILATION------------------------------------------------------
 # Compiler and Flags
-CC						:= c++
+CC						:= g++
 CFLAGS				 	 = -Wall -Wextra -Werror $(INCLUDES) $(CPP_VERSION) -g
 TESTS_CFLAGS			 = -Wall -Wextra -Werror $(TESTS_INCLUDES) $(TESTS_CPP_VERSION) -g
 

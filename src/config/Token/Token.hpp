@@ -10,27 +10,12 @@ enum class TokenType
 {
     END,
 
-    // Special characters
     OPEN_BRACE,
     CLOSE_BRACE,
     SEMICOLON,
-    HASHTAG,
 
-    // Reserved Keywords
-    SERVER,
-    LISTEN,
-    ROOT,
-    INDEX,
-    LOCATION,
-    AUTOINDEX,
-    ERROR_PAGE,
-    SERVER_NAME,
-    CLIENT_MAX_BODY_SIZE,
-
-    // Rest
-    VALUE,
-    IP,
-    PORT,
+    DIRECTIVE,
+    VALUE
 };
 
 class Token

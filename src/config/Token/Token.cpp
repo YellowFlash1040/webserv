@@ -10,30 +10,37 @@ Token::Token(TokenType type, std::string value)
 }
 
 // Copy constructor
-Token::Token(const Token& other) {}
+Token::Token(const Token& other)
+  : m_type(other.m_type)
+  , m_value(other.m_value)
+{
+}
 
 // Copy assignment operator
 Token& Token::operator=(const Token& other)
 {
     if (this != &other)
     {
-        // Copy data
+        m_type = other.m_type;
+        m_value = other.m_value;
     }
     return (*this);
 }
 
 // Move constructor
-Token::Token(Token&& other) noexcept {}
+Token::Token(Token&& other) noexcept
+  : m_type(other.m_type)
+  , m_value(std::move(other.m_value))
+{
+}
 
 // Move assignment operator
 Token& Token::operator=(Token&& other) noexcept
 {
     if (this != &other)
     {
-        // Free old data (inside this)
-        // Steal new data (from other)
-        // Clean up the traces (data in other has to set to null)
-        // std::move(other);
+        m_type = other.m_type;
+        m_value = std::move(other.m_value);
     }
     return (*this);
 }
