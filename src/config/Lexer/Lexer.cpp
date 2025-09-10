@@ -127,35 +127,54 @@ void Lexer::addToken(TokenType type, std::string& value)
 }
 
 /*
+
 if it's NOT a DELIMITER, add character to the value string
 
-else if it is a DELIMITER
-then if there is a previous token
-and it's either an OPEN_BRACE or SEMICOLON,
-it means that it has to be one of
-the directives, and I need to figure out which one,
-if it's none of the directives I think I can give an error and quit
-
-otherwise if the DELIMITER is not an OPEN_BRACE or SEMICOLON, I need to add
-previous token to the toke list with type VALUE. If it is a semicolom or one of
-the braces, I still need to add the value to the tokens list as token with type
-VALUE, but also I need to figure out the type of the delimiter and add it to the
-tokens list with the right type
-
-if I see an OPEN_BRACE, I need to check if the previous token has
-value server, because if it is, it means that it's not a token
-of type VALUE, but the token of type SERVER
-
-token that is after open brace or after semicolon has to be one of the
-directives
-
-all of the tokens after a directive and before semicolon have to be values
+if it is a DELIMITER
 
 if I see a '\n' or a ' ' or a '\t' it means that the token has ended,
-and therefore if it's not empty I need to add it to the list of the tokens
+and therefore if it's not empty, I need to look at my rules and figure out
+it's type
+
+if I see a '{' or '}' or ';' it means that the token has ended,
+and therefore if it's not empty I need to
+mark DELIMITER as OPEN_BRACE or CLOSE_BRACE or SEMICOLON token
+and look at my rules and figure out current token's type
+
+RULES:
+
+if I found a DIRECTIVE and I haven't found a SEMICOLON or OPEN_BRACE yet, it
+means that the token type has to be VALUE
+
+if I found an OPEN_BRACE and I haven't found a DIRECTIVE yet then the previous
+token has to be a DIRECTIVE
+
+if previous token is an OPEN_BRACE then current token has to be a DIRECTIVE
+or a CLOSE_BRACE
+
+if previous token is a SEMICOLON then current token has to be a DIRECTIVE
+or a CLOSE BRACE
+
+if token is a DIRECTIVE, I need to check it's value against know directives,
+and if it there is no match - give an error and exit
 
 
-if I found a directive and I haven't found a semicolon yet, it means
-that the token type has to be VALUE
+SYNTAX RULES:
+token before CLOSE_BRACE has to be an CLOSE_BRACE or OPEN_BRACE or SEMICOLON
+
+each OPEN_BRACE has to have a CLOSE_BRACE
+
+*/
+
+/*
+THEOTY NOTES
+
+The approach you’re describing is generally called **"lexing + parsing"**
+or **"tokenization + parsing"**.
+Together, it’s usually referred to as a **compiler front-end pipeline**, even if
+you’re not writing a compiler. The more formal names are:
+
+- **Lexical analysis** (tokenizing)
+- **Syntactic analysis** (parsing)
 
 */
