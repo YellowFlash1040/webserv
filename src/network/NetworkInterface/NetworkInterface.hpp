@@ -8,6 +8,7 @@
 # include <stdexcept>
 # include <algorithm>
 # include <sstream>
+# include <cstdint>
 
 typedef uint32_t t_hex;
 

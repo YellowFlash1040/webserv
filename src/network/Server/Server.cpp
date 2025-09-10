@@ -79,7 +79,7 @@ void Server::processClient(int clientSocket)
 {
     // Data ready to read from client
     char buf[512];
-    int n = read(clientSocket, buf, sizeof(buf) - 1);
+    int n = recv(clientSocket, buf, sizeof(buf) - 1, 0);
 
     if (n > 0)
     {
