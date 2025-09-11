@@ -4,14 +4,15 @@
 # define SERVER_HPP
 
 # include <iostream>
-
+# include <unordered_map>
 # include <stdexcept>
 # include <sys/epoll.h>
 # include <errno.h>
 # include <csignal> // for g_running
 # include <unordered_set>
 # include <vector>
-
+# include <memory>
+# include "Client.hpp"
 # include "NetworkEndpoint.hpp"
 # include "ServerSocket.hpp"
 
@@ -35,6 +36,8 @@ class Server
     // Methods
     void run(void);
     void addEndpoint(const NetworkEndpoint& endpoint);
+    void removeClient(int clientSocket);
+    void printAllClients() const;
 
   protected:
     // Properties
@@ -43,8 +46,9 @@ class Server
   private:
     // Properties
     int m_epfd = -1; // event poll fd
-    std::vector<ServerSocket> m_listeners;
-    std::unordered_set<int> m_listenerFds;
+    std::unordered_map<int, ServerSocket> m_listeners;
+    std::unordered_map<int, std::unique_ptr<Client>> m_clients;
+    
     // Methods
     void fillAddressInfo(NetworkEndpoint e);
     void setNonBlockingAndCloexec(int fd);

@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include "Client.hpp"
 
 // --------------CONSTRUCTION AND DESTRUCTION--------------
 
@@ -8,9 +9,24 @@ Server::Server() {}
 // Destructor
 Server::~Server()
 {
+    for (auto& it : m_clients)
+        epoll_ctl(m_epfd, EPOLL_CTL_DEL, it.first, nullptr);
+    m_clients.clear();
+
+    for (auto& it : m_listeners)
+    {
+        epoll_ctl(m_epfd, EPOLL_CTL_DEL, it.first, nullptr);
+        close(it.first);
+    }
+    m_listeners.clear();
+
     if (m_epfd != -1)
         close(m_epfd);
+    m_epfd = -1;
+
+    std::cout << "Server stopped." << std::endl;
 }
+
 
 // ---------------------------ACCESSORS-----------------------------
 
@@ -22,8 +38,8 @@ void Server::run(void)
     if (m_epfd == -1)
         throw std::runtime_error("epoll_create");
 
-    for (int listenerFd : m_listenerFds)
-        addSocketToEPoll(listenerFd, EPOLLIN);
+    for (auto& it : m_listeners)
+        addSocketToEPoll(it.first, EPOLLIN);
 
     t_event FDs[MAX_EVENTS];
     while (g_running)
@@ -38,7 +54,7 @@ void Server::run(void)
         for (int i = 0; i < readyFDs; ++i)
         {
             int fd = FDs[i].data.fd;
-            if (m_listenerFds.count(fd))
+            if (m_listeners.count(fd))
                 acceptNewClient(fd);
             else
                 processClient(fd);
@@ -48,11 +64,10 @@ void Server::run(void)
 
 void Server::addEndpoint(const NetworkEndpoint& endpoint)
 {
-    ServerSocket s(endpoint, QUEUE_SIZE);
-
-    m_listenerFds.insert(s.fd());
-    m_listeners.push_back(std::move(s));
-}
+        ServerSocket s(endpoint, QUEUE_SIZE);
+        int fd = s.fd();
+        m_listeners.emplace(fd, std::move(s));
+    }
 
 void Server::addSocketToEPoll(int socket, uint32_t events)
 {
@@ -67,37 +82,61 @@ void Server::addSocketToEPoll(int socket, uint32_t events)
 
 void Server::acceptNewClient(int listeningSocket)
 {
-    int clientSocket = accept(listeningSocket, NULL, NULL);
+    sockaddr_in clientAddr;
+    socklen_t addrLen = sizeof(clientAddr);
+
+    int clientSocket = accept(listeningSocket, (struct sockaddr*)&clientAddr, &addrLen);
     if (clientSocket == -1)
+    {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
+            return;
         throw std::runtime_error("accept");
+    }
 
     Socket::setNonBlockingAndCloexec(clientSocket);
     addSocketToEPoll(clientSocket, EPOLLIN);
+
+    m_clients.emplace(clientSocket, std::unique_ptr<Client>(new Client(clientSocket, clientAddr)));
+
+    printAllClients();
+}
+
+void Server::removeClient(int clientSocket)
+{
+    m_clients.erase(clientSocket);
 }
 
 void Server::processClient(int clientSocket)
 {
-    // Data ready to read from client
     char buf[512];
     int n = recv(clientSocket, buf, sizeof(buf) - 1, 0);
 
     if (n > 0)
     {
         buf[n] = '\0';
-        std::cout << "Received:\n" << buf << "\n";
+        auto it = m_clients.find(clientSocket);
+        if (it != m_clients.end())
+            it->second->appendToInBuffer(buf);
+        std::cout << "Received from " << clientSocket << ": " << buf << "\n";
     }
     else if (n == 0)
     {
-        // Client disconnected
         epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr);
-        close(clientSocket);
+        m_clients.erase(clientSocket);
         std::cout << "Client disconnected: " << clientSocket << "\n";
     }
     else
     {
         if (errno == EAGAIN || errno == EWOULDBLOCK)
-            return; // not a real error
+            return;
         else
-            throw std::runtime_error("read");
+            throw std::runtime_error("recv");
     }
+}
+
+void Server::printAllClients() const
+{
+    std::cout << "=== Active Clients ===" << std::endl;
+    for (const auto& it : m_clients)
+        it.second->printInfo();
 }
