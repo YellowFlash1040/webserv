@@ -31,22 +31,16 @@ class Token
 
     // Class specific features
   public:
-    // Constants
     // Accessors
     TokenType type() const;
     std::string value() const;
     // Methods
     static std::string toString(const Token& token);
 
-  protected:
-    // Properties
-    // Methods
-
   private:
     // Properties
     TokenType m_type;
     std::string m_value;
-    // Methods
 };
 
 #endif

@@ -48,17 +48,6 @@ Token& Token::operator=(Token&& other) noexcept
 // Destructor
 Token::~Token() {}
 
-std::string Token::toString(const Token& token)
-{
-    static const char* tokenTypes[]
-        = {"OPEN_BRACE", "CLOSE_BRACE", "IP",
-           "PORT",       "SEMICOLON",   "HASHTAG",
-           "SERVER",     "LISTEN",      "ROOT",
-           "INDEX",      "LOCATION",    "AUTOINDEX",
-           "ERROR_PAGE", "SERVER_NAME", "CLIENT_MAX_BODY_SIZE"};
-    return std::string(tokenTypes[static_cast<int>(token.m_type)]);
-}
-
 // ---------------------------ACCESSORS-----------------------------
 
 TokenType Token::type() const
@@ -70,5 +59,3 @@ std::string Token::value() const
 {
     return (m_value);
 }
-
-// ---------------------------METHODS-----------------------------

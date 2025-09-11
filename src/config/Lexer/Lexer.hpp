@@ -11,45 +11,36 @@
 
 class Lexer
 {
-  private:
-    struct LexerState
-    {
-        const std::string& input;
-        std::vector<Token> tokens;
-        std::string value;
-        size_t i = 0;
-        bool found_a_directive = false;
-
-        LexerState(const std::string& src);
-    };
-
     // Construction and destruction
   public:
-    Lexer() = delete;
-    Lexer(const Lexer& other) = delete;
+    Lexer(const std::string& source);
+    Lexer(const Lexer& other);
     Lexer& operator=(const Lexer& other) = delete;
-    Lexer(Lexer&& other) noexcept = delete;
+    Lexer(Lexer&& other) noexcept;
     Lexer& operator=(Lexer&& other) noexcept = delete;
-    ~Lexer() = delete;
+    ~Lexer();
 
     // Class specific features
   public:
     // Methods
+    std::vector<Token> tokenize();
     static std::vector<Token> tokenize(const std::string& input);
 
   private:
+    // Properties:
+    const std::string& m_input;
+    std::vector<Token> m_tokens;
+    std::string m_value;
+    size_t m_pos = 0;
+    bool m_foundDirective = false;
     // Methods
-    static void addToken(std::vector<Token>& tokens, TokenType type,
-                         std::string& value);
-    static void parseQuotedString(const std::string& input, size_t& i,
-                                  std::string& value);
-    static void skipComment(LexerState lexerState);
-    static void processValue(std::vector<Token>& tokens, std::string& value,
-                             bool& found_a_directive);
-    static void addSingleCharToken(std::vector<Token>& tokens, char c);
-    static void finalizeTokens(std::vector<Token>& tokens, std::string& value,
-                               bool& found_a_directive);
-    static void processQuote(LexerState& s);
+    void addToken();
+    void parseQuotedString();
+    void skipComment();
+    void processValue();
+    void addSingleCharToken(char c);
+    void finalizeTokens();
+    void processQuote();
 };
 
 #endif

@@ -1,103 +1,126 @@
 #include "Lexer.hpp"
 
+// -------------------CONSTRUCTION AND DESTRUCTION---------------------
+
+Lexer::Lexer(const std::string& source)
+  : m_input(source)
+{
+    m_value.reserve(20);
+}
+
+Lexer::Lexer(const Lexer& other)
+  : m_input(other.m_input)
+  , m_tokens(other.m_tokens)
+  , m_value(other.m_value)
+  , m_pos(other.m_pos)
+  , m_foundDirective(other.m_foundDirective)
+{
+}
+
+Lexer::Lexer(Lexer&& other) noexcept
+  : m_input(other.m_input)
+  , m_tokens(std::move(other.m_tokens))
+  , m_value(std::move(other.m_value))
+  , m_pos(other.m_pos)
+  , m_foundDirective(other.m_foundDirective)
+{
+}
+
+Lexer::~Lexer() {}
+
 // ---------------------------METHODS-----------------------------
 
 std::vector<Token> Lexer::tokenize(const std::string& input)
 {
-    LexerState lexerState(input);
+    return Lexer(input).tokenize();
+}
 
-    for (; lexerState.i < input.length(); ++lexerState.i)
+std::vector<Token> Lexer::tokenize()
+{
+    for (; m_pos < m_input.length(); ++m_pos)
     {
-        char c = input[lexState.i];
+        char c = m_input[m_pos];
 
         if (c == '"' || c == '\'')
-            processQuote(lexerState);
+            processQuote();
         else if (c == '#')
-            skipComment(lexerState);
-        else if (c == ' ' || c == '\t' || c == '\n')
-            processValue(lexerState);
+            skipComment();
+        else if (std::isspace(c))
+            processValue();
         else if (c == ';' || c == '{' || c == '}')
         {
-            processValue(lexerState);
-            addSingleCharToken(lexerState.tokens, c);
-            lexerState.found_a_directive = false;
+            processValue();
+            addSingleCharToken(c);
+            m_foundDirective = false;
         }
         else
-            value.push_back(c);
+            m_value.push_back(c);
     }
-    finalizeTokens(lexerState);
+    finalizeTokens();
 
-    return (tokens);
+    return (std::move(m_tokens));
 }
 
-void Lexer::finalizeTokens(LexerState& State)
+void Lexer::finalizeTokens()
 {
-    std::vector<Token>&tokens, std::string &value,
-        bool &found_a_directive
-
-            processValue(tokens, value, found_a_directive);
-    tokens.emplace_back(TokenType::END, "");
+    processValue();
+    m_tokens.emplace_back(TokenType::END, "");
 }
 
-void Lexer::processQuote(LexerState& s);
+void Lexer::processQuote()
 {
-    parseQuotedString(s.input, s.i, s.value);
-    tokens.emplace_back(TokenType::VALUE, std::move(value));
+    parseQuotedString();
+    m_tokens.emplace_back(TokenType::VALUE, std::move(m_value));
 }
 
-void Lexer::parseQuotedString(const std::string& input, size_t& i,
-                              std::string& value)
+void Lexer::parseQuotedString()
 {
-    char quote_char = input[i];
-    value.push_back(quote_char);
+    char quote_char = m_input[m_pos];
+    m_value.push_back(quote_char);
 
-    while (!(++i == input.length() || input[i] == quote_char))
-        value.push_back(input[i]);
+    while (!(++m_pos == m_input.length() || m_input[m_pos] == quote_char))
+        m_value.push_back(m_input[m_pos]);
 
-    if (i >= input.length())
+    if (m_pos >= m_input.length())
         throw std::logic_error("No end of quote");
     else
-        value.push_back(input[i]);
+        m_value.push_back(m_input[m_pos]);
 }
 
-void Lexer::skipComment(LexerState& s)
+void Lexer::skipComment()
 {
-    const std::string& input = s.input;
-    size_t& i = s.i;
-
-    while (!(i == input.length() || input[i] == '\n'))
-        ++i;
+    while (!(m_pos == m_input.length() || m_input[m_pos] == '\n'))
+        ++m_pos;
 }
 
-void Lexer::processValue(std::vector<Token>& tokens, std::string& value,
-                         bool& found_a_directive)
+void Lexer::processValue()
 {
-    if (!value.empty())
+    if (!m_value.empty())
     {
-        if (!found_a_directive)
+        if (!m_foundDirective)
         {
-            tokens.emplace_back(TokenType::DIRECTIVE, std::move(value));
-            found_a_directive = true;
+            m_tokens.emplace_back(TokenType::DIRECTIVE, std::move(m_value));
+            m_foundDirective = true;
         }
         else
-            tokens.emplace_back(TokenType::VALUE, std::move(value));
+            m_tokens.emplace_back(TokenType::VALUE, std::move(m_value));
     }
 }
 
-void Lexer::addSingleCharToken(std::vector<Token>& tokens, char c)
+void Lexer::addSingleCharToken(char c)
 {
     std::string value(1, c);
 
     switch (c)
     {
     case ';':
-        tokens.emplace_back(TokenType::SEMICOLON, std::move(value));
+        m_tokens.emplace_back(TokenType::SEMICOLON, std::move(value));
         break;
     case '{':
-        tokens.emplace_back(TokenType::OPEN_BRACE, std::move(value));
+        m_tokens.emplace_back(TokenType::OPEN_BRACE, std::move(value));
         break;
     case '}':
-        tokens.emplace_back(TokenType::CLOSE_BRACE, std::move(value));
+        m_tokens.emplace_back(TokenType::CLOSE_BRACE, std::move(value));
         break;
     default:
         throw std::logic_error("Unexpected character");
@@ -157,9 +180,3 @@ writing a compiler. The more formal names are:
 - **Syntactic analysis** (parsing)
 
 */
-
-LexerState::LexerState(const std::string& src)
-  : input(src)
-{
-    value.reserve(20);
-}
