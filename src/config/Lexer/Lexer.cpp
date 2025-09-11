@@ -4,40 +4,45 @@
 
 std::vector<Token> Lexer::tokenize(const std::string& input)
 {
-    std::vector<Token> tokens;
-    std::string value;
-    value.reserve(20);
+    LexerState lexerState(input);
 
-    bool found_a_directive = false;
-
-    for (size_t i = 0; i < input.length(); ++i)
+    for (; lexerState.i < input.length(); ++lexerState.i)
     {
-        char c = input[i];
+        char c = input[lexState.i];
 
         if (c == '"' || c == '\'')
-        {
-            parseQuotedString(input, i, value);
-            tokens.emplace_back(TokenType::VALUE, std::move(value));
-        }
+            processQuote(lexerState);
         else if (c == '#')
-            skipComment(input, i);
+            skipComment(lexerState);
         else if (c == ' ' || c == '\t' || c == '\n')
-            processValue(tokens, value, found_a_directive);
+            processValue(lexerState);
         else if (c == ';' || c == '{' || c == '}')
         {
-            processValue(tokens, value, found_a_directive);
-            addSingleCharToken(tokens, c);
-            found_a_directive = false;
+            processValue(lexerState);
+            addSingleCharToken(lexerState.tokens, c);
+            lexerState.found_a_directive = false;
         }
         else
             value.push_back(c);
     }
-
-    processValue(tokens, value, found_a_directive);
-
-    tokens.emplace_back(TokenType::END, "");
+    finalizeTokens(lexerState);
 
     return (tokens);
+}
+
+void Lexer::finalizeTokens(LexerState& State)
+{
+    std::vector<Token>&tokens, std::string &value,
+        bool &found_a_directive
+
+            processValue(tokens, value, found_a_directive);
+    tokens.emplace_back(TokenType::END, "");
+}
+
+void Lexer::processQuote(LexerState& s);
+{
+    parseQuotedString(s.input, s.i, s.value);
+    tokens.emplace_back(TokenType::VALUE, std::move(value));
 }
 
 void Lexer::parseQuotedString(const std::string& input, size_t& i,
@@ -55,8 +60,11 @@ void Lexer::parseQuotedString(const std::string& input, size_t& i,
         value.push_back(input[i]);
 }
 
-void Lexer::skipComment(const std::string& input, size_t& i)
+void Lexer::skipComment(LexerState& s)
 {
+    const std::string& input = s.input;
+    size_t& i = s.i;
+
     while (!(i == input.length() || input[i] == '\n'))
         ++i;
 }
@@ -149,3 +157,9 @@ writing a compiler. The more formal names are:
 - **Syntactic analysis** (parsing)
 
 */
+
+LexerState::LexerState(const std::string& src)
+  : input(src)
+{
+    value.reserve(20);
+}
