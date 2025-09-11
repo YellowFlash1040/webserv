@@ -41,7 +41,7 @@ GTEST_DIR 				:= $(TESTS_DIR)/googletest
 
 #-----------------------FILES------------------------------------------------------------
 # Sources
-CPP_FILES 				:= $(shell find $(SRC_DIR) -name '*.cpp')
+CPP_FILES 				:= $(shell find $(SRC_DIR) -name '*.cpp' -not -path '*/.*/*')
 HEADERS 				:= $(shell find $(SRC_DIR) -name '*.hpp')
 
 # Objects
