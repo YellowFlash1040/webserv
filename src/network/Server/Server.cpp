@@ -41,10 +41,11 @@ void Server::run(void)
     for (auto& it : m_listeners)
         addSocketToEPoll(it.first, EPOLLIN);
 
-    t_event FDs[MAX_EVENTS];
+    t_event events[MAX_EVENTS];
+
     while (g_running)
     {
-        int readyFDs = epoll_wait(m_epfd, FDs, MAX_EVENTS, -1);
+        int readyFDs = epoll_wait(m_epfd, events, MAX_EVENTS, -1);
         if (readyFDs == -1)
         {
             if (errno == EINTR)
@@ -53,14 +54,62 @@ void Server::run(void)
         }
         for (int i = 0; i < readyFDs; ++i)
         {
-            int fd = FDs[i].data.fd;
+            int fd = events[i].data.fd;
+            uint32_t ev = events[i].events;
+
             if (m_listeners.count(fd))
+            {
                 acceptNewClient(fd);
-            else
+                continue;
+            }
+            auto itClient = m_clients.find(fd);
+            if (itClient == m_clients.end())
+                continue; // Can it be that we have fd but client is already off?
+
+            Client& client = *itClient->second;
+
+            if (ev & EPOLLIN)
+            {
                 processClient(fd);
+            }
+
+            if ((ev & EPOLLOUT) && !client.getOutBuffer().empty())
+            {
+                flushClientOutBuffer(fd, client);
+            }
+
+            // if (ev & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
+            // {
+            //     epoll_ctl(m_epfd, EPOLL_CTL_DEL, fd, nullptr);
+            //     m_clients.erase(fd);
+            //     close(fd);
+            //     std::cout << "Client disconnected: " << fd << "\n";
+            // }
         }
     }
 }
+
+void Server::flushClientOutBuffer(int fd, Client& client)
+{
+    std::string& out = client.getOutBuffer();
+    if (out.empty())
+        return;
+
+    ssize_t sent = send(fd, out.c_str(), out.size(), 0);
+    if (sent > 0)
+    {
+        out.erase(0, sent);
+    }
+
+    if (out.empty())
+    {
+        struct epoll_event mod;
+        mod.data.fd = fd;
+        mod.events = EPOLLIN | EPOLLRDHUP;
+        epoll_ctl(m_epfd, EPOLL_CTL_MOD, fd, &mod);
+    }
+}
+
 
 void Server::addEndpoint(const NetworkEndpoint& endpoint)
 {
@@ -98,7 +147,16 @@ void Server::acceptNewClient(int listeningSocket)
 
     m_clients.emplace(clientSocket, std::unique_ptr<Client>(new Client(clientSocket, clientAddr)));
 
-    printAllClients();
+    //test for sending (remove it after implementing HTTP)
+
+    std::string testMsg = "Hello from server!\r\n";
+    m_clients[clientSocket]->appendToOutBuffer(testMsg);
+
+
+    struct epoll_event ev;
+    ev.data.fd = clientSocket;
+    ev.events = EPOLLIN | EPOLLOUT;
+    epoll_ctl(m_epfd, EPOLL_CTL_MOD, clientSocket, &ev);
 }
 
 void Server::removeClient(int clientSocket)

@@ -12,6 +12,7 @@
 # include <unordered_set>
 # include <vector>
 # include <memory>
+
 # include "Client.hpp"
 # include "NetworkEndpoint.hpp"
 # include "ServerSocket.hpp"
@@ -55,6 +56,7 @@ class Server
     void addSocketToEPoll(int socket, uint32_t events);
     void acceptNewClient(int listeningSocket);
     void processClient(int clientSocket);
+    void flushClientOutBuffer(int fd, Client& client);
 };
 
 #endif
