@@ -56,7 +56,7 @@ std::vector<ADirective> Parser::parse(std::vector<Token>& tokens)
 
 Token Parser::advance()
 {
-    Token token = m_tokens.back();
+    Token token = std::move(m_tokens.back());
     m_tokens.pop_back();
     return (token);
 }
@@ -73,8 +73,9 @@ Token& Parser::peek()
 std::vector<ADirective> Parser::parse()
 {
     std::vector<ADirective> directives;
+    Token token;
 
-    Token token = peek();
+    token = advance();
     while (token.type() != TokenType::END)
     {
         if (token.type() == TokenType::OPEN_BRACE)
@@ -90,8 +91,10 @@ std::vector<ADirective> Parser::parse()
 BlockDirective Parser::parseBlock()
 {
     BlockDirective block;
+    Token token;
 
-    Token token = peek();
+    token = advance();
+
     while (token.type() != TokenType::END
            && token.type() != TokenType::CLOSE_BRACE)
     {
@@ -111,16 +114,23 @@ BlockDirective Parser::parseBlock()
 SimpleDirective Parser::parseSimpleDirective()
 {
     SimpleDirective directive;
+    Token token;
 
-    // Token token = peek();
-    // if (token.type() != TokenType::DIRECTIVE)
-    //     throw std::logic_error("Expected a directive");
-    // while (toke.type() != TokenType::CLOSE_BRACE)
-    // {
-    //     else block.addDirective(parseSimpleDirective());
-    //     token = advance();
-    // }
-    // return (directive);
+    token = advance();
+    if (token.type() != TokenType::DIRECTIVE)
+        throw std::logic_error("Expected a directive");
+    directive.setName(token.value());
+
+    token = advance();
+    while (!(token.type() == TokenType::END
+             || token.type() == TokenType::SEMICOLON))
+    {
+        directive.addArgument(token.value());
+        token = advance();
+    }
+
+    if (token.type() == TokenType::END)
+        throw std::logic_error("No semicolon in the end of directive");
 
     return (directive);
 }

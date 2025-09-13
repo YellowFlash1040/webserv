@@ -32,7 +32,7 @@ Lexer::~Lexer() {}
 
 std::vector<Token> Lexer::tokenize(const std::string& input)
 {
-    return Lexer(input).tokenize();
+    return (Lexer(input).tokenize());
 }
 
 std::vector<Token> Lexer::tokenize()
@@ -61,16 +61,27 @@ std::vector<Token> Lexer::tokenize()
     return (std::move(m_tokens));
 }
 
+void Lexer::addToken(TokenType type)
+{
+    m_tokens.emplace_back(type, std::move(m_value));
+    m_value.reserve(20);
+}
+
+void Lexer::addToken(TokenType type, char c)
+{
+    m_tokens.emplace_back(type, std::string(1, c));
+}
+
 void Lexer::finalizeTokens()
 {
     processValue();
-    m_tokens.emplace_back(TokenType::END, "");
+    addToken(TokenType::END);
 }
 
 void Lexer::processQuote()
 {
     parseQuotedString();
-    m_tokens.emplace_back(TokenType::VALUE, std::move(m_value));
+    addToken(TokenType::VALUE);
 }
 
 void Lexer::parseQuotedString()
@@ -99,11 +110,11 @@ void Lexer::processValue()
     {
         if (!m_foundDirective)
         {
-            m_tokens.emplace_back(TokenType::DIRECTIVE, std::move(m_value));
+            addToken(TokenType::DIRECTIVE);
             m_foundDirective = true;
         }
         else
-            m_tokens.emplace_back(TokenType::VALUE, std::move(m_value));
+            addToken(TokenType::VALUE);
     }
 }
 
@@ -111,20 +122,22 @@ void Lexer::addSingleCharToken(char c)
 {
     std::string value(1, c);
 
+    TokenType type;
     switch (c)
     {
     case ';':
-        m_tokens.emplace_back(TokenType::SEMICOLON, std::move(value));
+        type = TokenType::SEMICOLON;
         break;
     case '{':
-        m_tokens.emplace_back(TokenType::OPEN_BRACE, std::move(value));
+        type = TokenType::OPEN_BRACE;
         break;
     case '}':
-        m_tokens.emplace_back(TokenType::CLOSE_BRACE, std::move(value));
+        type = TokenType::CLOSE_BRACE;
         break;
     default:
         throw std::logic_error("Unexpected character");
     }
+    addToken(type, c);
 }
 
 /*

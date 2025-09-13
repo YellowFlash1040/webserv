@@ -46,4 +46,19 @@ ADirective::~ADirective() {}
 
 // ---------------------------ACCESSORS-----------------------------
 
+std::string ADirective::name() const
+{
+    return (m_name);
+}
+
+void ADirective::setName(const std::string& name)
+{
+    m_name = name;
+}
+
 // ---------------------------METHODS-----------------------------
+
+void ADirective::addArgument(const std::string& arg)
+{
+    m_args.push_back(arg);
+}

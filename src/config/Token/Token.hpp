@@ -15,13 +15,16 @@ enum class TokenType
     SEMICOLON,
 
     DIRECTIVE,
-    VALUE
+    VALUE,
+
+    NONE
 };
 
 class Token
 {
     // Construction and destruction
   public:
+    Token();
     Token(TokenType type, std::string value);
     Token(const Token& other);
     Token& operator=(const Token& other);
@@ -35,7 +38,6 @@ class Token
     TokenType type() const;
     std::string value() const;
     // Methods
-    static std::string toString(const Token& token);
 
   private:
     // Properties

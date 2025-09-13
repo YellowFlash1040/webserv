@@ -2,6 +2,11 @@
 
 // -----------------------CONSTRUCTION AND DESTRUCTION-------------------------
 
+Token::Token()
+  : m_type(TokenType::NONE)
+{
+}
+
 // Default constructor
 Token::Token(TokenType type, std::string value)
   : m_type(type)

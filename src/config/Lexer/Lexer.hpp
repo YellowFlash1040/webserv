@@ -34,7 +34,8 @@ class Lexer
     size_t m_pos = 0;
     bool m_foundDirective = false;
     // Methods
-    void addToken();
+    void addToken(TokenType type);
+    void addToken(TokenType type, char c);
     void parseQuotedString();
     void skipComment();
     void processValue();
