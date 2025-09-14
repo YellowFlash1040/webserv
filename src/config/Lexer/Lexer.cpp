@@ -32,7 +32,7 @@ Lexer::~Lexer() {}
 
 std::vector<Token> Lexer::tokenize(const std::string& input)
 {
-    return (Lexer(input).tokenize());
+    return Lexer(input).tokenize();
 }
 
 std::vector<Token> Lexer::tokenize()
@@ -58,13 +58,14 @@ std::vector<Token> Lexer::tokenize()
     }
     finalizeTokens();
 
-    return (std::move(m_tokens));
+    return std::move(m_tokens);
 }
 
 void Lexer::addToken(TokenType type)
 {
     m_tokens.emplace_back(type, std::move(m_value));
     m_value.reserve(20);
+    m_value.clear();
 }
 
 void Lexer::addToken(TokenType type, char c)

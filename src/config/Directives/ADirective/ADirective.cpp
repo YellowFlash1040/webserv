@@ -46,19 +46,24 @@ ADirective::~ADirective() {}
 
 // ---------------------------ACCESSORS-----------------------------
 
-std::string ADirective::name() const
+const std::string& ADirective::name() const
 {
-    return (m_name);
+    return m_name;
 }
 
-void ADirective::setName(const std::string& name)
+void ADirective::setName(std::string&& name)
 {
-    m_name = name;
+    m_name = std::move(name);
 }
 
-std::vector<std::string>& ADirective::args()
+const std::vector<std::string>& ADirective::args()
 {
-    return (m_args);
+    return m_args;
+}
+
+void ADirective::setArgs(std::vector<std::string>&& args)
+{
+    m_args = std::move(args);
 }
 
 // ---------------------------METHODS-----------------------------

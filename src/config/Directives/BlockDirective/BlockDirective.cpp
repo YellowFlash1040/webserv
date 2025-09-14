@@ -47,7 +47,7 @@ BlockDirective::~BlockDirective() {}
 
 std::vector<std::unique_ptr<ADirective>>& BlockDirective::directives()
 {
-    return (m_directives);
+    return m_directives;
 }
 
 // ---------------------------METHODS-----------------------------

@@ -28,11 +28,12 @@ class ADirective
   public:
     // Constants
     // Accessors
-    std::string name() const;
-    void setName(const std::string& name);
+    const std::string& name() const;
+    void setName(std::string&& name);
+    const std::vector<std::string>& args();
+    void setArgs(std::vector<std::string>&& args);
     // Methods
     void addArgument(const std::string& arg);
-    std::vector<std::string>& args();
 
   protected:
     // Properties

@@ -18,7 +18,7 @@ class Parser
 {
     // Construction and destruction
   public:
-    Parser(std::vector<Token>& tokens);
+    explicit Parser(std::vector<Token>& tokens);
     Parser(const Parser& other);
     Parser& operator=(const Parser& other);
     Parser(Parser&& other) noexcept;
@@ -33,8 +33,6 @@ class Parser
     static std::vector<std::unique_ptr<ADirective>> parse(
         std::vector<Token>& tokens);
     std::vector<std::unique_ptr<ADirective>>& parse();
-    std::unique_ptr<BlockDirective> parseBlock();
-    std::unique_ptr<SimpleDirective> parseSimpleDirective();
 
   protected:
     // Properties
@@ -47,6 +45,12 @@ class Parser
     // Methods
     Token advance();
     Token& peek();
+    std::unique_ptr<ADirective> parseDirective();
+    std::unique_ptr<BlockDirective> parseBlockDirective(
+        std::string& name, std::vector<std::string>& args);
+    std::unique_ptr<SimpleDirective> parseSimpleDirective(
+        std::string& name, std::vector<std::string>& args);
+    void consumeArguments(std::vector<std::string>& args);
 };
 
 #endif

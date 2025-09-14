@@ -13,7 +13,7 @@ class Lexer
 {
     // Construction and destruction
   public:
-    Lexer(const std::string& source);
+    explicit Lexer(const std::string& source);
     Lexer(const Lexer& other);
     Lexer& operator=(const Lexer& other) = delete;
     Lexer(Lexer&& other) noexcept;

@@ -8,7 +8,7 @@ Token::Token()
 }
 
 // Default constructor
-Token::Token(TokenType type, std::string value)
+Token::Token(TokenType type, const std::string& value)
   : m_type(type)
   , m_value(value)
 {
@@ -57,10 +57,10 @@ Token::~Token() {}
 
 TokenType Token::type() const
 {
-    return (m_type);
+    return m_type;
 }
 
-std::string Token::value() const
+const std::string& Token::value() const
 {
-    return (m_value);
+    return m_value;
 }
