@@ -49,7 +49,8 @@ Parser::~Parser() {}
 
 // ---------------------------METHODS-----------------------------
 
-std::vector<ADirective> Parser::parse(std::vector<Token>& tokens)
+std::vector<std::unique_ptr<ADirective>> Parser::parse(
+    std::vector<Token>& tokens)
 {
     return (Parser(tokens).parse());
 }
@@ -70,31 +71,30 @@ Token& Parser::peek()
 // PARSING LOGIC
 // ------------------------
 
-std::vector<ADirective> Parser::parse()
+std::vector<std::unique_ptr<ADirective>>& Parser::parse()
 {
-    std::vector<ADirective> directives;
     Token token;
 
     token = advance();
     while (token.type() != TokenType::END)
     {
         if (token.type() == TokenType::OPEN_BRACE)
-            directives.push_back(parseBlock());
+            m_directives.push_back(parseBlock());
         else
-            directives.push_back(parseSimpleDirective());
+            m_directives.push_back(parseSimpleDirective());
         token = peek();
     }
 
-    return (directives);
+    return (m_directives);
 }
 
-BlockDirective Parser::parseBlock()
+std::unique_ptr<BlockDirective> Parser::parseBlock()
 {
-    BlockDirective block;
+    std::unique_ptr<BlockDirective> block;
     Token token;
 
+    block = std::make_unique<BlockDirective>();
     token = advance();
-
     while (token.type() != TokenType::END
            && token.type() != TokenType::CLOSE_BRACE)
     {
@@ -111,11 +111,12 @@ BlockDirective Parser::parseBlock()
     return (block);
 }
 
-SimpleDirective Parser::parseSimpleDirective()
+std::unique_ptr<SimpleDirective> Parser::parseSimpleDirective()
 {
-    SimpleDirective directive;
+    std::unique_ptr<SimpleDirective> directive;
     Token token;
 
+    directive = make_unique<SimpleDirective>();
     token = advance();
     if (token.type() != TokenType::DIRECTIVE)
         throw std::logic_error("Expected a directive");

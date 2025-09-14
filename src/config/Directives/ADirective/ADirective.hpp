@@ -32,6 +32,7 @@ class ADirective
     void setName(const std::string& name);
     // Methods
     void addArgument(const std::string& arg);
+    std::vector<std::string>& args();
 
   protected:
     // Properties

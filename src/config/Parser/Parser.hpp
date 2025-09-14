@@ -7,6 +7,7 @@
 # include <stdexcept>
 # include <vector>
 # include <algorithm>
+# include <memory>
 
 # include "Token.hpp"
 # include "ADirective.hpp"
@@ -29,10 +30,11 @@ class Parser
     // Constants
     // Accessors
     // Methods
-    static std::vector<ADirective> parse(std::vector<Token>& tokens);
-    std::vector<ADirective> parse();
-    BlockDirective parseBlock();
-    SimpleDirective parseSimpleDirective();
+    static std::vector<std::unique_ptr<ADirective>> parse(
+        std::vector<Token>& tokens);
+    std::vector<std::unique_ptr<ADirective>>& parse();
+    std::unique_ptr<BlockDirective> parseBlock();
+    std::unique_ptr<SimpleDirective> parseSimpleDirective();
 
   protected:
     // Properties
@@ -41,6 +43,7 @@ class Parser
   private:
     // Properties
     std::vector<Token>& m_tokens;
+    std::vector<std::unique_ptr<ADirective>> m_directives;
     // Methods
     Token advance();
     Token& peek();

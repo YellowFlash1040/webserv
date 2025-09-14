@@ -4,6 +4,7 @@
 # define BLOCKDIRECTIVE_HPP
 
 # include <utility>
+# include <memory>
 
 # include "ADirective.hpp"
 
@@ -22,8 +23,9 @@ class BlockDirective : public ADirective
   public:
     // Constants
     // Accessors
+    std::vector<std::unique_ptr<ADirective>>& directives();
     // Methods
-    void addDirective(ADirective directive);
+    void addDirective(std::unique_ptr<ADirective>&& directive);
 
   protected:
     // Properties
@@ -31,7 +33,7 @@ class BlockDirective : public ADirective
 
   private:
     // Properties
-    std::vector<ADirective> m_directives;
+    std::vector<std::unique_ptr<ADirective>> m_directives;
     // Methods
 };
 

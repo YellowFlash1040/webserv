@@ -45,9 +45,14 @@ BlockDirective::~BlockDirective() {}
 
 // ---------------------------ACCESSORS-----------------------------
 
+std::vector<std::unique_ptr<ADirective>>& BlockDirective::directives()
+{
+    return (m_directives);
+}
+
 // ---------------------------METHODS-----------------------------
 
-void BlockDirective::addDirective(ADirective directive)
+void BlockDirective::addDirective(std::unique_ptr<ADirective>&& directive)
 {
     m_directives.push_back(std::move(directive));
 }

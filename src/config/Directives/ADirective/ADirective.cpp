@@ -56,6 +56,11 @@ void ADirective::setName(const std::string& name)
     m_name = name;
 }
 
+std::vector<std::string>& ADirective::args()
+{
+    return (m_args);
+}
+
 // ---------------------------METHODS-----------------------------
 
 void ADirective::addArgument(const std::string& arg)
