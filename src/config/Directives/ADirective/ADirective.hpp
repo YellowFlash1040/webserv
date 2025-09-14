@@ -33,7 +33,6 @@ class ADirective
     const std::vector<std::string>& args();
     void setArgs(std::vector<std::string>&& args);
     // Methods
-    void addArgument(const std::string& arg);
 
   protected:
     // Properties

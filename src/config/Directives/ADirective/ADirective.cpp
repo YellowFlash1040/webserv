@@ -65,10 +65,3 @@ void ADirective::setArgs(std::vector<std::string>&& args)
 {
     m_args = std::move(args);
 }
-
-// ---------------------------METHODS-----------------------------
-
-void ADirective::addArgument(const std::string& arg)
-{
-    m_args.push_back(arg);
-}

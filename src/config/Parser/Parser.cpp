@@ -57,6 +57,9 @@ std::vector<std::unique_ptr<ADirective>> Parser::parse(
 
 Token Parser::advance()
 {
+    if (m_tokens.empty())
+        throw std::logic_error("Unexpected end of input while advancing");
+
     Token token = std::move(m_tokens.back());
     m_tokens.pop_back();
     return token;
@@ -64,6 +67,8 @@ Token Parser::advance()
 
 Token& Parser::peek()
 {
+    if (m_tokens.empty())
+        throw std::logic_error("Unexpected end of input while peeking");
     return m_tokens.back();
 }
 
