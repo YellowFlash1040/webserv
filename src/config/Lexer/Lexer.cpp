@@ -46,13 +46,9 @@ std::vector<Token> Lexer::tokenize()
         else if (c == '#')
             skipComment();
         else if (std::isspace(c))
-            processValue();
+            processSpace(c);
         else if (c == ';' || c == '{' || c == '}')
-        {
-            processValue();
-            addSingleCharToken(c);
-            m_foundDirective = false;
-        }
+            processDelimiter(c);
         else
             m_value.push_back(c);
     }
@@ -63,14 +59,21 @@ std::vector<Token> Lexer::tokenize()
 
 void Lexer::addToken(TokenType type)
 {
-    m_tokens.emplace_back(type, std::move(m_value));
+    size_t column = calculateColumn();
+    m_tokens.emplace_back(type, std::move(m_value), m_line, column);
     m_value.reserve(20);
     m_value.clear();
 }
 
 void Lexer::addToken(TokenType type, char c)
 {
-    m_tokens.emplace_back(type, std::string(1, c));
+    size_t column = calculateColumn();
+    m_tokens.emplace_back(type, std::string(1, c), m_line, column);
+}
+
+size_t Lexer::calculateColumn()
+{
+    return (m_pos - m_lastLinePos - m_value.size());
 }
 
 void Lexer::finalizeTokens()
@@ -103,6 +106,23 @@ void Lexer::skipComment()
 {
     while (!(m_pos == m_input.length() || m_input[m_pos] == '\n'))
         ++m_pos;
+}
+
+void Lexer::processSpace(int c)
+{
+    processValue();
+    if (c == '\n')
+    {
+        ++m_line;
+        m_lastLinePos = m_pos;
+    }
+}
+
+void Lexer::processDelimiter(int c)
+{
+    processValue();
+    addSingleCharToken(c);
+    m_foundDirective = false;
 }
 
 void Lexer::processValue()

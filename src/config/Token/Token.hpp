@@ -25,7 +25,7 @@ class Token
     // Construction and destruction
   public:
     Token();
-    Token(TokenType type, const std::string& value);
+    Token(TokenType type, const std::string& value, size_t line, size_t column);
     Token(const Token& other);
     Token& operator=(const Token& other);
     Token(Token&& other) noexcept;
@@ -37,12 +37,16 @@ class Token
     // Accessors
     TokenType type() const;
     const std::string& value() const;
+    size_t line() const;
+    size_t column() const;
     // Methods
 
   private:
     // Properties
-    TokenType m_type;
+    TokenType m_type = TokenType::NONE;
     std::string m_value;
+    size_t m_line = -1;
+    size_t m_column = -1;
 };
 
 #endif

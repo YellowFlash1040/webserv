@@ -2,15 +2,15 @@
 
 // -----------------------CONSTRUCTION AND DESTRUCTION-------------------------
 
-Token::Token()
-  : m_type(TokenType::NONE)
-{
-}
+Token::Token() {}
 
 // Default constructor
-Token::Token(TokenType type, const std::string& value)
+Token::Token(TokenType type, const std::string& value, size_t line,
+             size_t column)
   : m_type(type)
   , m_value(value)
+  , m_line(line)
+  , m_column(column)
 {
 }
 
@@ -18,6 +18,8 @@ Token::Token(TokenType type, const std::string& value)
 Token::Token(const Token& other)
   : m_type(other.m_type)
   , m_value(other.m_value)
+  , m_line(other.m_line)
+  , m_column(other.m_column)
 {
 }
 
@@ -28,6 +30,8 @@ Token& Token::operator=(const Token& other)
     {
         m_type = other.m_type;
         m_value = other.m_value;
+        m_line = other.m_line;
+        m_column = other.m_column;
     }
     return (*this);
 }
@@ -36,6 +40,8 @@ Token& Token::operator=(const Token& other)
 Token::Token(Token&& other) noexcept
   : m_type(other.m_type)
   , m_value(std::move(other.m_value))
+  , m_line(other.m_line)
+  , m_column(other.m_column)
 {
 }
 
@@ -46,6 +52,8 @@ Token& Token::operator=(Token&& other) noexcept
     {
         m_type = other.m_type;
         m_value = std::move(other.m_value);
+        m_line = other.m_line;
+        m_column = other.m_column;
     }
     return (*this);
 }
@@ -63,4 +71,14 @@ TokenType Token::type() const
 const std::string& Token::value() const
 {
     return m_value;
+}
+
+size_t Token::line() const
+{
+    return m_line;
+}
+
+size_t Token::column() const
+{
+    return m_column;
 }

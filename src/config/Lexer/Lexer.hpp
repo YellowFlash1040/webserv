@@ -33,6 +33,8 @@ class Lexer
     std::string m_value;
     size_t m_pos = 0;
     bool m_foundDirective = false;
+    size_t m_line = 1;
+    size_t m_lastLinePos = static_cast<size_t>(-1);
     // Methods
     void addToken(TokenType type);
     void addToken(TokenType type, char c);
@@ -42,6 +44,9 @@ class Lexer
     void addSingleCharToken(char c);
     void finalizeTokens();
     void processQuote();
+    void processSpace(int c);
+    void processDelimiter(int c);
+    size_t calculateColumn();
 };
 
 #endif
