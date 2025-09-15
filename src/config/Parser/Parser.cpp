@@ -88,33 +88,40 @@ std::unique_ptr<ADirective> Parser::parseDirective()
 {
     Token token = advance();
     if (token.type() != TokenType::DIRECTIVE)
-        throw std::logic_error("Expected a directive");
+        throw ParserException(token, "Expected a directive");
+
     std::string directiveName = token.value();
-    // TODO: check if the directive name is a valid name
-    //  and using the name I can later figure out whether the
-    //  error should be "no open brace" or "no semicolon"
+    DirectiveType directiveType = expectKnownDirective(directiveName);
 
     std::vector<std::string> args;
     consumeArguments(args);
 
     token = advance();
-    if (token.type() == TokenType::END)
-        throw std::logic_error("Expected ';' or '{'");
+    if (directiveType == DirectiveType::BLOCK)
+    {
+        if (token.type() != TokenType::OPEN_BRACE)
+            throw ParserException(token, "Expected '{'");
+        return parseAndCreateBlockDirective(directiveName, args);
+    }
 
-    if (token.type() == TokenType::OPEN_BRACE)
-        return parseBlockDirective(directiveName, args);
-    else if (token.type() == TokenType::SEMICOLON)
-        return parseSimpleDirective(directiveName, args);
+    if (token.type() != TokenType::SEMICOLON)
+        throw ParserException(token, "Expected ';'");
 
-    throw std::logic_error("Unexpected token after directive");
+    return createSimpleDirective(directiveName, args);
+}
+
+DirectiveType Parser::expectKnownDirective(const std::string& directiveName)
+{
+    DirectiveType directiveType = Directives::getDirectiveType(directiveName);
+    if (directiveType == DirectiveType::UNKNOWN)
+        throw ParserException(peek(), "Unknown directive");
+    return directiveType;
 }
 
 void Parser::consumeArguments(std::vector<std::string>& args)
 {
     Token token = peek();
-    while (!(token.type() == TokenType::END
-             || token.type() == TokenType::OPEN_BRACE
-             || token.type() == TokenType::SEMICOLON))
+    while (token.type() == TokenType::VALUE)
     {
         token = advance();
         args.push_back(token.value());
@@ -122,7 +129,7 @@ void Parser::consumeArguments(std::vector<std::string>& args)
     }
 }
 
-std::unique_ptr<BlockDirective> Parser::parseBlockDirective(
+std::unique_ptr<BlockDirective> Parser::parseAndCreateBlockDirective(
     std::string& name, std::vector<std::string>& args)
 {
     auto blockDir = std::make_unique<BlockDirective>();
@@ -138,13 +145,13 @@ std::unique_ptr<BlockDirective> Parser::parseBlockDirective(
     }
 
     if (token.type() != TokenType::CLOSE_BRACE)
-        throw std::logic_error("No closing brace");
+        throw ParserException(token, "No closing brace '}'");
     advance(); // consume CLOSE_BRACE
 
     return blockDir;
 }
 
-std::unique_ptr<SimpleDirective> Parser::parseSimpleDirective(
+std::unique_ptr<SimpleDirective> Parser::createSimpleDirective(
     std::string& name, std::vector<std::string>& args)
 {
     auto simpleDir = std::make_unique<SimpleDirective>();

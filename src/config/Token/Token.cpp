@@ -4,6 +4,14 @@
 
 Token::Token() {}
 
+Token::Token(TokenType type, const std::string& value)
+  : m_type(type)
+  , m_value(value)
+  , m_line(-1)
+  , m_column(-1)
+{
+}
+
 // Default constructor
 Token::Token(TokenType type, const std::string& value, size_t line,
              size_t column)

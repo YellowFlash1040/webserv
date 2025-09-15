@@ -13,6 +13,9 @@
 # include "ADirective.hpp"
 # include "BlockDirective.hpp"
 # include "SimpleDirective.hpp"
+# include "Directives.hpp"
+
+# include "ParserException.hpp"
 
 class Parser
 {
@@ -46,10 +49,12 @@ class Parser
     Token advance();
     Token& peek();
     std::unique_ptr<ADirective> parseDirective();
-    std::unique_ptr<BlockDirective> parseBlockDirective(
+    std::unique_ptr<BlockDirective> parseAndCreateBlockDirective(
         std::string& name, std::vector<std::string>& args);
-    std::unique_ptr<SimpleDirective> parseSimpleDirective(
+    std::unique_ptr<SimpleDirective> createSimpleDirective(
         std::string& name, std::vector<std::string>& args);
+    std::string expectDirective();
+    DirectiveType expectKnownDirective(const std::string& directiveName);
     void consumeArguments(std::vector<std::string>& args);
 };
 

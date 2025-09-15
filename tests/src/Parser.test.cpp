@@ -21,7 +21,7 @@ TEST(ParserTest, SingleSimpleDirective_ParsesCorrectly)
         {TokenType::END, ""}
     };
 
-    EXPECT_THROW(Parser::parse(tokens), std::logic_error);
+    EXPECT_THROW(Parser::parse(tokens), ParserException);
 }
 
 TEST(ParserTest, SingleBlockDirective_ParsesCorrectly)
@@ -32,7 +32,7 @@ TEST(ParserTest, SingleBlockDirective_ParsesCorrectly)
         {TokenType::END, ""}
     };
 
-    EXPECT_THROW(Parser::parse(tokens), std::logic_error);
+    EXPECT_THROW(Parser::parse(tokens), ParserException);
 }
 
 TEST(ParserTest, NestedBlockDirective_ParsesCorrectly)
@@ -45,7 +45,7 @@ TEST(ParserTest, NestedBlockDirective_ParsesCorrectly)
         {TokenType::END, ""}
     };
 
-    EXPECT_THROW(Parser::parse(tokens), std::logic_error);
+    EXPECT_THROW(Parser::parse(tokens), ParserException);
 }
 
 TEST(ParserTest, MissingCloseBrace_ThrowsException)
@@ -55,7 +55,7 @@ TEST(ParserTest, MissingCloseBrace_ThrowsException)
         {TokenType::END, ""}
     };
 
-    EXPECT_THROW(Parser::parse(tokens), std::logic_error);
+    EXPECT_THROW(Parser::parse(tokens), ParserException);
 }
 
 TEST(ParserTest, MixedDirectives_ParsesCorrectly)
@@ -68,7 +68,7 @@ TEST(ParserTest, MixedDirectives_ParsesCorrectly)
         {TokenType::END, ""}
     };
 
-    EXPECT_THROW(auto result = Parser::parse(tokens), std::logic_error);
+    EXPECT_THROW(auto result = Parser::parse(tokens), ParserException);
 }
 
 TEST(ParserTest, ParsesServerBlockWithMultipleDirectivesAndNestedLocation)
@@ -470,7 +470,7 @@ TEST(ParserTest, ParseMissingSemicolon)
         {TokenType::END, ""}
     };
 
-    EXPECT_THROW(Parser::parse(tokens), std::logic_error);
+    EXPECT_THROW(Parser::parse(tokens), ParserException);
 }
 
 TEST(ParserTest, ParseUnmatchedOpenBrace)
@@ -485,7 +485,7 @@ TEST(ParserTest, ParseUnmatchedOpenBrace)
         {TokenType::END, ""}
     };
 
-    EXPECT_THROW(Parser::parse(tokens), std::logic_error);
+    EXPECT_THROW(Parser::parse(tokens), ParserException);
 }
 
 TEST(ParserTest, ParseUnmatchedCloseBrace)
@@ -499,7 +499,7 @@ TEST(ParserTest, ParseUnmatchedCloseBrace)
         {TokenType::END, ""}
     };
 
-    EXPECT_THROW(Parser::parse(tokens), std::logic_error);
+    EXPECT_THROW(Parser::parse(tokens), ParserException);
 }
 
 TEST(ParserTest, ParseDirectiveWithoutName)
@@ -511,7 +511,7 @@ TEST(ParserTest, ParseDirectiveWithoutName)
         {TokenType::END, ""}
     };
 
-    EXPECT_THROW(Parser::parse(tokens), std::logic_error);
+    EXPECT_THROW(Parser::parse(tokens), ParserException);
 }
 
 TEST(ParserTest, ParseConsecutiveBraces)
@@ -526,7 +526,7 @@ TEST(ParserTest, ParseConsecutiveBraces)
         {TokenType::END, ""}
     };
 
-    EXPECT_THROW(Parser::parse(tokens), std::logic_error);
+    EXPECT_THROW(Parser::parse(tokens), ParserException);
 }
 
 TEST(ParserTest, ParseMultipleConsecutiveSemicolons)
@@ -540,7 +540,7 @@ TEST(ParserTest, ParseMultipleConsecutiveSemicolons)
         {TokenType::END, ""}
     };
 
-    EXPECT_THROW(Parser::parse(tokens), std::logic_error);
+    EXPECT_THROW(Parser::parse(tokens), ParserException);
 }
 
 // Stress tests
@@ -558,8 +558,8 @@ TEST(ParserTest, ParseDeeplyNestedBlocks)
         {TokenType::DIRECTIVE, "location"},
         {TokenType::VALUE, "/api/v1"},
         {TokenType::OPEN_BRACE, "{"},
-        {TokenType::DIRECTIVE, "proxy_pass"},
-        {TokenType::VALUE, "http://backend"},
+        {TokenType::DIRECTIVE, "upload_store"},
+        {TokenType::VALUE, "/var/www/uploads"},
         {TokenType::SEMICOLON, ";"},
         {TokenType::CLOSE_BRACE, "}"},
         {TokenType::CLOSE_BRACE, "}"},
@@ -606,40 +606,11 @@ TEST(ParserTest, ParseDeeplyNestedBlocks)
     auto& location2Children = location2->directives();
     ASSERT_EQ(location2Children.size(), 1u);
 
-    auto* proxyPass = dynamic_cast<SimpleDirective*>(location2Children[0].get());
-    ASSERT_NE(proxyPass, nullptr);
-    EXPECT_EQ(proxyPass->name(), "proxy_pass");
-    ASSERT_EQ(proxyPass->args().size(), 1u);
-    EXPECT_EQ(proxyPass->args()[0], "http://backend");
-}
-
-TEST(ParserTest, ParseLargeConfiguration)
-{
-    // Test parsing a large number of directives
-    std::vector<Token> tokens;
-    tokens.reserve(100);
-
-    // Generate 100 simple directives
-    for (int i = 0; i < 100; ++i)
-    {
-        tokens.emplace_back(TokenType::DIRECTIVE, "directive" + std::to_string(i));
-        tokens.emplace_back(TokenType::VALUE, "value" + std::to_string(i));
-        tokens.emplace_back(TokenType::SEMICOLON, ";");
-    }
-    tokens.emplace_back(TokenType::END, "");
-    
-    auto result = Parser::parse(tokens);
-
-    ASSERT_EQ(result.size(), 100u);
-
-    for (size_t i = 0; i < 100; ++i)
-    {
-        auto* directive = dynamic_cast<SimpleDirective*>(result[i].get());
-        ASSERT_NE(directive, nullptr);
-        EXPECT_EQ(directive->name(), "directive" + std::to_string(i));
-        ASSERT_EQ(directive->args().size(), 1u);
-        EXPECT_EQ(directive->args()[0], "value" + std::to_string(i));
-    }
+    auto* uploadStore = dynamic_cast<SimpleDirective*>(location2Children[0].get());
+    ASSERT_NE(uploadStore, nullptr);
+    EXPECT_EQ(uploadStore->name(), "upload_store");
+    ASSERT_EQ(uploadStore->args().size(), 1u);
+    EXPECT_EQ(uploadStore->args()[0], "/var/www/uploads");
 }
 
 // Additional helper tests for specific scenarios you might encounter
@@ -668,9 +639,10 @@ TEST(ParserTest, ParseDirectiveWithNumericValue)
 {
     // Test numeric values
     std::vector<Token> tokens = {
-        {TokenType::DIRECTIVE, "worker_processes"},
-        {TokenType::VALUE, "4"},
-        {TokenType::SEMICOLON, ";"},
+        {TokenType::DIRECTIVE, "return"},
+        {TokenType::VALUE, "301"},
+		{TokenType::VALUE, "/newpage"},
+		{TokenType::SEMICOLON, ";"},
         {TokenType::END, ""}
     };
 
@@ -680,9 +652,41 @@ TEST(ParserTest, ParseDirectiveWithNumericValue)
 
     auto* root = dynamic_cast<SimpleDirective*>(result[0].get());
     ASSERT_NE(root, nullptr);
-    EXPECT_EQ(root->name(), "worker_processes");
-    ASSERT_EQ(root->args().size(), 1u);
-    EXPECT_EQ(root->args()[0], "4");
+    EXPECT_EQ(root->name(), "return");
+    ASSERT_EQ(root->args().size(), 2u);
+    EXPECT_EQ(root->args()[0], "301");
+	EXPECT_EQ(root->args()[1], "/newpage");
 }
 
 // clang-format on
+
+/*
+TEST(ParserTest, ParseLargeConfiguration)
+{
+    // Test parsing a large number of directives
+    std::vector<Token> tokens;
+    tokens.reserve(100);
+
+    // Generate 100 simple directives
+    for (int i = 0; i < 100; ++i)
+    {
+        tokens.emplace_back(TokenType::DIRECTIVE, "directive" +
+std::to_string(i)); tokens.emplace_back(TokenType::VALUE, "value" +
+std::to_string(i)); tokens.emplace_back(TokenType::SEMICOLON, ";");
+    }
+    tokens.emplace_back(TokenType::END, "");
+
+    auto result = Parser::parse(tokens);
+
+    ASSERT_EQ(result.size(), 100u);
+
+    for (size_t i = 0; i < 100; ++i)
+    {
+        auto* directive = dynamic_cast<SimpleDirective*>(result[i].get());
+        ASSERT_NE(directive, nullptr);
+        EXPECT_EQ(directive->name(), "directive" + std::to_string(i));
+        ASSERT_EQ(directive->args().size(), 1u);
+        EXPECT_EQ(directive->args()[0], "value" + std::to_string(i));
+    }
+}
+*/

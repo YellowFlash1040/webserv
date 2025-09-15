@@ -25,6 +25,7 @@ class Token
     // Construction and destruction
   public:
     Token();
+    Token(TokenType type, const std::string& value);
     Token(TokenType type, const std::string& value, size_t line, size_t column);
     Token(const Token& other);
     Token& operator=(const Token& other);
