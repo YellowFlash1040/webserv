@@ -62,6 +62,7 @@ Token Parser::advance()
 
     Token token = std::move(m_tokens.back());
     m_tokens.pop_back();
+    m_prevToken = token;
     return token;
 }
 
@@ -92,6 +93,7 @@ std::unique_ptr<ADirective> Parser::parseDirective()
 
     std::string directiveName = token.value();
     DirectiveType directiveType = expectKnownDirective(directiveName);
+    m_prevDirectiveType = directiveType;
 
     std::vector<std::string> args;
     consumeArguments(args);
@@ -105,7 +107,7 @@ std::unique_ptr<ADirective> Parser::parseDirective()
     }
 
     if (token.type() != TokenType::SEMICOLON)
-        throw ParserException(token, "Expected ';'");
+        throw ParserException(m_prevToken, "Expected ';'");
 
     return createSimpleDirective(directiveName, args);
 }
@@ -123,6 +125,8 @@ void Parser::consumeArguments(std::vector<std::string>& args)
     Token token = peek();
     while (token.type() == TokenType::VALUE)
     {
+        expectNotDirective(token.value());
+
         token = advance();
         args.push_back(token.value());
         token = peek();
@@ -159,4 +163,18 @@ std::unique_ptr<SimpleDirective> Parser::createSimpleDirective(
     simpleDir->setArgs(std::move(args));
 
     return simpleDir;
+}
+
+void Parser::expectNotDirective(const std::string& tokenValue)
+{
+    DirectiveType directiveType = Directives::getDirectiveType(tokenValue);
+    if (directiveType == DirectiveType::UNKNOWN)
+        return;
+
+    size_t line = m_prevToken.line();
+    size_t column = m_prevToken.column() + m_prevToken.value().length();
+    if (m_prevDirectiveType == DirectiveType::SIMPLE)
+        throw ParserException(line, column, "Missing ';'");
+    else if (m_prevDirectiveType == DirectiveType::BLOCK)
+        throw ParserException(line, column, "Missing '{'");
 }

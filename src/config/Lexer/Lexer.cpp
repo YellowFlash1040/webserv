@@ -73,7 +73,7 @@ void Lexer::addToken(TokenType type, char c)
 
 size_t Lexer::calculateColumn()
 {
-    return (m_pos - m_lastLinePos - m_value.size());
+    return (m_pos - m_lastLinePos - m_value.length());
 }
 
 void Lexer::finalizeTokens()
@@ -106,6 +106,7 @@ void Lexer::skipComment()
 {
     while (!(m_pos == m_input.length() || m_input[m_pos] == '\n'))
         ++m_pos;
+    --m_pos;
 }
 
 void Lexer::processSpace(int c)

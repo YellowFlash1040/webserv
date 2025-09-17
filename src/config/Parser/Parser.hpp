@@ -45,6 +45,8 @@ class Parser
     // Properties
     std::vector<Token>& m_tokens;
     std::vector<std::unique_ptr<ADirective>> m_directives;
+    Token m_prevToken;
+    DirectiveType m_prevDirectiveType;
     // Methods
     Token advance();
     Token& peek();
@@ -56,6 +58,7 @@ class Parser
     std::string expectDirective();
     DirectiveType expectKnownDirective(const std::string& directiveName);
     void consumeArguments(std::vector<std::string>& args);
+    void expectNotDirective(const std::string& tokenValue);
 };
 
 #endif
