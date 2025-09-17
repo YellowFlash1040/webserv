@@ -1,13 +1,8 @@
 #include "ParserException.hpp"
 
 ParserException::ParserException(const Token& token, const std::string& message)
+  : ParserException(token.line(), token.column(), message)
 {
-    std::ostringstream oss;
-    oss << "\033[1m";
-    oss << "webserv.conf:" << token.line() << ":" << token.column() << ": ";
-    oss << "\033[0m";
-    oss << "error: " << message;
-    m_message = oss.str();
 }
 
 ParserException::ParserException(size_t line, size_t column,
@@ -16,8 +11,10 @@ ParserException::ParserException(size_t line, size_t column,
     std::ostringstream oss;
     oss << "\033[1m";
     oss << "webserv.conf:" << line << ":" << column << ": ";
+    oss << "\033[31m";
+    oss << "error: ";
     oss << "\033[0m";
-    oss << "error: " << message;
+    oss << message;
     m_message = oss.str();
 }
 

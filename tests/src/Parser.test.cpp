@@ -690,3 +690,484 @@ std::to_string(i)); tokens.emplace_back(TokenType::SEMICOLON, ";");
     }
 }
 */
+
+//---------------------------------
+// Parser Error reporting
+//---------------------------------
+
+#include <regex>
+
+class ParserErrorTest : public ::testing::Test
+{
+  protected:
+    // Helper function to extract line and column from error message
+    std::pair<size_t, size_t> extractLineColumn(const std::string& errorMsg)
+    {
+        // Pattern: webserv.conf:line:column:
+        std::regex pattern(R"(webserv\.conf:(\d+):(\d+):)");
+        std::smatch match;
+
+        if (std::regex_search(errorMsg, match, pattern))
+        {
+            return std::make_pair(std::stoul(match[1]), std::stoul(match[2]));
+        }
+        return std::make_pair(0, 0); // Should not happen in valid tests
+    }
+
+    // Helper function to check if error message contains expected text
+    bool containsErrorText(const std::string& errorMsg,
+                           const std::string& expected)
+    {
+        return errorMsg.find(expected) != std::string::npos;
+    }
+};
+
+// Test missing semicolon for simple directives
+TEST_F(ParserErrorTest,
+       SimpleDirective_MissingSemicolon_ThrowsWithCorrectLocation)
+{
+    std::vector<Token> tokens = {{TokenType::DIRECTIVE, "server_name", 1, 1},
+                                 {TokenType::VALUE, "example.com", 1, 13},
+                                 {TokenType::END, "", 1, 24}};
+
+    try
+    {
+        Parser::parse(tokens);
+        FAIL() << "Expected ParserException to be thrown";
+    }
+    catch (const ParserException& e)
+    {
+        std::pair<size_t, size_t> lineColumn = extractLineColumn(e.what());
+        size_t line = lineColumn.first;
+        size_t column = lineColumn.second;
+        EXPECT_EQ(line, 1u);
+        EXPECT_EQ(column, 24u); // Position where semicolon should be
+        EXPECT_TRUE(containsErrorText(e.what(), ";")
+                    || containsErrorText(e.what(), "semicolon")
+                    || containsErrorText(e.what(), "expected"));
+    }
+}
+
+TEST_F(ParserErrorTest, SimpleDirective_listen_MissingSemicolon)
+{
+    std::vector<Token> tokens = {{TokenType::DIRECTIVE, "listen", 2, 5},
+                                 {TokenType::VALUE, "0.0.0.0:8080", 2, 12},
+                                 {TokenType::END, "", 2, 24}};
+
+    try
+    {
+        Parser::parse(tokens);
+        FAIL() << "Expected ParserException to be thrown";
+    }
+    catch (const ParserException& e)
+    {
+        std::pair<size_t, size_t> lineColumn = extractLineColumn(e.what());
+        size_t line = lineColumn.first;
+        size_t column = lineColumn.second;
+        EXPECT_EQ(line, 2u);
+        EXPECT_EQ(column, 24u);
+        EXPECT_TRUE(containsErrorText(e.what(), ";")
+                    || containsErrorText(e.what(), "semicolon"));
+    }
+}
+
+TEST_F(ParserErrorTest, SimpleDirective_root_MissingSemicolon)
+{
+    std::vector<Token> tokens = {{TokenType::DIRECTIVE, "root", 3, 10},
+                                 {TokenType::VALUE, "/var/www", 3, 15},
+                                 {TokenType::END, "", 3, 23}};
+
+    try
+    {
+        Parser::parse(tokens);
+        FAIL() << "Expected ParserException to be thrown";
+    }
+    catch (const ParserException& e)
+    {
+        std::pair<size_t, size_t> lineColumn = extractLineColumn(e.what());
+        size_t line = lineColumn.first;
+        size_t column = lineColumn.second;
+        EXPECT_EQ(line, 3u);
+        EXPECT_EQ(column, 23u);
+        EXPECT_TRUE(containsErrorText(e.what(), ";")
+                    || containsErrorText(e.what(), "semicolon"));
+    }
+}
+
+// Test missing opening brace for block directives
+TEST_F(ParserErrorTest, BlockDirective_server_MissingOpenBrace)
+{
+    std::vector<Token> tokens = {{TokenType::DIRECTIVE, "server", 1, 1},
+                                 {TokenType::DIRECTIVE, "listen", 2, 5},
+                                 {TokenType::VALUE, "80", 2, 12},
+                                 {TokenType::SEMICOLON, ";", 2, 14},
+                                 {TokenType::END, "", 3, 1}};
+
+    try
+    {
+        Parser::parse(tokens);
+        FAIL() << "Expected ParserException to be thrown";
+    }
+    catch (const ParserException& e)
+    {
+        std::pair<size_t, size_t> lineColumn = extractLineColumn(e.what());
+        size_t line = lineColumn.first;
+        EXPECT_EQ(line, 1u);
+        EXPECT_TRUE(containsErrorText(e.what(), "{")
+                    || containsErrorText(e.what(), "brace")
+                    || containsErrorText(e.what(), "expected"));
+    }
+}
+
+TEST_F(ParserErrorTest, BlockDirective_location_MissingOpenBrace)
+{
+    std::vector<Token> tokens = {{TokenType::DIRECTIVE, "location", 5, 8},
+                                 {TokenType::VALUE, "/", 5, 17},
+                                 {TokenType::DIRECTIVE, "index", 6, 12},
+                                 {TokenType::VALUE, "index.html", 6, 18},
+                                 {TokenType::SEMICOLON, ";", 6, 28},
+                                 {TokenType::END, "", 7, 1}};
+
+    try
+    {
+        Parser::parse(tokens);
+        FAIL() << "Expected ParserException to be thrown";
+    }
+    catch (const ParserException& e)
+    {
+        std::pair<size_t, size_t> lineColumn = extractLineColumn(e.what());
+        size_t line = lineColumn.first;
+        EXPECT_EQ(line, 5u);
+        EXPECT_TRUE(containsErrorText(e.what(), "{")
+                    || containsErrorText(e.what(), "brace"));
+    }
+}
+
+// Test missing closing brace for block directives
+TEST_F(ParserErrorTest, BlockDirective_server_MissingCloseBrace)
+{
+    std::vector<Token> tokens = {{TokenType::DIRECTIVE, "server", 1, 1},
+                                 {TokenType::OPEN_BRACE, "{", 1, 8},
+                                 {TokenType::DIRECTIVE, "listen", 2, 5},
+                                 {TokenType::VALUE, "80", 2, 12},
+                                 {TokenType::SEMICOLON, ";", 2, 14},
+                                 {TokenType::END, "", 3, 1}};
+
+    try
+    {
+        Parser::parse(tokens);
+        FAIL() << "Expected ParserException to be thrown";
+    }
+    catch (const ParserException& e)
+    {
+        std::pair<size_t, size_t> lineColumn = extractLineColumn(e.what());
+        size_t line = lineColumn.first;
+        size_t column = lineColumn.second;
+        EXPECT_EQ(line, 3u);
+        EXPECT_EQ(column, 1u);
+        EXPECT_TRUE(containsErrorText(e.what(), "}")
+                    || containsErrorText(e.what(), "closing")
+                    || containsErrorText(e.what(), "brace"));
+    }
+}
+
+TEST_F(ParserErrorTest, BlockDirective_location_MissingCloseBrace)
+{
+    std::vector<Token> tokens = {{TokenType::DIRECTIVE, "server", 1, 1},
+                                 {TokenType::OPEN_BRACE, "{", 1, 8},
+                                 {TokenType::DIRECTIVE, "location", 2, 5},
+                                 {TokenType::VALUE, "/api", 2, 14},
+                                 {TokenType::OPEN_BRACE, "{", 2, 19},
+                                 {TokenType::DIRECTIVE, "root", 3, 9},
+                                 {TokenType::VALUE, "/var/www/api", 3, 14},
+                                 {TokenType::SEMICOLON, ";", 3, 26},
+                                 {TokenType::CLOSE_BRACE, "}", 4, 5},
+                                 {TokenType::END, "", 5, 1}};
+
+    try
+    {
+        Parser::parse(tokens);
+        FAIL() << "Expected ParserException to be thrown";
+    }
+    catch (const ParserException& e)
+    {
+        std::pair<size_t, size_t> lineColumn = extractLineColumn(e.what());
+        size_t line = lineColumn.first;
+        size_t column = lineColumn.second;
+        EXPECT_EQ(line, 5u);
+        EXPECT_EQ(column, 1u);
+        EXPECT_TRUE(containsErrorText(e.what(), "}")
+                    || containsErrorText(e.what(), "closing")
+                    || containsErrorText(e.what(), "brace"));
+    }
+}
+
+// Test extra closing brace
+TEST_F(ParserErrorTest, ExtraClosingBrace_ThrowsWithCorrectLocation)
+{
+    std::vector<Token> tokens
+        = {{TokenType::DIRECTIVE, "server", 1, 1},
+           {TokenType::OPEN_BRACE, "{", 1, 8},
+           {TokenType::DIRECTIVE, "listen", 2, 5},
+           {TokenType::VALUE, "80", 2, 12},
+           {TokenType::SEMICOLON, ";", 2, 14},
+           {TokenType::CLOSE_BRACE, "}", 3, 1},
+           {TokenType::CLOSE_BRACE, "}", 4, 1}, // Extra brace
+           {TokenType::END, "", 5, 1}};
+
+    try
+    {
+        Parser::parse(tokens);
+        FAIL() << "Expected ParserException to be thrown";
+    }
+    catch (const ParserException& e)
+    {
+        std::pair<size_t, size_t> lineColumn = extractLineColumn(e.what());
+        size_t line = lineColumn.first;
+        size_t column = lineColumn.second;
+        EXPECT_EQ(line, 4u);
+        EXPECT_EQ(column, 1u);
+        EXPECT_TRUE(containsErrorText(e.what(), "}")
+                    || containsErrorText(e.what(), "unexpected")
+                    || containsErrorText(e.what(), "extra"));
+    }
+}
+
+// Test nested blocks with missing braces
+TEST_F(ParserErrorTest, NestedBlocks_location_MissingCloseBrace)
+{
+    std::vector<Token> tokens
+        = {{TokenType::DIRECTIVE, "server", 1, 1},
+           {TokenType::OPEN_BRACE, "{", 1, 8},
+           {TokenType::DIRECTIVE, "location", 2, 5},
+           {TokenType::VALUE, "/", 2, 14},
+           {TokenType::OPEN_BRACE, "{", 2, 16},
+           {TokenType::DIRECTIVE, "limit_except", 3, 9},
+           {TokenType::VALUE, "GET", 3, 22},
+           {TokenType::OPEN_BRACE, "{", 3, 26},
+           {TokenType::DIRECTIVE, "deny", 4, 13},
+           {TokenType::VALUE, "all", 4, 18},
+           {TokenType::SEMICOLON, ";", 4, 21},
+           {TokenType::CLOSE_BRACE, "}", 5, 9}, // Closes limit_except
+           // Missing location close brace
+           {TokenType::CLOSE_BRACE, "}", 6, 1}, // Closes server
+           {TokenType::END, "", 7, 1}};
+
+    try
+    {
+        Parser::parse(tokens);
+        FAIL() << "Expected ParserException to be thrown";
+    }
+    catch (const ParserException& e)
+    {
+        // Should detect missing location closing brace
+        EXPECT_TRUE(containsErrorText(e.what(), "}")
+                    || containsErrorText(e.what(), "closing")
+                    || containsErrorText(e.what(), "brace"));
+    }
+}
+
+// Test simple directive with wrong terminator (brace instead of semicolon)
+TEST_F(ParserErrorTest, SimpleDirective_WrongTerminator_BraceInsteadOfSemicolon)
+{
+    std::vector<Token> tokens
+        = {{TokenType::DIRECTIVE, "server_name", 1, 1},
+           {TokenType::VALUE, "example.com", 1, 13},
+           {TokenType::OPEN_BRACE, "{", 1, 25}, // Wrong terminator
+           {TokenType::END, "", 2, 1}};
+
+    try
+    {
+        Parser::parse(tokens);
+        FAIL() << "Expected ParserException to be thrown";
+    }
+    catch (const ParserException& e)
+    {
+        std::pair<size_t, size_t> lineColumn = extractLineColumn(e.what());
+        size_t line = lineColumn.first;
+        size_t column = lineColumn.second;
+        EXPECT_EQ(line, 1u);
+        EXPECT_EQ(column, 24u);
+        EXPECT_TRUE(containsErrorText(e.what(), ";")
+                    || containsErrorText(e.what(), "semicolon")
+                    || containsErrorText(e.what(), "expected"));
+    }
+}
+
+// Test block directive with wrong terminator (semicolon instead of brace)
+TEST_F(ParserErrorTest, BlockDirective_WrongTerminator_SemicolonInsteadOfBrace)
+{
+    std::vector<Token> tokens
+        = {{TokenType::DIRECTIVE, "server", 1, 1},
+           {TokenType::SEMICOLON, ";", 1, 7}, // Wrong terminator
+           {TokenType::END, "", 2, 1}};
+
+    try
+    {
+        Parser::parse(tokens);
+        FAIL() << "Expected ParserException to be thrown";
+    }
+    catch (const ParserException& e)
+    {
+        std::pair<size_t, size_t> lineColumn = extractLineColumn(e.what());
+        size_t line = lineColumn.first;
+        size_t column = lineColumn.second;
+        EXPECT_EQ(line, 1u);
+        EXPECT_EQ(column, 7u);
+        EXPECT_TRUE(containsErrorText(e.what(), "{")
+                    || containsErrorText(e.what(), "brace")
+                    || containsErrorText(e.what(), "expected"));
+    }
+}
+
+// Test multiple errors in complex configuration
+TEST_F(ParserErrorTest, ComplexConfig_MultipleDirectives_FirstErrorReported)
+{
+    std::vector<Token> tokens
+        = {{TokenType::DIRECTIVE, "server", 1, 1},
+           {TokenType::OPEN_BRACE, "{", 1, 8},
+           {TokenType::DIRECTIVE, "listen", 2, 5},
+           {TokenType::VALUE, "0.0.0.0:9090", 2, 12},
+           // Missing semicolon here - should be first error
+           {TokenType::DIRECTIVE, "server_name", 3, 5},
+           {TokenType::VALUE, "site2.local", 3, 17},
+           {TokenType::SEMICOLON, ";", 3, 28},
+           {TokenType::CLOSE_BRACE, "}", 4, 1},
+           {TokenType::END, "", 5, 1}};
+
+    try
+    {
+        Parser::parse(tokens);
+        FAIL() << "Expected ParserException to be thrown";
+    }
+    catch (const ParserException& e)
+    {
+        std::pair<size_t, size_t> lineColumn = extractLineColumn(e.what());
+        size_t line = lineColumn.first;
+        EXPECT_EQ(
+            line,
+            2u); // Should report first error (missing semicolon on line 2)
+        EXPECT_TRUE(containsErrorText(e.what(), ";")
+                    || containsErrorText(e.what(), "semicolon"));
+    }
+}
+
+// Test empty token list
+TEST_F(ParserErrorTest, EmptyTokenList_ThrowsAppropriateError)
+{
+    std::vector<Token> tokens = {{TokenType::END, "", 1, 1}};
+
+    try
+    {
+        Parser::parse(tokens);
+        // This might not throw - empty config could be valid
+        // But if it does throw, we should handle it gracefully
+    }
+    catch (const ParserException& e)
+    {
+        std::pair<size_t, size_t> lineColumn = extractLineColumn(e.what());
+        size_t line = lineColumn.first;
+        size_t column = lineColumn.second;
+        EXPECT_GE(line, 1u);
+        EXPECT_GE(column, 1u);
+    }
+}
+
+// Test all simple directive types with missing semicolons
+TEST_F(ParserErrorTest, AllSimpleDirectives_MissingSemicolons)
+{
+    struct TestCase
+    {
+        std::string directive;
+        std::string value;
+        size_t line;
+    };
+
+    std::vector<TestCase> testCases;
+    testCases.push_back({"server_name", "example.com", 1});
+    testCases.push_back({"listen", "80", 2});
+    testCases.push_back({"error_page", "404 /404.html", 3});
+    testCases.push_back({"client_max_body_size", "1M", 4});
+    testCases.push_back({"return", "301 https://example.com", 5});
+    testCases.push_back({"root", "/var/www", 6});
+    testCases.push_back({"alias", "/var/www/alias", 7});
+    testCases.push_back({"autoindex", "on", 8});
+    testCases.push_back({"index", "index.html", 9});
+    testCases.push_back({"upload_store", "/tmp/uploads", 10});
+    testCases.push_back({"cgi_pass", "/usr/bin/python3", 11});
+    testCases.push_back({"deny", "all", 12});
+
+    for (const auto& testCase : testCases)
+    {
+        std::vector<Token> tokens
+            = {{TokenType::DIRECTIVE, testCase.directive, testCase.line, 1},
+               {TokenType::VALUE, testCase.value, testCase.line, 10},
+               {TokenType::END, "", testCase.line, 20}};
+
+        try
+        {
+            Parser::parse(tokens);
+            FAIL() << "Expected ParserException for directive: "
+                   << testCase.directive;
+        }
+        catch (const ParserException& e)
+        {
+            std::pair<size_t, size_t> lineColumn = extractLineColumn(e.what());
+            size_t line = lineColumn.first;
+            EXPECT_EQ(line, testCase.line)
+                << "Wrong line for directive: " << testCase.directive;
+            EXPECT_TRUE(containsErrorText(e.what(), ";")
+                        || containsErrorText(e.what(), "semicolon"))
+                << "Missing semicolon error text for directive: "
+                << testCase.directive;
+        }
+    }
+}
+
+// Test all block directive types with missing braces
+TEST_F(ParserErrorTest, AllBlockDirectives_MissingOpenBraces)
+{
+    struct TestCase
+    {
+        std::string directive;
+        std::string value;
+        size_t line;
+    };
+
+    std::vector<TestCase> testCases;
+    testCases.push_back({"server", "", 1});
+    testCases.push_back({"location", "/", 2});
+    testCases.push_back({"limit_except", "GET POST", 3});
+
+    for (const auto& testCase : testCases)
+    {
+        std::vector<Token> tokens
+            = {{TokenType::DIRECTIVE, testCase.directive, testCase.line, 1}};
+
+        if (!testCase.value.empty())
+        {
+            tokens.push_back(
+                {TokenType::VALUE, testCase.value, testCase.line, 10});
+        }
+
+        tokens.push_back({TokenType::END, "", testCase.line, 20});
+
+        try
+        {
+            Parser::parse(tokens);
+            FAIL() << "Expected ParserException for block directive: "
+                   << testCase.directive;
+        }
+        catch (const ParserException& e)
+        {
+            std::pair<size_t, size_t> lineColumn = extractLineColumn(e.what());
+            size_t line = lineColumn.first;
+            EXPECT_EQ(line, testCase.line)
+                << "Wrong line for directive: " << testCase.directive;
+            EXPECT_TRUE(containsErrorText(e.what(), "{")
+                        || containsErrorText(e.what(), "brace"))
+                << "Missing brace error text for directive: "
+                << testCase.directive;
+        }
+    }
+}
