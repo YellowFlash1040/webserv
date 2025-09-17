@@ -17,7 +17,6 @@ const std::unordered_set<std::string> simpleDirectives = {
 	"server_name",
 	"error_page",
 	"client_max_body_size",
-	"limit_except",
 	"return",
 	"root",
 	"alias",
