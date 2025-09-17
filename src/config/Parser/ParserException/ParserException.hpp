@@ -13,6 +13,7 @@ class ParserException : public std::exception
 {
   public:
     ParserException(const Token& token, const std::string& message);
+    ParserException(size_t line, size_t column, const std::string& message);
 
     const char* what() const noexcept override;
 
