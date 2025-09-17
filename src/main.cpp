@@ -1,4 +1,5 @@
 #include <iostream>
+#include "FileReader.hpp"
 #include "Lexer.hpp"
 #include "Parser.hpp"
 
@@ -6,7 +7,8 @@ int main(void)
 {
     try
     {
-        auto tokens = Lexer::tokenize("location\n/images {\nroot /var/www;\n}");
+        std::string text = FileReader::readFile("./webserv.conf");
+        auto tokens = Lexer::tokenize(text);
         auto directives = Parser::parse(tokens);
     }
     catch (const std::exception& e)

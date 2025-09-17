@@ -3,8 +3,10 @@
 ParserException::ParserException(const Token& token, const std::string& message)
 {
     std::ostringstream oss;
-    oss << "webserv.conf:" << token.line() << ":" << token.column()
-        << ": error: " << message;
+    oss << "\033[1m";
+    oss << "webserv.conf:" << token.line() << ":" << token.column() << ": ";
+    oss << "\033[0m";
+    oss << "error: " << message;
     m_message = oss.str();
 }
 
