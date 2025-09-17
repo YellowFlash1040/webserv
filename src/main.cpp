@@ -18,6 +18,7 @@ int main(void)
     {
         Server s;
         s.addEndpoint({std::string("127.0.0.1"), 8080});
+        s.addEndpoint({std::string("127.0.0.1"), 8081});
         s.run();
     }
     catch (const std::runtime_error& e)

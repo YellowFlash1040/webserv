@@ -45,12 +45,24 @@ void Server::run(void)
 
     while (g_running)
     {
-        int readyFDs = epoll_wait(m_epfd, events, MAX_EVENTS, -1);
+        int readyFDs = epoll_wait(m_epfd, events, MAX_EVENTS, 1000);
         if (readyFDs == -1)
         {
             if (errno == EINTR)
                 continue; // interrupted by signal, retry
             throw std::runtime_error("epoll_wait");
+        }
+        for (auto it = m_clients.begin(); it != m_clients.end(); ) 
+        {
+            if (it->second->isTimedOut(std::chrono::seconds(60)))
+            {
+                std::cout << "Client " << it->first << " timed out\n";
+                epoll_ctl(m_epfd, EPOLL_CTL_DEL, it->first, nullptr);
+                close(it->first);
+                it = m_clients.erase(it);
+            }
+            else
+                ++it;
         }
         for (int i = 0; i < readyFDs; ++i)
         {
@@ -78,13 +90,13 @@ void Server::run(void)
                 flushClientOutBuffer(fd, client);
             }
 
-            // if (ev & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
-            // {
-            //     epoll_ctl(m_epfd, EPOLL_CTL_DEL, fd, nullptr);
-            //     m_clients.erase(fd);
-            //     close(fd);
-            //     std::cout << "Client disconnected: " << fd << "\n";
-            // }
+            if (ev & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
+            {
+                epoll_ctl(m_epfd, EPOLL_CTL_DEL, fd, nullptr);
+                m_clients.erase(fd);
+                close(fd);
+                std::cout << "Client disconnected: " << fd << "\n";
+            }
         }
     }
 }
@@ -174,7 +186,10 @@ void Server::processClient(int clientSocket)
         buf[n] = '\0';
         auto it = m_clients.find(clientSocket);
         if (it != m_clients.end())
+        {
             it->second->appendToInBuffer(buf);
+            it->second->updateLastActivity(); 
+        }
         std::cout << "Received from " << clientSocket << ": " << buf << "\n";
     }
     else if (n == 0)

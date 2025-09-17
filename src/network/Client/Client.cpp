@@ -8,6 +8,7 @@ Client::Client(int fd, const sockaddr_in& addr)
 {
     if (fd < 0)
         throw std::invalid_argument("Invalid socket descriptor");
+    lastActivity = std::chrono::steady_clock::now();
 }
 
 Client::~Client()
@@ -67,4 +68,14 @@ void Client::printInfo() const
               << "In Buffer: " << in_buffer << "\n"
               << "Out Buffer: " << out_buffer << "\n"
               << "-----------------------------" << std::endl;
+}
+
+void Client::updateLastActivity()
+{
+    lastActivity = std::chrono::steady_clock::now();
+}
+
+bool Client::isTimedOut(std::chrono::seconds timeout) const
+{
+    return (std::chrono::steady_clock::now() - lastActivity) > timeout;
 }

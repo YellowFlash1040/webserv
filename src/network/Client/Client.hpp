@@ -8,6 +8,8 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <iostream>
+#include <chrono>
+
 
 class Client 
 {
@@ -26,6 +28,9 @@ public:
     void clearInBuffer();
     void clearOutBuffer();
 
+    void updateLastActivity();
+    bool isTimedOut(std::chrono::seconds timeout) const;
+
     void printInfo() const;
 
 private:
@@ -33,6 +38,7 @@ private:
     sockaddr_in address;
     std::string in_buffer;
     std::string out_buffer;
+    std::chrono::steady_clock::time_point lastActivity;
 };
 
 #endif
