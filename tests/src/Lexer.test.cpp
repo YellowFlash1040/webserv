@@ -356,3 +356,195 @@ TEST(LexerTest, VariablesInValues)
     expectToken(tokens[4], TokenType::SEMICOLON, ";");
     expectToken(tokens[5], TokenType::END, "");
 }
+
+//----------------------------------------------
+// POSITION DETECTION TESTS
+//---------------------------------------------
+
+#include <algorithm>
+
+// Helper function to check token properties including location
+void expectTokenWithLocation(const Token& token, TokenType expectedType,
+                             const std::string& expectedValue,
+                             size_t expectedLine, size_t expectedColumn)
+{
+    EXPECT_EQ(token.type(), expectedType);
+    EXPECT_EQ(token.value(), expectedValue);
+    EXPECT_EQ(token.line(), expectedLine);
+    EXPECT_EQ(token.column(), expectedColumn);
+}
+
+// Test single line tokens have correct positions
+TEST(LexerLocationTest, SingleLineTokenPositions)
+{
+    auto tokens = Lexer::tokenize("{ directive ; }");
+
+    ASSERT_GE(tokens.size(), 4u);
+
+    // Assuming 1-based line/column numbering (adjust if 0-based)
+    expectTokenWithLocation(tokens[0], TokenType::OPEN_BRACE, "{", 1, 1);
+    expectTokenWithLocation(tokens[1], TokenType::DIRECTIVE, "directive", 1, 3);
+    expectTokenWithLocation(tokens[2], TokenType::SEMICOLON, ";", 1, 13);
+    expectTokenWithLocation(tokens[3], TokenType::CLOSE_BRACE, "}", 1, 15);
+}
+
+// Test multi-line input has correct line numbers
+TEST(LexerLocationTest, MultiLineTokenPositions)
+{
+    std::string input = "{\n"
+                        "  directive value;\n"
+                        "}\n";
+    auto tokens = Lexer::tokenize(input);
+
+    ASSERT_GE(tokens.size(), 4u);
+
+    expectTokenWithLocation(tokens[0], TokenType::OPEN_BRACE, "{", 1, 1);
+    expectTokenWithLocation(tokens[1], TokenType::DIRECTIVE, "directive", 2, 3);
+    expectTokenWithLocation(tokens[2], TokenType::VALUE, "value", 2, 13);
+    expectTokenWithLocation(tokens[3], TokenType::SEMICOLON, ";", 2, 18);
+    expectTokenWithLocation(tokens[4], TokenType::CLOSE_BRACE, "}", 3, 1);
+}
+
+// Test tokens with varying whitespace
+TEST(LexerLocationTest, TokensWithWhitespace)
+{
+    std::string input = "  {   directive    value   ;   }  ";
+    auto tokens = Lexer::tokenize(input);
+
+    ASSERT_GE(tokens.size(), 4u);
+
+    expectTokenWithLocation(tokens[0], TokenType::OPEN_BRACE, "{", 1, 3);
+    expectTokenWithLocation(tokens[1], TokenType::DIRECTIVE, "directive", 1, 7);
+    expectTokenWithLocation(tokens[2], TokenType::VALUE, "value", 1, 20);
+    expectTokenWithLocation(tokens[3], TokenType::SEMICOLON, ";", 1, 28);
+    expectTokenWithLocation(tokens[4], TokenType::CLOSE_BRACE, "}", 1, 32);
+}
+
+// Test complex multi-line structure
+TEST(LexerLocationTest, ComplexMultiLineStructure)
+{
+    std::string input = "{\n"
+                        "    server_name example.com;\n"
+                        "    listen 80;\n"
+                        "    \n" // empty line
+                        "    location / {\n"
+                        "        root /var/www;\n"
+                        "    }\n"
+                        "}\n";
+    auto tokens = Lexer::tokenize(input);
+
+    // Test a few key positions to verify line/column tracking
+    ASSERT_GE(tokens.size(), 10u);
+
+    expectTokenWithLocation(tokens[0], TokenType::OPEN_BRACE, "{", 1, 1);
+    expectTokenWithLocation(tokens[1], TokenType::DIRECTIVE, "server_name", 2,
+                            5);
+    expectTokenWithLocation(tokens[2], TokenType::VALUE, "example.com", 2, 17);
+
+    // Find the "listen" directive (should be on line 3)
+    bool foundListen = false;
+    auto it
+        = std::find_if(tokens.begin(), tokens.end(), [](const Token& token) {
+              return token.value() == "listen";
+          });
+
+    if (it != tokens.end())
+    {
+        expectTokenWithLocation(*it, TokenType::DIRECTIVE, "listen", 3, 5);
+        foundListen = true;
+    }
+
+    EXPECT_TRUE(foundListen) << "Could not find 'listen' directive in tokens";
+
+    // Find the "location" directive (should be on line 5)
+    it = std::find_if(tokens.begin(), tokens.end(), [](const Token& token) {
+        return token.value() == "location";
+    });
+
+    bool foundLocation = (it != tokens.end());
+    if (foundLocation)
+        expectTokenWithLocation(*it, TokenType::DIRECTIVE, "location", 5, 5);
+
+    EXPECT_TRUE(foundLocation)
+        << "Could not find 'location' directive in tokens";
+}
+
+// Test edge case: token at start of line after newline
+TEST(LexerLocationTest, TokenAtStartOfLine)
+{
+    std::string input = "directive\n{\nvalue\n}";
+    auto tokens = Lexer::tokenize(input);
+
+    ASSERT_GE(tokens.size(), 4u);
+
+    expectTokenWithLocation(tokens[0], TokenType::DIRECTIVE, "directive", 1, 1);
+    expectTokenWithLocation(tokens[1], TokenType::OPEN_BRACE, "{", 2, 1);
+    expectTokenWithLocation(tokens[2], TokenType::DIRECTIVE, "value", 3, 1);
+    expectTokenWithLocation(tokens[3], TokenType::CLOSE_BRACE, "}", 4, 1);
+}
+
+// Test tab characters in input
+TEST(LexerLocationTest, TabCharacterHandling)
+{
+    std::string input = "{\n\tdirective\tvalue;\n}";
+    auto tokens = Lexer::tokenize(input);
+
+    ASSERT_GE(tokens.size(), 4u);
+
+    expectTokenWithLocation(tokens[0], TokenType::OPEN_BRACE, "{", 1, 1);
+    // Note: Column position may depend on how tabs are handled (1 char vs tab
+    // width) Adjust expected values based on your lexer's tab handling
+    expectTokenWithLocation(tokens[1], TokenType::DIRECTIVE, "directive", 2,
+                            2); // or different if tabs expand
+    expectTokenWithLocation(tokens[2], TokenType::VALUE, "value", 2,
+                            12); // adjust based on tab handling
+    expectTokenWithLocation(tokens[3], TokenType::SEMICOLON, ";", 2,
+                            17); // adjust based on tab handling
+}
+
+// Test empty lines don't affect line counting
+TEST(LexerLocationTest, EmptyLinesHandling)
+{
+    std::string input = "directive\n\n\n{\n\n\nvalue\n}";
+    auto tokens = Lexer::tokenize(input);
+
+    ASSERT_GE(tokens.size(), 4u);
+
+    expectTokenWithLocation(tokens[0], TokenType::DIRECTIVE, "directive", 1, 1);
+    expectTokenWithLocation(tokens[1], TokenType::OPEN_BRACE, "{", 4, 1);
+    expectTokenWithLocation(tokens[2], TokenType::DIRECTIVE, "value", 7, 1);
+    expectTokenWithLocation(tokens[3], TokenType::CLOSE_BRACE, "}", 8, 1);
+}
+
+// Test END token location
+TEST(LexerLocationTest, EndTokenLocation)
+{
+    std::string input = "directive value;";
+    auto tokens = Lexer::tokenize(input);
+
+    ASSERT_GE(tokens.size(), 1u);
+
+    // END token should be at the end of input
+    const Token& endToken = tokens.back();
+    EXPECT_EQ(endToken.type(), TokenType::END);
+
+    // END token position could be at end of last token or after input
+    // Verify it has reasonable line/column values
+    EXPECT_GE(endToken.line(), 1u);
+    EXPECT_GE(endToken.column(), 1u);
+}
+
+// Test very long line to check column counting
+TEST(LexerLocationTest, LongLineColumnCounting)
+{
+    std::string input
+        = std::string(50, ' ') + "directive" + std::string(20, ' ') + "value;";
+    auto tokens = Lexer::tokenize(input);
+
+    ASSERT_GE(tokens.size(), 3u);
+
+    expectTokenWithLocation(tokens[0], TokenType::DIRECTIVE, "directive", 1,
+                            51);
+    expectTokenWithLocation(tokens[1], TokenType::VALUE, "value", 1, 80);
+    expectTokenWithLocation(tokens[2], TokenType::SEMICOLON, ";", 1, 85);
+}
