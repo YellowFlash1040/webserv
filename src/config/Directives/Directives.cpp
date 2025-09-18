@@ -5,14 +5,14 @@ namespace Directives
 
 // clang-format off
 
-const std::unordered_set<std::string> blockDirectives = {
+const std::set<std::string> blockDirectives = {
 	"http",
     "server",
     "location",
     "limit_except"
 };
 
-const std::unordered_set<std::string> simpleDirectives = {
+const std::set<std::string> simpleDirectives = {
 	"listen",
 	"server_name",
 	"error_page",
@@ -25,6 +25,41 @@ const std::unordered_set<std::string> simpleDirectives = {
 	"upload_store",
 	"cgi_pass",
 	"deny"
+};
+
+// maps a **context name** to allowed directive names.
+const std::map<std::string, std::set<std::string>> allowedDirectives = {
+    { "http", {
+        "client_max_body_size",
+        "error_page",
+        "server"
+    }},
+    { "server", {
+        "listen",
+        "server_name",
+        "root",
+        "location",
+        "client_max_body_size",
+        "error_page"
+    }},
+    { "location", {
+        "root",
+        "limit_except",
+        "index",
+        "autoindex",
+        "return",
+        "client_max_body_size",
+        "upload_store",
+        "cgi_pass"
+    }}
+};
+
+// `parentConstraint` enforces “X must appear inside Y”.
+const std::map<std::string, std::string> parentConstraint = {
+    {"server", "http"},
+    {"location", "server"},
+    {"limit_except", "location"},
+    {"deny", "limit_except"}
 };
 
 // clang-format on

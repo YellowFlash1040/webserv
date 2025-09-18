@@ -57,10 +57,9 @@ Parser::~Parser() {}
 
 // ---------------------------METHODS-----------------------------
 
-std::vector<std::unique_ptr<ADirective>> Parser::parse(
-    std::vector<Token>& tokens)
+std::unique_ptr<ADirective> Parser::parse(std::vector<Token>& tokens)
 {
-    return std::move(Parser(tokens).parse());
+    return Parser(tokens).parse();
 }
 
 Token Parser::advance()
@@ -88,12 +87,13 @@ Token& Parser::peek()
 // PARSING LOGIC
 // ------------------------
 
-std::vector<std::unique_ptr<ADirective>>& Parser::parse()
+std::unique_ptr<ADirective> Parser::parse()
 {
+    auto root = std::make_unique<BlockDirective>();
+    root->setName("root");
     while (peek().type() != TokenType::END)
-        m_directives.push_back(parseDirective());
-
-    return m_directives;
+        root->addDirective(parseDirective());
+    return root;
 }
 
 std::unique_ptr<ADirective> Parser::parseDirective()

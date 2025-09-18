@@ -10,8 +10,10 @@ TEST(ParserTest, ParseOnlyEndToken)
     };
 
     auto result = Parser::parse(tokens);
+    auto* global = dynamic_cast<BlockDirective*>(result.get());
 
-    EXPECT_TRUE(result.empty());
+    ASSERT_NE(global, nullptr);
+    EXPECT_TRUE(global->directives().empty());
 }
 
 TEST(ParserTest, SingleSimpleDirective_ParsesCorrectly)
@@ -68,7 +70,7 @@ TEST(ParserTest, MixedDirectives_ParsesCorrectly)
         {TokenType::END, ""}
     };
 
-    EXPECT_THROW(auto result = Parser::parse(tokens), ParserException);
+    EXPECT_THROW(Parser::parse(tokens), ParserException);
 }
 
 TEST(ParserTest, ParsesServerBlockWithMultipleDirectivesAndNestedLocation)
@@ -100,11 +102,15 @@ TEST(ParserTest, ParsesServerBlockWithMultipleDirectivesAndNestedLocation)
     };
 
     auto result = Parser::parse(tokens);
+    auto* global = dynamic_cast<BlockDirective*>(result.get());
 
-    // Root block
-    ASSERT_EQ(result.size(), 1u);
+    // Top level directives
+    ASSERT_NE(global, nullptr);
+    ASSERT_EQ(global->directives().size(), 1u);
 
-    auto* serverBlock = dynamic_cast<BlockDirective*>(result[0].get());
+    const auto& directives = global->directives();
+
+    auto* serverBlock = dynamic_cast<BlockDirective*>(directives[0].get());
     ASSERT_NE(serverBlock, nullptr);
     EXPECT_EQ(serverBlock->name(), "server");
 
@@ -199,10 +205,15 @@ TEST(ParserTest, ParseSimpleDirective)
     };
 
     auto result = Parser::parse(tokens);
+    auto* global = dynamic_cast<BlockDirective*>(result.get());
 
-    ASSERT_EQ(result.size(), 1u);
+    // Top level directives
+    ASSERT_NE(global, nullptr);
+    ASSERT_EQ(global->directives().size(), 1u);
 
-    auto* simpleDirective = dynamic_cast<SimpleDirective*>(result[0].get());
+    const auto& directives = global->directives();
+
+    auto* simpleDirective = dynamic_cast<SimpleDirective*>(directives[0]);
     ASSERT_NE(simpleDirective, nullptr);
     EXPECT_EQ(simpleDirective->name(), "listen");
     ASSERT_EQ(simpleDirective->args().size(), 1u);

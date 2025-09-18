@@ -3,7 +3,8 @@
 #ifndef DIRECTIVES_HPP
 # define DIRECTIVES_HPP
 
-# include <unordered_set>
+# include <set>
+# include <map>
 # include <string>
 
 enum class DirectiveType
@@ -16,8 +17,10 @@ enum class DirectiveType
 namespace Directives
 {
 
-extern const std::unordered_set<std::string> blockDirectives;
-extern const std::unordered_set<std::string> simpleDirectives;
+extern const std::set<std::string> blockDirectives;
+extern const std::set<std::string> simpleDirectives;
+extern const std::map<std::string, std::set<std::string>> allowedDirectives;
+extern const std::map<std::string, std::string> parentConstraint;
 
 DirectiveType getDirectiveType(const std::string& name);
 bool isBlockDirective(const std::string& name);

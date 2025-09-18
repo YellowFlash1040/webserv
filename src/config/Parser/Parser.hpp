@@ -33,9 +33,8 @@ class Parser
     // Constants
     // Accessors
     // Methods
-    static std::vector<std::unique_ptr<ADirective>> parse(
-        std::vector<Token>& tokens);
-    std::vector<std::unique_ptr<ADirective>>& parse();
+    static std::unique_ptr<ADirective> parse(std::vector<Token>& tokens);
+    std::unique_ptr<ADirective> parse();
 
   protected:
     // Properties
@@ -44,7 +43,6 @@ class Parser
   private:
     // Properties
     std::vector<Token>& m_tokens;
-    std::vector<std::unique_ptr<ADirective>> m_directives;
     size_t m_errorLine = -1;
     size_t m_errorColumn = -1;
 
