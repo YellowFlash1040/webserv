@@ -6,11 +6,24 @@
 # include <utility>
 # include <string>
 
+enum class ArgumentType
+{
+    URL,
+    Integer,
+    StatusCode,
+    DataSize,
+    OnOff,
+    FilePath,
+    NetworkEndpoint,
+    HTTPMethod
+};
+
 class Argument
 {
     // Construction and destruction
   public:
-    Argument();
+    explicit Argument(const std::string& value);
+    Argument(const std::string& value, size_t line, size_t column);
     Argument(const Argument& other);
     Argument& operator=(const Argument& other);
     Argument(Argument&& other) noexcept;
@@ -22,6 +35,7 @@ class Argument
     // Constants
     // Accessors
     // Methods
+    static ArgumentType getArgumentType(const Argument& arg);
 
   protected:
     // Properties
@@ -29,9 +43,9 @@ class Argument
 
   private:
     // Properties
-    size_t m_line;
-    size_t m_column;
     std::string m_value;
+    size_t m_line = static_cast<size_t>(-1);
+    size_t m_column = static_cast<size_t>(-1);
     // Methods
 };
 

@@ -3,13 +3,23 @@
 // -----------------------CONSTRUCTION AND DESTRUCTION-------------------------
 
 // Default constructor
-Argument::Argument() {}
+Argument::Argument(const std::string& value)
+  : m_value(value)
+{
+}
+
+Argument::Argument(const std::string& value, size_t line, size_t column)
+  : m_value(value)
+  , m_line(line)
+  , m_column(column)
+{
+}
 
 // Copy constructor
 Argument::Argument(const Argument& other)
-  : m_line(other.m_line)
+  : m_value(other.m_value)
+  , m_line(other.m_line)
   , m_column(other.m_column)
-  , m_value(other.m_value)
 {
 }
 
@@ -18,18 +28,18 @@ Argument& Argument::operator=(const Argument& other)
 {
     if (this != &other)
     {
+        m_value = other.m_value;
         m_line = other.m_line;
         m_column = other.m_column;
-        m_value = other.m_value;
     }
     return (*this);
 }
 
 // Move constructor
 Argument::Argument(Argument&& other) noexcept
-  : m_line(other.m_line)
+  : m_value(std::move(other.m_value))
+  , m_line(other.m_line)
   , m_column(other.m_column)
-  , m_value(std::move(other.m_value))
 {
 }
 
@@ -38,9 +48,9 @@ Argument& Argument::operator=(Argument&& other) noexcept
 {
     if (this != &other)
     {
+        m_value = std::move(other.m_value);
         m_line = other.m_line;
         m_column = other.m_column;
-        m_value = std::move(other.m_value);
     }
     return (*this);
 }
@@ -51,3 +61,9 @@ Argument::~Argument() {}
 // ---------------------------ACCESSORS-----------------------------
 
 // ---------------------------METHODS-----------------------------
+
+ArgumentType Argument::getArgumentType(const Argument& arg)
+{
+    (void)arg;
+    return (ArgumentType::Integer);
+}

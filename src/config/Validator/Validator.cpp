@@ -19,11 +19,19 @@ void Validator::validateNode(const std::unique_ptr<ADirective>& node,
 
     checkParentConstraint(name, parentContext);
     checkAllowedDirective(name, parentContext);
+    checkArguments(name, node->args());
 
     const BlockDirective* block
         = dynamic_cast<const BlockDirective*>(node.get());
     if (block)
         validateChildren(*block, name);
+}
+
+void Validator::validateChildren(const BlockDirective& block,
+                                 const std::string& parentContext)
+{
+    for (const auto& directive : block.directives())
+        validateNode(directive, parentContext);
 }
 
 void Validator::checkParentConstraint(const std::string& name,
@@ -45,9 +53,9 @@ void Validator::checkAllowedDirective(const std::string& name,
         throw DirectiveNotAllowedException(name, context);
 }
 
-void Validator::validateChildren(const BlockDirective& block,
-                                 const std::string& parentContext)
+void Validator::checkArguments(const std::string& name,
+                               const std::vector<std::string>& args)
 {
-    for (const auto& directive : block.directives())
-        validateNode(directive, parentContext);
+    if (!Directives::hasRightAmountOfArguments(name, args))
+        throw ConfigException(" wrong amount of arguments: " + name);
 }

@@ -13,6 +13,8 @@ int main(void)
         auto tokens = Lexer::tokenize(text);
         auto directives = Parser::parse(tokens);
         Validator::validate(directives);
+        std::cout << "Well done :)"
+                  << "\n";
     }
     catch (const ConfigException& e)
     {

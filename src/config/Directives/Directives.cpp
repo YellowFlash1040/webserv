@@ -40,31 +40,31 @@ const std::map<std::string, DirectiveSpec> directives = {
         DirectiveType::SIMPLE,
         "server",
         {"server"},
-        FixedCount, 1, 0
+        FixedCount, 1, 1
     }},
     {"listen", {
         DirectiveType::SIMPLE,
         "server",
         {"server"},
-        FixedCount, 1, 0
+        FixedCount, 1, 1
     }},
     {"error_page", {
         DirectiveType::SIMPLE,
         "",
         {"http", "server"},
-        FixedCount, 1, 0
+        FixedCount, 2, 2
     }},
     {"client_max_body_size", {
         DirectiveType::SIMPLE,
         "",
         {"http", "server", "location"},
-        FixedCount, 1, 0
+        FixedCount, 1, 1
     }},
     {"location", {
         DirectiveType::BLOCK,
         "server",
         {"server"},
-        FixedCount, 1, 1
+        AtLeast, 1, static_cast<size_t>(-1)
     }},
     {"limit_except", {
         DirectiveType::BLOCK,
@@ -82,7 +82,7 @@ const std::map<std::string, DirectiveSpec> directives = {
         DirectiveType::SIMPLE,
         "location",
         {"location"},
-        FixedCount, 1, 1
+        FixedCount, 2, 2
     }},
     {"root", {
         DirectiveType::SIMPLE,
@@ -106,7 +106,7 @@ const std::map<std::string, DirectiveSpec> directives = {
         DirectiveType::SIMPLE,
         "location",
         {"location"},
-        FixedCount, 1, 1
+        AtLeast, 1, static_cast<size_t>(-1)
     }},
     {"upload_store", {
         DirectiveType::SIMPLE,
@@ -131,29 +131,88 @@ DirectiveType getDirectiveType(const std::string& name)
     return DirectiveType::UNKNOWN;
 }
 
-bool isBlockDirective(const std::string& name) {
+bool isBlockDirective(const std::string& name)
+{
     auto it = directives.find(name);
-    return it != directives.end() && it->second.type == DirectiveType::BLOCK;
+    if (it == directives.end())
+        return false;
+
+    DirectiveSpec specs = it->second;
+    if (specs.type != DirectiveType::BLOCK)
+        return false;
+
+    return true; 
 }
 
-bool isSimpleDirective(const std::string& name) {
+bool isSimpleDirective(const std::string& name)
+{
     auto it = directives.find(name);
-    return it != directives.end() && it->second.type == DirectiveType::SIMPLE;
+    if (it == directives.end())
+        return false;
+
+    DirectiveSpec specs = it->second;
+    if (specs.type != DirectiveType::SIMPLE)
+        return false;
+
+    return true;
 }
 
-bool isAllowedInContext(const std::string& name, const std::string& context) {
+bool isAllowedInContext(const std::string& name, const std::string& context)
+{
     auto it = directives.find(name);
-    if (it == directives.end()) return false;
-    return it->second.allowed_in.count(context) > 0;
+    if (it == directives.end())
+        return false;
+
+    DirectiveSpec specs = it->second;
+    if (specs.allowed_in.count(context) == 0)
+        return false;
+
+    return true;
 }
 
 std::pair<bool, std::string> hasRequiredParentContext(
     const std::string& name, const std::string& parentContext)
 {
     auto it = directives.find(name);
-    if (it == directives.end() || it->second.required_parent.empty())
+    if (it == directives.end()) // if we didn't found such a directive, which can not happen
+        return {false, ""}; // I return false here, so that it would cause an error
+
+    DirectiveSpec specs = it->second;
+    if (specs.required_parent.empty())
         return {true, ""};
-    return {it->second.required_parent == parentContext, it->second.required_parent};
+
+    if (specs.required_parent == parentContext)
+        return {true, specs.required_parent};
+
+    return {false, specs.required_parent};
+}
+
+bool hasRightAmountOfArguments(const std::string& name,
+    const std::vector<std::string>& args)
+{
+    auto it = directives.find(name);
+    if (it == directives.end())
+    return false;
+
+    DirectiveSpec specs = it->second;
+
+    if (specs.arg_type == FixedCount
+        && args.size() == specs.min_args)
+        return true;
+
+    if (specs.arg_type == AtLeast
+        && args.size() >= specs.min_args)
+        return true;
+
+    if (specs.arg_type == Between
+        && args.size() >= specs.min_args
+        && args.size() <= specs.max_args)
+        return true;
+
+    if (specs.arg_type == Any)
+        return true;
+    
+    return false;
 }
 
 // clang-format on

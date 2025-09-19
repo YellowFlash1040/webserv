@@ -32,12 +32,14 @@ class Validator
 
   private:
     // Methods
+    static void validateChildren(const BlockDirective& block,
+                                 const std::string& parentContext);
     static void checkParentConstraint(const std::string& name,
                                       const std::string& parentContext);
     static void checkAllowedDirective(const std::string& name,
                                       const std::string& context);
-    static void validateChildren(const BlockDirective& block,
-                                 const std::string& parentContext);
+    static void checkArguments(const std::string& name,
+                               const std::vector<std::string>& args);
 };
 
 #endif

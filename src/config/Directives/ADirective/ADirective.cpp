@@ -9,6 +9,8 @@ ADirective::ADirective() {}
 ADirective::ADirective(const ADirective& other)
   : m_name(std::move(other.m_name))
   , m_args(std::move(other.m_args))
+  , m_line(other.m_line)
+  , m_column(other.m_column)
 {
 }
 
@@ -19,6 +21,8 @@ ADirective& ADirective::operator=(const ADirective& other)
     {
         m_name = other.m_name;
         m_args = other.m_args;
+        m_line = other.m_line;
+        m_column = other.m_column;
     }
     return (*this);
 }
@@ -27,6 +31,8 @@ ADirective& ADirective::operator=(const ADirective& other)
 ADirective::ADirective(ADirective&& other) noexcept
   : m_name(std::move(other.m_name))
   , m_args(std::move(other.m_args))
+  , m_line(other.m_line)
+  , m_column(other.m_column)
 {
 }
 
@@ -37,6 +43,8 @@ ADirective& ADirective::operator=(ADirective&& other) noexcept
     {
         m_name = std::move(other.m_name);
         m_args = std::move(other.m_args);
+        m_line = other.m_line;
+        m_column = other.m_column;
     }
     return (*this);
 }

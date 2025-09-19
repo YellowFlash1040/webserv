@@ -36,10 +36,10 @@ class ADirective
 
   protected:
     // Properties
-    size_t m_line;
-    size_t m_column;
     std::string m_name;
     std::vector<std::string> m_args;
+    size_t m_line = static_cast<size_t>(-1);
+    size_t m_column = static_cast<size_t>(-1);
     // Methods
 
   private:

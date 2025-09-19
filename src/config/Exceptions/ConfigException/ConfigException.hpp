@@ -9,7 +9,7 @@
 class ConfigException : public std::exception
 {
   public:
-    ConfigException(const std::string& message);
+    explicit ConfigException(const std::string& message);
 
     const char* what() const noexcept override;
 
