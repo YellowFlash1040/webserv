@@ -1,0 +1,43 @@
+#include "Validator.hpp"
+
+// ---------------------------METHODS-----------------------------
+
+void Validator::validate(const std::unique_ptr<ADirective>& node,
+                         const std::string& parentContext)
+{
+    const std::string& name = node->name();
+
+    checkParentConstraint(name, parentContext);
+    checkAllowedDirective(name, parentContext);
+
+    const BlockDirective* block
+        = dynamic_cast<const BlockDirective*>(node.get());
+    if (block)
+        validateChildren(*block, name);
+}
+
+void Validator::checkParentConstraint(const std::string& name,
+                                      const std::string& parentContext)
+{
+    std::pair<bool, std::string> result
+        = Directives::hasRequiredParentContext("location", "http");
+    if (result.first)
+        return;
+
+    const std::string& requiredParent = result.second;
+    throw DirectiveWrongParentException(name, requiredParent);
+}
+
+void Validator::checkAllowedDirective(const std::string& name,
+                                      const std::string& context)
+{
+    if (Directives::isAllowedInContext(name, context))
+        throw DirectiveNotAllowedException(name, context);
+}
+
+void Validator::validateChildren(const BlockDirective& block,
+                                 const std::string& parentContext)
+{
+    for (const auto& child : block.children())
+        validate(child, parentContext);
+}

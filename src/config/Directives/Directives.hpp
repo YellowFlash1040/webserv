@@ -19,12 +19,16 @@ namespace Directives
 
 extern const std::set<std::string> blockDirectives;
 extern const std::set<std::string> simpleDirectives;
-extern const std::map<std::string, std::set<std::string>> allowedDirectives;
-extern const std::map<std::string, std::string> parentConstraint;
+extern const std::map<std::string, std::set<std::string>>
+    directivesAllowedByContext;
+extern const std::map<std::string, std::string> requiredParentContext;
 
 DirectiveType getDirectiveType(const std::string& name);
 bool isBlockDirective(const std::string& name);
 bool isSimpleDirective(const std::string& name);
+std::pair<bool, std::string> hasRequiredParentContext(
+    const std::string& name, const std::string& parentContext);
+bool isAllowedInContext(const std::string& name, const std::string& context);
 
 } // namespace Directives
 

@@ -27,9 +27,9 @@ const std::set<std::string> simpleDirectives = {
 	"deny"
 };
 
-// maps a **context name** to allowed directive names.
-const std::map<std::string, std::set<std::string>> allowedDirectives = {
-    { "http", {
+// maps a set of allowed directives to a context
+const std::map<std::string, std::set<std::string>> directivesAllowedByContext = {
+    { "http", { //inside 
         "client_max_body_size",
         "error_page",
         "server"
@@ -51,11 +51,14 @@ const std::map<std::string, std::set<std::string>> allowedDirectives = {
         "client_max_body_size",
         "upload_store",
         "cgi_pass"
+    }},
+    { "limit_except", {
+        "deny"
     }}
 };
 
-// `parentConstraint` enforces “X must appear inside Y”.
-const std::map<std::string, std::string> parentConstraint = {
+// “X must appear inside Y”.
+const std::map<std::string, std::string> requiredParentContext = {
     {"server", "http"},
     {"location", "server"},
     {"limit_except", "location"},
@@ -81,6 +84,32 @@ bool isBlockDirective(const std::string& name)
 bool isSimpleDirective(const std::string& name)
 {
     return simpleDirectives.count(name) > 0;
+}
+
+bool isAllowedInContext(const std::string& name, const std::string& context)
+{
+    auto it = directivesAllowedByContext.find(context);
+    if (it != directivesAllowedByContext.end())
+    {
+        std::set<std::string> allowedDirectives = it->second;
+        if (allowedDirectives.find(name) != it->second.end())
+            return true;
+    }
+    return false;
+}
+
+std::pair<bool, std::string> hasRequiredParentContext(
+    const std::string& name, const std::string& parentContext)
+{
+    auto it = requiredParentContext.find(name);
+    if (it == requiredParentContext.end())
+        return {true, ""};
+
+    const std::string& requiredParent = it->second;
+    if (requiredParent == parentContext)
+        return {true, ""};
+
+    return {false, requiredParent};
 }
 
 } // namespace Directives

@@ -213,7 +213,7 @@ TEST(ParserTest, ParseSimpleDirective)
 
     const auto& directives = global->directives();
 
-    auto* simpleDirective = dynamic_cast<SimpleDirective*>(directives[0]);
+    auto* simpleDirective = dynamic_cast<SimpleDirective*>(directives[0].get());
     ASSERT_NE(simpleDirective, nullptr);
     EXPECT_EQ(simpleDirective->name(), "listen");
     ASSERT_EQ(simpleDirective->args().size(), 1u);
@@ -233,9 +233,15 @@ TEST(ParserTest, ParseDirectiveWithMultipleValues)
 
     auto result = Parser::parse(tokens);
 
-    ASSERT_EQ(result.size(), 1u);
+    auto* global = dynamic_cast<BlockDirective*>(result.get());
 
-    auto* simpleDirective = dynamic_cast<SimpleDirective*>(result[0].get());
+    // Top level directives
+    ASSERT_NE(global, nullptr);
+    ASSERT_EQ(global->directives().size(), 1u);
+
+    const auto& directives = global->directives();
+
+    auto* simpleDirective = dynamic_cast<SimpleDirective*>(directives[0].get());
     ASSERT_NE(simpleDirective, nullptr);
     EXPECT_EQ(simpleDirective->name(), "server_name");
     ASSERT_EQ(simpleDirective->args().size(), 2u);
@@ -258,15 +264,21 @@ TEST(ParserTest, ParseMultipleSimpleDirectives)
 
     auto result = Parser::parse(tokens);
 
-    ASSERT_EQ(result.size(), 2u);
+    auto* global = dynamic_cast<BlockDirective*>(result.get());
 
-    auto* listen = dynamic_cast<SimpleDirective*>(result[0].get());
+    // Top level directives
+    ASSERT_NE(global, nullptr);
+    ASSERT_EQ(global->directives().size(), 2u);
+
+    const auto& directives = global->directives();
+
+    auto* listen = dynamic_cast<SimpleDirective*>(directives[0].get());
     ASSERT_NE(listen, nullptr);
     EXPECT_EQ(listen->name(), "listen");
     ASSERT_EQ(listen->args().size(), 1u);
     EXPECT_EQ(listen->args()[0], "8080");
 
-    auto* root = dynamic_cast<SimpleDirective*>(result[1].get());
+    auto* root = dynamic_cast<SimpleDirective*>(directives[1].get());
     ASSERT_NE(root, nullptr);
     EXPECT_EQ(root->name(), "root");
     ASSERT_EQ(root->args().size(), 1u);
@@ -287,10 +299,15 @@ TEST(ParserTest, ParseBlockDirective)
     };
 
     auto result = Parser::parse(tokens);
+    auto* global = dynamic_cast<BlockDirective*>(result.get());
 
-    ASSERT_EQ(result.size(), 1u);
+    // Top level directives
+    ASSERT_NE(global, nullptr);
+    ASSERT_EQ(global->directives().size(), 1u);
 
-    auto* server = dynamic_cast<BlockDirective*>(result[0].get());
+    const auto& directives = global->directives();
+
+    auto* server = dynamic_cast<BlockDirective*>(directives[0].get());
     ASSERT_NE(server, nullptr);
     EXPECT_EQ(server->name(), "server");
     ASSERT_EQ(server->args().size(), 0u);
@@ -326,10 +343,15 @@ TEST(ParserTest, ParseNestedBlockDirectives)
     };
 
     auto result = Parser::parse(tokens);
+    auto* global = dynamic_cast<BlockDirective*>(result.get());
 
-    ASSERT_EQ(result.size(), 1u);
+    // Top level directives
+    ASSERT_NE(global, nullptr);
+    ASSERT_EQ(global->directives().size(), 1u);
 
-    auto* server = dynamic_cast<BlockDirective*>(result[0].get());
+    const auto& directives = global->directives();
+
+    auto* server = dynamic_cast<BlockDirective*>(directives[0].get());
     ASSERT_NE(server, nullptr);
     EXPECT_EQ(server->name(), "server");
     ASSERT_EQ(server->args().size(), 0u);
@@ -389,10 +411,15 @@ TEST(ParserTest, ParseComplexConfiguration)
     };
 
     auto result = Parser::parse(tokens);
+    auto* global = dynamic_cast<BlockDirective*>(result.get());
 
-    ASSERT_EQ(result.size(), 1u);
+    // Top level directives
+    ASSERT_NE(global, nullptr);
+    ASSERT_EQ(global->directives().size(), 1u);
 
-    auto* server = dynamic_cast<BlockDirective*>(result[0].get());
+    const auto& directives = global->directives();
+
+    auto* server = dynamic_cast<BlockDirective*>(directives[0].get());
     ASSERT_NE(server, nullptr);
     EXPECT_EQ(server->name(), "server");
     ASSERT_EQ(server->args().size(), 0u);
@@ -459,10 +486,15 @@ TEST(ParserTest, ParseEmptyBlock)
     };
 
     auto result = Parser::parse(tokens);
+    auto* global = dynamic_cast<BlockDirective*>(result.get());
 
-    ASSERT_EQ(result.size(), 1u);
+    // Top level directives
+    ASSERT_NE(global, nullptr);
+    ASSERT_EQ(global->directives().size(), 1u);
 
-    auto* server = dynamic_cast<BlockDirective*>(result[0].get());
+    const auto& directives = global->directives();
+
+    auto* server = dynamic_cast<BlockDirective*>(directives[0].get());
     ASSERT_NE(server, nullptr);
     EXPECT_EQ(server->name(), "server");
     ASSERT_EQ(server->args().size(), 0u);
@@ -580,10 +612,15 @@ TEST(ParserTest, ParseDeeplyNestedBlocks)
     };
 
     auto result = Parser::parse(tokens);
+    auto* global = dynamic_cast<BlockDirective*>(result.get());
 
-    ASSERT_EQ(result.size(), 1u);
+    // Top level directives
+    ASSERT_NE(global, nullptr);
+    ASSERT_EQ(global->directives().size(), 1u);
 
-    auto* http = dynamic_cast<BlockDirective*>(result[0].get());
+    const auto& directives = global->directives();
+
+    auto* http = dynamic_cast<BlockDirective*>(directives[0].get());
     ASSERT_NE(http, nullptr);
     EXPECT_EQ(http->name(), "http");
     ASSERT_EQ(http->args().size(), 0u);
@@ -636,10 +673,15 @@ TEST(ParserTest, ParseDirectiveWithPathValue)
     };
 
     auto result = Parser::parse(tokens);
+    auto* global = dynamic_cast<BlockDirective*>(result.get());
 
-    ASSERT_EQ(result.size(), 1u);
+    // Top level directives
+    ASSERT_NE(global, nullptr);
+    ASSERT_EQ(global->directives().size(), 1u);
 
-    auto* root = dynamic_cast<SimpleDirective*>(result[0].get());
+    const auto& directives = global->directives();
+
+    auto* root = dynamic_cast<SimpleDirective*>(directives[0].get());
     ASSERT_NE(root, nullptr);
     EXPECT_EQ(root->name(), "root");
     ASSERT_EQ(root->args().size(), 1u);
@@ -658,10 +700,15 @@ TEST(ParserTest, ParseDirectiveWithNumericValue)
     };
 
     auto result = Parser::parse(tokens);
+    auto* global = dynamic_cast<BlockDirective*>(result.get());
 
-    ASSERT_EQ(result.size(), 1u);
+    // Top level directives
+    ASSERT_NE(global, nullptr);
+    ASSERT_EQ(global->directives().size(), 1u);
 
-    auto* root = dynamic_cast<SimpleDirective*>(result[0].get());
+    const auto& directives = global->directives();
+
+    auto* root = dynamic_cast<SimpleDirective*>(directives[0].get());
     ASSERT_NE(root, nullptr);
     EXPECT_EQ(root->name(), "return");
     ASSERT_EQ(root->args().size(), 2u);
