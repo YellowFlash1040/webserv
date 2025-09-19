@@ -45,7 +45,8 @@ BlockDirective::~BlockDirective() {}
 
 // ---------------------------ACCESSORS-----------------------------
 
-std::vector<std::unique_ptr<ADirective>>& BlockDirective::directives()
+const std::vector<std::unique_ptr<ADirective>>& BlockDirective::directives()
+    const
 {
     return m_directives;
 }

@@ -10,9 +10,6 @@
 # include <memory>
 
 # include "Token.hpp"
-# include "ADirective.hpp"
-# include "BlockDirective.hpp"
-# include "SimpleDirective.hpp"
 # include "Directives.hpp"
 
 # include "ParserException.hpp"

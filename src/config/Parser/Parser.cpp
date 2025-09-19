@@ -89,11 +89,11 @@ Token& Parser::peek()
 
 std::unique_ptr<ADirective> Parser::parse()
 {
-    auto root = std::make_unique<BlockDirective>();
-    root->setName("root");
+    auto global = std::make_unique<BlockDirective>();
+    global->setName("");
     while (peek().type() != TokenType::END)
-        root->addDirective(parseDirective());
-    return root;
+        global->addDirective(parseDirective());
+    return global;
 }
 
 std::unique_ptr<ADirective> Parser::parseDirective()

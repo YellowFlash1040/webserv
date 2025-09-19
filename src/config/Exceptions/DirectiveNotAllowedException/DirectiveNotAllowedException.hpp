@@ -6,16 +6,15 @@
 # include <stdexcept>
 # include <string>
 
-class DirectiveNotAllowedException : public std::exception
+# include "ConfigException.hpp"
+
+class DirectiveNotAllowedException : public ConfigException
 {
   public:
     DirectiveNotAllowedException(const std::string& name,
                                  const std::string& context);
 
     const char* what() const noexcept override;
-
-  private:
-    std::string m_message;
 };
 
 #endif

@@ -7,7 +7,7 @@
 # include <vector>
 # include <memory>
 
-# include "ADirective.hpp"
+# include "Directives.hpp"
 
 # include "DirectiveWrongParentException.hpp"
 # include "DirectiveNotAllowedException.hpp"
@@ -26,17 +26,18 @@ class Validator
     // Class specific features
   public:
     // Methods
-    static void validate(const std::unique_ptr<ADirective>& node,
-                         const std::string& parentContext);
+    static void validate(const std::unique_ptr<ADirective>& node);
+    static void validateNode(const std::unique_ptr<ADirective>& node,
+                             const std::string& parentContext);
 
   private:
     // Methods
-    void checkParentConstraint(const std::string& name,
-                               const std::string& parentContext);
-    void checkAllowedDirective(const std::string& name,
-                               const std::string& context);
-    void validateChildren(const BlockDirective& block,
-                          const std::string& parentContext);
+    static void checkParentConstraint(const std::string& name,
+                                      const std::string& parentContext);
+    static void checkAllowedDirective(const std::string& name,
+                                      const std::string& context);
+    static void validateChildren(const BlockDirective& block,
+                                 const std::string& parentContext);
 };
 
 #endif

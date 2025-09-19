@@ -7,6 +7,10 @@
 # include <map>
 # include <string>
 
+# include "ADirective.hpp"
+# include "BlockDirective.hpp"
+# include "SimpleDirective.hpp"
+
 enum class DirectiveType
 {
     UNKNOWN,

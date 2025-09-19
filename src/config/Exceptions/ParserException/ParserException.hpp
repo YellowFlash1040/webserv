@@ -7,18 +7,16 @@
 # include <string>
 # include <sstream>
 
+# include "ConfigException.hpp"
 # include "Token.hpp"
 
-class ParserException : public std::exception
+class ParserException : public ConfigException
 {
   public:
     ParserException(const Token& token, const std::string& message);
     ParserException(size_t line, size_t column, const std::string& message);
 
     const char* what() const noexcept override;
-
-  private:
-    std::string m_message;
 };
 
 #endif

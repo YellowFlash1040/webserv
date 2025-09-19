@@ -2,9 +2,9 @@
 
 DirectiveNotAllowedException::DirectiveNotAllowedException(
     const std::string& name, const std::string& context)
+  : ConfigException(" directive '" + name + "' not allowed in context '"
+                    + context + "'")
 {
-    m_message
-        = "Directive '" + name + "' not allowed in context '" + context + "'";
 }
 
 const char* DirectiveNotAllowedException::what() const noexcept

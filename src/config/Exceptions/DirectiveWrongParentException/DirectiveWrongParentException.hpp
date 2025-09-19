@@ -6,16 +6,15 @@
 # include <stdexcept>
 # include <string>
 
-class DirectiveWrongParentException : public std::exception
+# include "ConfigException.hpp"
+
+class DirectiveWrongParentException : public ConfigException
 {
   public:
     DirectiveWrongParentException(const std::string& name,
                                   const std::string& requiredParent);
 
     const char* what() const noexcept override;
-
-  private:
-    std::string m_message;
 };
 
 #endif

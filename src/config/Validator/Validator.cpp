@@ -2,8 +2,18 @@
 
 // ---------------------------METHODS-----------------------------
 
-void Validator::validate(const std::unique_ptr<ADirective>& node,
-                         const std::string& parentContext)
+void Validator::validate(const std::unique_ptr<ADirective>& node)
+{
+    const std::string& name = node->name();
+
+    const BlockDirective* block
+        = dynamic_cast<const BlockDirective*>(node.get());
+    if (block)
+        validateChildren(*block, name);
+}
+
+void Validator::validateNode(const std::unique_ptr<ADirective>& node,
+                             const std::string& parentContext)
 {
     const std::string& name = node->name();
 
@@ -20,7 +30,7 @@ void Validator::checkParentConstraint(const std::string& name,
                                       const std::string& parentContext)
 {
     std::pair<bool, std::string> result
-        = Directives::hasRequiredParentContext("location", "http");
+        = Directives::hasRequiredParentContext(name, parentContext);
     if (result.first)
         return;
 
@@ -31,13 +41,13 @@ void Validator::checkParentConstraint(const std::string& name,
 void Validator::checkAllowedDirective(const std::string& name,
                                       const std::string& context)
 {
-    if (Directives::isAllowedInContext(name, context))
+    if (!Directives::isAllowedInContext(name, context))
         throw DirectiveNotAllowedException(name, context);
 }
 
 void Validator::validateChildren(const BlockDirective& block,
                                  const std::string& parentContext)
 {
-    for (const auto& child : block.children())
-        validate(child, parentContext);
+    for (const auto& directive : block.directives())
+        validateNode(directive, parentContext);
 }

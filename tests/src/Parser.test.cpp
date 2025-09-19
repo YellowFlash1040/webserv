@@ -762,7 +762,7 @@ class ParserErrorTest : public ::testing::Test
     std::pair<size_t, size_t> extractLineColumn(const std::string& errorMsg)
     {
         // Pattern: webserv.conf:line:column:
-        std::regex pattern(R"(webserv\.conf:(\d+):(\d+):)");
+        std::regex pattern(R"((\d+):(\d+):)");
         std::smatch match;
 
         if (std::regex_search(errorMsg, match, pattern))

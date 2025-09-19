@@ -7,6 +7,8 @@
 # include <string>
 # include <vector>
 
+# include "Argument.hpp"
+
 class ADirective
 {
     // ----------------------------
@@ -26,16 +28,16 @@ class ADirective
     // Class specific features
     // -----------------------
   public:
-    // Constants
     // Accessors
     const std::string& name() const;
     void setName(std::string&& name);
     const std::vector<std::string>& args();
     void setArgs(std::vector<std::string>&& args);
-    // Methods
 
   protected:
     // Properties
+    size_t m_line;
+    size_t m_column;
     std::string m_name;
     std::vector<std::string> m_args;
     // Methods

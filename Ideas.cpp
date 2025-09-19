@@ -2,9 +2,6 @@
 
 // clang-format off
 
-namespace Directives
-{
-
 enum ArgCountType
 {
     FixedCount,
@@ -36,28 +33,10 @@ const std::map<std::string, DirectiveSpec> directives = {
         {"http"},
         FixedCount, 0, 0
     }},
-    {"server_name", {
-        DirectiveType::SIMPLE,
-        "server",
-        {"server"},
-        FixedCount, 1, 0
-    }},
     {"listen", {
         DirectiveType::SIMPLE,
         "server",
         {"server"},
-        FixedCount, 1, 0
-    }},
-    {"error_page", {
-        DirectiveType::SIMPLE,
-        "",
-        {"http", "server"},
-        FixedCount, 1, 0
-    }},
-    {"client_max_body_size", {
-        DirectiveType::SIMPLE,
-        "",
-        {"http", "server", "location"},
         FixedCount, 1, 0
     }},
     {"location", {
@@ -77,59 +56,9 @@ const std::map<std::string, DirectiveSpec> directives = {
         "limit_except",
         {"limit_except"},
         FixedCount, 1, 1
-    }},
-    {"return", {
-        DirectiveType::SIMPLE,
-        "location",
-        {"location"},
-        FixedCount, 1, 1
-    }},
-    {"root", {
-        DirectiveType::SIMPLE,
-        "",
-        {"server", "location"},
-        FixedCount, 1, 1
-    }},
-    {"alias", {
-        DirectiveType::SIMPLE,
-        "location",
-        {"location"},
-        FixedCount, 1, 1
-    }},
-    {"autoindex", {
-        DirectiveType::SIMPLE,
-        "location",
-        {"location"},
-        FixedCount, 1, 1
-    }},
-    {"index", {
-        DirectiveType::SIMPLE,
-        "location",
-        {"location"},
-        FixedCount, 1, 1
-    }},
-    {"upload_store", {
-        DirectiveType::SIMPLE,
-        "location",
-        {"location"},
-        FixedCount, 1, 1
-    }},
-    {"cgi_pass", {
-        DirectiveType::SIMPLE,
-        "location",
-        {"location"},
-        FixedCount, 1, 1
     }}
+    // ... and so on for all directives
 };
-
-DirectiveType getDirectiveType(const std::string& name)
-{
-    if (isSimpleDirective(name))
-        return DirectiveType::SIMPLE;
-    if (isBlockDirective(name))
-        return DirectiveType::BLOCK;
-    return DirectiveType::UNKNOWN;
-}
 
 bool isBlockDirective(const std::string& name) {
     auto it = directives.find(name);
@@ -157,5 +86,3 @@ std::pair<bool, std::string> hasRequiredParentContext(
 }
 
 // clang-format on
-
-} // namespace Directives

@@ -23,7 +23,7 @@ class BlockDirective : public ADirective
   public:
     // Constants
     // Accessors
-    std::vector<std::unique_ptr<ADirective>>& directives();
+    const std::vector<std::unique_ptr<ADirective>>& directives() const;
     // Methods
     void addDirective(std::unique_ptr<ADirective>&& directive);
 
