@@ -33,7 +33,7 @@ class Argument
     // Class specific features
   public:
     // Accessors
-    const std::string& value();
+    const std::string& value() const;
     size_t line();
     size_t column();
     // Methods

@@ -60,7 +60,7 @@ Argument::~Argument() {}
 
 // ---------------------------ACCESSORS-----------------------------
 
-const std::string& Argument::value()
+const std::string& Argument::value() const
 {
     return m_value;
 }

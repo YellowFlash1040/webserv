@@ -123,35 +123,35 @@ TEST(ParserTest, ParsesServerBlockWithMultipleDirectivesAndNestedLocation)
     ASSERT_NE(listen, nullptr);
     EXPECT_EQ(listen->name(), "listen");
     ASSERT_EQ(listen->args().size(), 1u);
-    EXPECT_EQ(listen->args()[0], "8080");
+    EXPECT_EQ(listen->args()[0].value(), "8080");
 
     // server_name www.example.org;
     auto* serverName = dynamic_cast<SimpleDirective*>(children[1].get());
     ASSERT_NE(serverName, nullptr);
     EXPECT_EQ(serverName->name(), "server_name");
     ASSERT_EQ(serverName->args().size(), 1u);
-    EXPECT_EQ(serverName->args()[0], "www.example.org");
+    EXPECT_EQ(serverName->args()[0].value(), "www.example.org");
 
     // root /home/youruser/current_folder/html;
     auto* root = dynamic_cast<SimpleDirective*>(children[2].get());
     ASSERT_NE(root, nullptr);
     EXPECT_EQ(root->name(), "root");
     ASSERT_EQ(root->args().size(), 1u);
-    EXPECT_EQ(root->args()[0], "/home/youruser/current_folder/html");
+    EXPECT_EQ(root->args()[0].value(), "/home/youruser/current_folder/html");
 
     // index index.html;
     auto* index = dynamic_cast<SimpleDirective*>(children[3].get());
     ASSERT_NE(index, nullptr);
     EXPECT_EQ(index->name(), "index");
     ASSERT_EQ(index->args().size(), 1u);
-    EXPECT_EQ(index->args()[0], "index.html");
+    EXPECT_EQ(index->args()[0].value(), "index.html");
 
     // location / { autoindex on; }
     auto* locationBlock = dynamic_cast<BlockDirective*>(children[4].get());
     ASSERT_NE(locationBlock, nullptr);
     EXPECT_EQ(locationBlock->name(), "location");
     ASSERT_EQ(locationBlock->args().size(), 1u);
-    EXPECT_EQ(locationBlock->args()[0], "/");
+    EXPECT_EQ(locationBlock->args()[0].value(), "/");
 
     auto& locChildren = locationBlock->directives();
     ASSERT_EQ(locChildren.size(), 1u);
@@ -160,7 +160,7 @@ TEST(ParserTest, ParsesServerBlockWithMultipleDirectivesAndNestedLocation)
     ASSERT_NE(autoindex, nullptr);
     EXPECT_EQ(autoindex->name(), "autoindex");
     ASSERT_EQ(autoindex->args().size(), 1u);
-    EXPECT_EQ(autoindex->args()[0], "on");
+    EXPECT_EQ(autoindex->args()[0].value(), "on");
 }
 
 TEST(ParserTest, ParseWithoutEndToken)
@@ -217,7 +217,7 @@ TEST(ParserTest, ParseSimpleDirective)
     ASSERT_NE(simpleDirective, nullptr);
     EXPECT_EQ(simpleDirective->name(), "listen");
     ASSERT_EQ(simpleDirective->args().size(), 1u);
-    EXPECT_EQ(simpleDirective->args()[0], "8080");
+    EXPECT_EQ(simpleDirective->args()[0].value(), "8080");
 }
 
 TEST(ParserTest, ParseDirectiveWithMultipleValues)
@@ -245,8 +245,8 @@ TEST(ParserTest, ParseDirectiveWithMultipleValues)
     ASSERT_NE(simpleDirective, nullptr);
     EXPECT_EQ(simpleDirective->name(), "server_name");
     ASSERT_EQ(simpleDirective->args().size(), 2u);
-    EXPECT_EQ(simpleDirective->args()[0], "example.com");
-    EXPECT_EQ(simpleDirective->args()[1], "www.example.com");
+    EXPECT_EQ(simpleDirective->args()[0].value(), "example.com");
+    EXPECT_EQ(simpleDirective->args()[1].value(), "www.example.com");
 }
 
 TEST(ParserTest, ParseMultipleSimpleDirectives)
@@ -276,13 +276,13 @@ TEST(ParserTest, ParseMultipleSimpleDirectives)
     ASSERT_NE(listen, nullptr);
     EXPECT_EQ(listen->name(), "listen");
     ASSERT_EQ(listen->args().size(), 1u);
-    EXPECT_EQ(listen->args()[0], "8080");
+    EXPECT_EQ(listen->args()[0].value(), "8080");
 
     auto* root = dynamic_cast<SimpleDirective*>(directives[1].get());
     ASSERT_NE(root, nullptr);
     EXPECT_EQ(root->name(), "root");
     ASSERT_EQ(root->args().size(), 1u);
-    EXPECT_EQ(root->args()[0], "/var/www");
+    EXPECT_EQ(root->args()[0].value(), "/var/www");
 }
 
 TEST(ParserTest, ParseBlockDirective)
@@ -319,7 +319,7 @@ TEST(ParserTest, ParseBlockDirective)
     ASSERT_NE(listen, nullptr);
     EXPECT_EQ(listen->name(), "listen");
     ASSERT_EQ(listen->args().size(), 1u);
-    EXPECT_EQ(listen->args()[0], "8080");
+    EXPECT_EQ(listen->args()[0].value(), "8080");
 }
 
 TEST(ParserTest, ParseNestedBlockDirectives)
@@ -363,13 +363,13 @@ TEST(ParserTest, ParseNestedBlockDirectives)
     ASSERT_NE(listen, nullptr);
     EXPECT_EQ(listen->name(), "listen");
     ASSERT_EQ(listen->args().size(), 1u);
-    EXPECT_EQ(listen->args()[0], "8080");
+    EXPECT_EQ(listen->args()[0].value(), "8080");
 
     auto* location = dynamic_cast<BlockDirective*>(serverChildren[1].get());
     ASSERT_NE(location, nullptr);
     EXPECT_EQ(location->name(), "location");
     ASSERT_EQ(location->args().size(), 1u);
-    EXPECT_EQ(location->args()[0], "/");
+    EXPECT_EQ(location->args()[0].value(), "/");
 
     auto& locationChildren = location->directives();
     ASSERT_EQ(locationChildren.size(), 1u);
@@ -378,7 +378,7 @@ TEST(ParserTest, ParseNestedBlockDirectives)
     ASSERT_NE(autoindex, nullptr);
     EXPECT_EQ(autoindex->name(), "autoindex");
     ASSERT_EQ(autoindex->args().size(), 1u);
-    EXPECT_EQ(autoindex->args()[0], "on");
+    EXPECT_EQ(autoindex->args()[0].value(), "on");
 }
 
 TEST(ParserTest, ParseComplexConfiguration)
@@ -431,31 +431,31 @@ TEST(ParserTest, ParseComplexConfiguration)
     ASSERT_NE(listen, nullptr);
     EXPECT_EQ(listen->name(), "listen");
     ASSERT_EQ(listen->args().size(), 1u);
-    EXPECT_EQ(listen->args()[0], "8080");
+    EXPECT_EQ(listen->args()[0].value(), "8080");
 
     auto* serverName = dynamic_cast<SimpleDirective*>(serverChildren[1].get());
     ASSERT_NE(serverName, nullptr);
     EXPECT_EQ(serverName->name(), "server_name");
     ASSERT_EQ(serverName->args().size(), 1u);
-    EXPECT_EQ(serverName->args()[0], "www.example.org");
+    EXPECT_EQ(serverName->args()[0].value(), "www.example.org");
 
     auto* root = dynamic_cast<SimpleDirective*>(serverChildren[2].get());
     ASSERT_NE(root, nullptr);
     EXPECT_EQ(root->name(), "root");
     ASSERT_EQ(root->args().size(), 1u);
-    EXPECT_EQ(root->args()[0], "/home/youruser/current_folder/html");
+    EXPECT_EQ(root->args()[0].value(), "/home/youruser/current_folder/html");
 
     auto* index = dynamic_cast<SimpleDirective*>(serverChildren[3].get());
     ASSERT_NE(index, nullptr);
     EXPECT_EQ(index->name(), "index");
     ASSERT_EQ(index->args().size(), 1u);
-    EXPECT_EQ(index->args()[0], "index.html");
+    EXPECT_EQ(index->args()[0].value(), "index.html");
 
     auto* location = dynamic_cast<BlockDirective*>(serverChildren[4].get());
     ASSERT_NE(location, nullptr);
     EXPECT_EQ(location->name(), "location");
     ASSERT_EQ(location->args().size(), 1u);
-    EXPECT_EQ(location->args()[0], "/");
+    EXPECT_EQ(location->args()[0].value(), "/");
 
     auto& locationChildren = location->directives();
     ASSERT_EQ(locationChildren.size(), 1u);
@@ -464,7 +464,7 @@ TEST(ParserTest, ParseComplexConfiguration)
     ASSERT_NE(autoindex, nullptr);
     EXPECT_EQ(autoindex->name(), "autoindex");
     ASSERT_EQ(autoindex->args().size(), 1u);
-    EXPECT_EQ(autoindex->args()[0], "on");
+    EXPECT_EQ(autoindex->args()[0].value(), "on");
 }
 
 // Test cases for edge cases
@@ -640,7 +640,7 @@ TEST(ParserTest, ParseDeeplyNestedBlocks)
     ASSERT_NE(location1, nullptr);
     EXPECT_EQ(location1->name(), "location");
     ASSERT_EQ(location1->args().size(), 1u);
-    EXPECT_EQ(location1->args()[0], "/api");
+    EXPECT_EQ(location1->args()[0].value(), "/api");
 
     auto& location1Children = location1->directives();
     ASSERT_EQ(location1Children.size(), 1u);
@@ -649,7 +649,7 @@ TEST(ParserTest, ParseDeeplyNestedBlocks)
     ASSERT_NE(location2, nullptr);
     EXPECT_EQ(location2->name(), "location");
     ASSERT_EQ(location2->args().size(), 1u);
-    EXPECT_EQ(location2->args()[0], "/api/v1");
+    EXPECT_EQ(location2->args()[0].value(), "/api/v1");
 
     auto& location2Children = location2->directives();
     ASSERT_EQ(location2Children.size(), 1u);
@@ -658,7 +658,7 @@ TEST(ParserTest, ParseDeeplyNestedBlocks)
     ASSERT_NE(uploadStore, nullptr);
     EXPECT_EQ(uploadStore->name(), "upload_store");
     ASSERT_EQ(uploadStore->args().size(), 1u);
-    EXPECT_EQ(uploadStore->args()[0], "/var/www/uploads");
+    EXPECT_EQ(uploadStore->args()[0].value(), "/var/www/uploads");
 }
 
 // Additional helper tests for specific scenarios you might encounter
@@ -685,7 +685,7 @@ TEST(ParserTest, ParseDirectiveWithPathValue)
     ASSERT_NE(root, nullptr);
     EXPECT_EQ(root->name(), "root");
     ASSERT_EQ(root->args().size(), 1u);
-    EXPECT_EQ(root->args()[0], "/home/user/web_folder/html");
+    EXPECT_EQ(root->args()[0].value(), "/home/user/web_folder/html");
 }
 
 TEST(ParserTest, ParseDirectiveWithNumericValue)
@@ -712,8 +712,8 @@ TEST(ParserTest, ParseDirectiveWithNumericValue)
     ASSERT_NE(root, nullptr);
     EXPECT_EQ(root->name(), "return");
     ASSERT_EQ(root->args().size(), 2u);
-    EXPECT_EQ(root->args()[0], "301");
-	EXPECT_EQ(root->args()[1], "/newpage");
+    EXPECT_EQ(root->args()[0].value(), "301");
+	EXPECT_EQ(root->args()[1].value(), "/newpage");
 }
 
 // clang-format on
@@ -744,7 +744,7 @@ std::to_string(i)); tokens.emplace_back(TokenType::SEMICOLON, ";");
         ASSERT_NE(directive, nullptr);
         EXPECT_EQ(directive->name(), "directive" + std::to_string(i));
         ASSERT_EQ(directive->args().size(), 1u);
-        EXPECT_EQ(directive->args()[0], "value" + std::to_string(i));
+        EXPECT_EQ(directive->args()[0].value(), "value" + std::to_string(i));
     }
 }
 */
