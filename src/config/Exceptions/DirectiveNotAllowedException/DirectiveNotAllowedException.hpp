@@ -5,13 +5,15 @@
 
 # include <stdexcept>
 # include <string>
+# include <sstream>
 
 # include "ConfigException.hpp"
 
 class DirectiveNotAllowedException : public ConfigException
 {
   public:
-    DirectiveNotAllowedException(const std::string& name,
+    DirectiveNotAllowedException(size_t line, size_t column,
+                                 const std::string& name,
                                  const std::string& context);
 
     const char* what() const noexcept override;

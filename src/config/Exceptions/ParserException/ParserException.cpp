@@ -7,15 +7,12 @@ ParserException::ParserException(const Token& token, const std::string& message)
 
 ParserException::ParserException(size_t line, size_t column,
                                  const std::string& message)
-  : ConfigException("")
 {
     std::ostringstream oss;
-    oss << "\033[1m";
-    oss << line << ":" << column << ": ";
-    oss << "\033[31m";
-    oss << "error: ";
-    oss << "\033[0m";
+
+    addErrorLocationMessage(oss, line, column);
     oss << message;
+
     m_message = oss.str();
 }
 

@@ -1,10 +1,16 @@
 #include "DirectiveNotAllowedException.hpp"
 
 DirectiveNotAllowedException::DirectiveNotAllowedException(
-    const std::string& name, const std::string& context)
-  : ConfigException(" directive '" + name + "' not allowed in context '"
-                    + context + "'")
+    size_t line, size_t column, const std::string& name,
+    const std::string& context)
 {
+    std::ostringstream oss;
+
+    addErrorLocationMessage(oss, line, column);
+    oss << " directive '" << name << "'";
+    oss << " not allowed in context '" << context << "'";
+
+    m_message = oss.str();
 }
 
 const char* DirectiveNotAllowedException::what() const noexcept

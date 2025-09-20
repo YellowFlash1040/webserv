@@ -1,13 +1,29 @@
 #include "Validator.hpp"
 
+// -----------------------CONSTRUCTION AND DESTRUCTION-------------------------
+
+// Default constructor
+Validator::Validator(const std::unique_ptr<ADirective>& rootNode)
+  : m_rootNode(rootNode)
+{
+}
+
+// Destructor
+Validator::~Validator() {}
+
 // ---------------------------METHODS-----------------------------
 
-void Validator::validate(const std::unique_ptr<ADirective>& node)
+void Validator::validate(const std::unique_ptr<ADirective>& rootNode)
 {
-    const std::string& name = node->name();
+    Validator(rootNode).validate();
+}
+
+void Validator::validate()
+{
+    const std::string& name = m_rootNode->name();
 
     const BlockDirective* block
-        = dynamic_cast<const BlockDirective*>(node.get());
+        = dynamic_cast<const BlockDirective*>(m_rootNode.get());
     if (block)
         validateChildren(*block, name);
 }
@@ -16,6 +32,8 @@ void Validator::validateNode(const std::unique_ptr<ADirective>& node,
                              const std::string& parentContext)
 {
     const std::string& name = node->name();
+    m_errorLine = node->line();
+    m_errorColumn = node->column();
 
     checkParentConstraint(name, parentContext);
     checkAllowedDirective(name, parentContext);
@@ -43,19 +61,21 @@ void Validator::checkParentConstraint(const std::string& name,
         return;
 
     const std::string& requiredParent = result.second;
-    throw DirectiveWrongParentException(name, requiredParent);
+    throw DirectiveWrongParentException(m_errorLine, m_errorColumn, name,
+                                        requiredParent);
 }
 
 void Validator::checkAllowedDirective(const std::string& name,
                                       const std::string& context)
 {
     if (!Directives::isAllowedInContext(name, context))
-        throw DirectiveNotAllowedException(name, context);
+        throw DirectiveNotAllowedException(m_errorLine, m_errorColumn, name,
+                                           context);
 }
 
 void Validator::checkArguments(const std::string& name,
                                const std::vector<Argument>& args)
 {
     if (!Directives::hasRightAmountOfArguments(name, args.size()))
-        throw ConfigException(" wrong amount of arguments: " + name);
+        throw InvalidArgumentCountException(m_errorLine, m_errorColumn, name);
 }

@@ -1,10 +1,16 @@
 #include "DirectiveWrongParentException.hpp"
 
 DirectiveWrongParentException::DirectiveWrongParentException(
-    const std::string& name, const std::string& requiredParent)
-  : ConfigException(" directive '" + name + "' is only allowed inside '"
-                    + requiredParent + "'")
+    size_t line, size_t column, const std::string& name,
+    const std::string& requiredParent)
 {
+    std::ostringstream oss;
+
+    addErrorLocationMessage(oss, line, column);
+    oss << " directive '" << name << "'";
+    oss << " is only allowed inside '" << requiredParent << "'";
+
+    m_message = oss.str();
 }
 
 const char* DirectiveWrongParentException::what() const noexcept
