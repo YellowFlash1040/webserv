@@ -27,22 +27,15 @@ class Parser
 
     // Class specific features
   public:
-    // Constants
-    // Accessors
     // Methods
     static std::unique_ptr<ADirective> parse(std::vector<Token>& tokens);
     std::unique_ptr<ADirective> parse();
-
-  protected:
-    // Properties
-    // Methods
 
   private:
     // Properties
     std::vector<Token>& m_tokens;
     size_t m_errorLine = -1;
     size_t m_errorColumn = -1;
-
     DirectiveType m_prevDirectiveType;
     // Methods
     Token advance();
@@ -50,18 +43,18 @@ class Parser
     std::unique_ptr<ADirective> parseDirective();
     std::unique_ptr<ADirective> createDirectiveBasedOnType(
         DirectiveType directiveType, std::string& directiveName,
-        std::vector<std::string>& args);
+        std::vector<Argument>& args);
     std::unique_ptr<ADirective> parseBlockDirective(
-        std::string& directiveName, std::vector<std::string>& args);
+        std::string& directiveName, std::vector<Argument>& args);
     std::unique_ptr<BlockDirective> parseAndCreateBlockDirective(
-        std::string& name, std::vector<std::string>& args);
+        std::string& name, std::vector<Argument>& args);
     std::unique_ptr<ADirective> parseSimpleDirective(
-        std::string& directiveName, std::vector<std::string>& args);
+        std::string& directiveName, std::vector<Argument>& args);
     std::unique_ptr<SimpleDirective> createSimpleDirective(
-        std::string& name, std::vector<std::string>& args);
-    std::string expectDirectiveToken();
+        std::string& name, std::vector<Argument>& args);
+    std::string expectDirectiveToken(const Token& token);
     DirectiveType expectKnownDirective(const std::string& directiveName);
-    void consumeArguments(std::vector<std::string>& args);
+    void consumeArguments(std::vector<Argument>& args);
     void expectNotDirective(const std::string& tokenValue);
 };
 

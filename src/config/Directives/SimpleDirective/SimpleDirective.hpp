@@ -17,20 +17,6 @@ class SimpleDirective : public ADirective
     SimpleDirective(SimpleDirective&& other) noexcept;
     SimpleDirective& operator=(SimpleDirective&& other) noexcept;
     ~SimpleDirective();
-
-    // Class specific features
-  public:
-    // Constants
-    // Accessors
-    // Methods
-
-  protected:
-    // Properties
-    // Methods
-
-  private:
-    // Properties
-    // Methods
 };
 
 #endif

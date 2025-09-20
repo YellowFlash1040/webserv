@@ -33,8 +33,7 @@ bool isSimpleDirective(const std::string& name);
 std::pair<bool, std::string> hasRequiredParentContext(
     const std::string& name, const std::string& parentContext);
 bool isAllowedInContext(const std::string& name, const std::string& context);
-bool hasRightAmountOfArguments(const std::string& name,
-                               const std::vector<std::string>& args);
+bool hasRightAmountOfArguments(const std::string& name, size_t amount);
 
 } // namespace Directives
 

@@ -40,7 +40,6 @@ class Token
     const std::string& value() const;
     size_t line() const;
     size_t column() const;
-    // Methods
 
   private:
     // Properties

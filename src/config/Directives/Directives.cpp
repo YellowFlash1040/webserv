@@ -187,8 +187,7 @@ std::pair<bool, std::string> hasRequiredParentContext(
     return {false, specs.required_parent};
 }
 
-bool hasRightAmountOfArguments(const std::string& name,
-    const std::vector<std::string>& args)
+bool hasRightAmountOfArguments(const std::string& name, size_t amount)
 {
     auto it = directives.find(name);
     if (it == directives.end())
@@ -197,16 +196,16 @@ bool hasRightAmountOfArguments(const std::string& name,
     DirectiveSpec specs = it->second;
 
     if (specs.arg_type == FixedCount
-        && args.size() == specs.min_args)
+        && amount == specs.min_args)
         return true;
 
     if (specs.arg_type == AtLeast
-        && args.size() >= specs.min_args)
+        && amount >= specs.min_args)
         return true;
 
     if (specs.arg_type == Between
-        && args.size() >= specs.min_args
-        && args.size() <= specs.max_args)
+        && amount >= specs.min_args
+        && amount <= specs.max_args)
         return true;
 
     if (specs.arg_type == Any)

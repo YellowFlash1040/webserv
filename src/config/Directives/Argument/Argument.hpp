@@ -32,21 +32,18 @@ class Argument
 
     // Class specific features
   public:
-    // Constants
     // Accessors
+    const std::string& value();
+    size_t line();
+    size_t column();
     // Methods
     static ArgumentType getArgumentType(const Argument& arg);
-
-  protected:
-    // Properties
-    // Methods
 
   private:
     // Properties
     std::string m_value;
     size_t m_line = static_cast<size_t>(-1);
     size_t m_column = static_cast<size_t>(-1);
-    // Methods
 };
 
 #endif

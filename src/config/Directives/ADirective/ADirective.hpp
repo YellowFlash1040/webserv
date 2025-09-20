@@ -31,20 +31,18 @@ class ADirective
     // Accessors
     const std::string& name() const;
     void setName(std::string&& name);
-    const std::vector<std::string>& args();
-    void setArgs(std::vector<std::string>&& args);
+    const std::vector<Argument>& args();
+    void setArgs(std::vector<Argument>&& args);
+    void setPosition(size_t line, size_t column);
+    size_t line();
+    size_t column();
 
   protected:
     // Properties
     std::string m_name;
-    std::vector<std::string> m_args;
+    std::vector<Argument> m_args;
     size_t m_line = static_cast<size_t>(-1);
     size_t m_column = static_cast<size_t>(-1);
-    // Methods
-
-  private:
-    // Properties
-    // Methods
 };
 
 #endif

@@ -60,6 +60,21 @@ Argument::~Argument() {}
 
 // ---------------------------ACCESSORS-----------------------------
 
+const std::string& Argument::value()
+{
+    return m_value;
+}
+
+size_t Argument::line()
+{
+    return m_line;
+}
+
+size_t Argument::column()
+{
+    return m_column;
+}
+
 // ---------------------------METHODS-----------------------------
 
 ArgumentType Argument::getArgumentType(const Argument& arg)

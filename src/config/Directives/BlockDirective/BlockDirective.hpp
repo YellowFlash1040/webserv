@@ -21,20 +21,14 @@ class BlockDirective : public ADirective
 
     // Class specific features
   public:
-    // Constants
     // Accessors
     const std::vector<std::unique_ptr<ADirective>>& directives() const;
     // Methods
     void addDirective(std::unique_ptr<ADirective>&& directive);
 
-  protected:
-    // Properties
-    // Methods
-
   private:
     // Properties
     std::vector<std::unique_ptr<ADirective>> m_directives;
-    // Methods
 };
 
 #endif

@@ -54,8 +54,8 @@ void Validator::checkAllowedDirective(const std::string& name,
 }
 
 void Validator::checkArguments(const std::string& name,
-                               const std::vector<std::string>& args)
+                               const std::vector<Argument>& args)
 {
-    if (!Directives::hasRightAmountOfArguments(name, args))
+    if (!Directives::hasRightAmountOfArguments(name, args.size()))
         throw ConfigException(" wrong amount of arguments: " + name);
 }

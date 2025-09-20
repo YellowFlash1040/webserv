@@ -64,12 +64,28 @@ void ADirective::setName(std::string&& name)
     m_name = std::move(name);
 }
 
-const std::vector<std::string>& ADirective::args()
+const std::vector<Argument>& ADirective::args()
 {
     return m_args;
 }
 
-void ADirective::setArgs(std::vector<std::string>&& args)
+void ADirective::setArgs(std::vector<Argument>&& args)
 {
     m_args = std::move(args);
+}
+
+void ADirective::setPosition(size_t line, size_t column)
+{
+    m_line = line;
+    m_column = column;
+}
+
+size_t ADirective::line()
+{
+    return m_line;
+}
+
+size_t ADirective::column()
+{
+    return m_column;
 }

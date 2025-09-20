@@ -39,7 +39,7 @@ class Validator
     static void checkAllowedDirective(const std::string& name,
                                       const std::string& context);
     static void checkArguments(const std::string& name,
-                               const std::vector<std::string>& args);
+                               const std::vector<Argument>& args);
 };
 
 #endif
