@@ -3,7 +3,8 @@
 // --------------CONSTRUCTION AND DESTRUCTION--------------
 
 // Default constructor
-Server::Server(int port)
+Server::Server(int port, ConnectionManager& connMgr)
+	: m_connMgr(connMgr) // initialize reference
 {
 	fillAddressInfo(port);
 
@@ -117,63 +118,65 @@ void Server::acceptNewClient()
 
 	setNonBlockingAndCloexec(clientSocket);
 	addSocketToEPoll(clientSocket, EPOLLIN);
+	m_connMgr.addClient(clientSocket);
+	
 }
 
 void Server::processClient(int clientSocket)
 {
-	HttpRequest		request;
-	HttpResponse	response;
-	std::string		rawResponse;
-	
-	// Data ready to read from client
 	char buf[8192];
 	int n = read(clientSocket, buf, sizeof(buf) - 1);
 
 	if (n > 0)
 	{
-		std::string rawRequest(buf, n);
-		HttpRequest request = parseRequest(rawRequest);
-		HttpResponse response = handleRequest(request);
-		rawResponse = response.toString();
+		buf[n] = '\0';
+		std::cout << GREEN << "\nDEBUG[SERVER]:" << RESET << " read " << n << " bytes: \n" << buf << "\n";
+		// Pass incoming data to ConnectionManager
+		std::string data(buf, n);
+		bool hasResponse = m_connMgr.processData(clientSocket, data);
 
-		std::cout << "\033[32m\nHTTP Request: raw\033[0m\n"
-				<< rawRequest << "\n\n";
-				
-		std::cout << "\033[32mHTTP Request: parsed\033[0m\n";
-		std::cout << "Method: " << request.getMethod() << "\n";
-		std::cout << "URI: " << request.getUri() << "\n";
-		std::cout << "HTTP Version: " << request.getHttpVersion() << "\n";
-		std::cout << "Headers:\n";
-		for (const auto& header : request.getHeaders())
+		std::cout << GREEN << "DEBUG[SERVER]:" << RESET << " has response? " << hasResponse << "\n";
+		if (hasResponse)
 		{
-			std::cout << "  " << header.first << ": " << header.second << "\n";
-		}
-		std::cout << "Body: " << request.getBody() << "\n\n";
-
-		std::cout << "\033[36mHTTP Response: parsed\033[0m\n";
-		std::cout << "Status: " << response.getStatusCode()
-				<< "\n";
-		std::cout << "Headers:\n";
-		for (const auto& header : response.getHeaders())
-		{
-			std::cout << "  " << header.first << ": " << header.second << "\n";
-		}
-		std::cout << "Body: " << response.getBody() << "\n\n";
-
-		std::cout << "\033[36mHTTP Response: stringified\033[0m\n"
-				<< rawResponse << "\n\n";
+			std::string response = m_connMgr.getResponse(clientSocket);
+			std::cout << GREEN << "\nDEBUG[SERVER]" << RESET << " Response size = "
+				<< response.size() << ":\n" << response << "\n\n";
+			
+			// Send response
+			write(clientSocket, response.c_str(), response.size());
 		
-		// Send response
-		write(clientSocket, rawResponse.c_str(), rawResponse.size());
+			const Request& req = m_connMgr.getRequest(clientSocket);
+			std::string connHeader = req.getHeader("Connection");
+			bool clientSentClose = (connHeader == "close");
+
+			if (clientSentClose)
+			{
+				m_connMgr.removeClient(clientSocket); // only remove if client wants to close
+			}
+			else
+			{
+				 m_connMgr.resetClientState(clientSocket); // keep alive
+			}
+		}
 	}
+	
 	else if (n == 0)
 	{
+		std::cout << GREEN << "DEBUG:" << RESET << " client closed connection, fd=" << clientSocket << "\n";
 		std::cout << "Client closed the socket on their end, fd=" << clientSocket << "\n";
+		m_connMgr.removeClient(clientSocket);
 		close(clientSocket);
 	}
 		
 	else
 	{
-		throw std::runtime_error("read");
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+		{
+			std::cout << GREEN << "DEBUG:" << RESET << " no data available yet (EAGAIN)\n";
+			return;
+		}
+		perror("read");
+		throw std::runtime_error("read failed");
 	}
 }
+

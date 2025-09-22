@@ -19,10 +19,11 @@
 # include "MemoryUtils.hpp"
 # include "NetworkEndpoint.hpp"
 
-#include "../http/HttpRequest/handler.hpp"
-#include "../http/HttpRequest/parser.hpp"
-#include "../http/HttpRequest/HttpRequest.hpp"
-#include "../http/HttpResponse/HttpResponse.hpp"
+// HTTP connection manager
+#include "../http/ConnectionManager/ConnectionManager.hpp"
+
+#define GREEN "\033[0;32m"
+#define RESET "\033[0m"
 
 typedef struct sockaddr t_sockaddr;
 typedef struct sockaddr_in t_sockaddr_in;
@@ -32,35 +33,33 @@ extern volatile std::sig_atomic_t g_running;
 
 class Server
 {
-    // Construction and destruction
-  public:
-    Server(int port);
-    ~Server();
+		// Construction and destruction
+	public:
+		Server(int port, ConnectionManager& connMgr);
+		~Server();
+		void run(void);
 
-    // Class specific features
-  public:
-    // Accessors
-    // Methods
-    void run(void);
+	protected:
+		// Properties
+		// Methods
 
-  protected:
-    // Properties
-    // Methods
-
-  private:
-    // constants
-    static constexpr int QUEUE_SIZE = 100;
-    static constexpr int MAX_EVENTS = 50;
-    // Properties
-    int m_listeningSocket = -1;
-    int m_epfd = -1; // event poll fd
-    t_sockaddr_in m_address;
-    // Methods
-    void fillAddressInfo(int port);
-    void setNonBlockingAndCloexec(int fd);
-    void addSocketToEPoll(int socket, uint32_t events);
-    void acceptNewClient(void);
-    void processClient(int clientSocket);
+	private:
+		// constants
+		static constexpr int QUEUE_SIZE = 100;
+		static constexpr int MAX_EVENTS = 50;
+		// Properties
+		int m_listeningSocket = -1;
+		int m_epfd = -1; // event poll fd
+		t_sockaddr_in m_address;
+		ConnectionManager& m_connMgr;
+				
+		// Methods
+		void fillAddressInfo(int port);
+		void setNonBlockingAndCloexec(int fd);
+		void addSocketToEPoll(int socket, uint32_t events);
+		void acceptNewClient(void);
+		void processClient(int clientSocket);
 };
+
 
 #endif

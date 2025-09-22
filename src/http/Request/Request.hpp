@@ -1,11 +1,11 @@
-#ifndef HTTPREQUEST_HPP
-#define HTTPREQUEST_HPP
+#ifndef REQUEST_HPP
+#define REQUEST_HPP
 
 #include <string>
 #include <map>
 #include <stdexcept>
 
-class HttpRequest
+class Request
 {
 	private:
 		std::string _method;
@@ -17,16 +17,19 @@ class HttpRequest
 		//cookies?
 		
 	public:
-		HttpRequest();
-		~HttpRequest();
-		HttpRequest(const HttpRequest& other);
-		HttpRequest& operator=(const HttpRequest& other);
-		HttpRequest(HttpRequest&& other) noexcept;
-		HttpRequest& operator=(HttpRequest&& other) noexcept;
+		Request();
+		~Request();
+		Request(const Request& other);
+		Request& operator=(const Request& other);
+		Request(Request&& other) noexcept;
+		Request& operator=(Request&& other) noexcept;
 
+		void requestReset();
+		
 		const std::string& getMethod() const;
 		const std::string& getUri() const;
 		const std::string& getHttpVersion() const;
+		std::string getHeader(const std::string& name) const;
 		const std::map<std::string, std::string>& getHeaders() const;
 		const std::string& getBody() const;
 

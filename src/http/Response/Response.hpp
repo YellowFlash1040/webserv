@@ -1,10 +1,10 @@
-#ifndef HTTPRESPONSE_HPP
-#define HTTPRESPONSE_HPP
+#ifndef RESPONSE_HPP
+#define RESPONSE_HPP
 
 #include <string>
 #include <map>
 
-class HttpResponse
+class Response
 {
 	private:
 		int _statusCode;
@@ -13,14 +13,15 @@ class HttpResponse
 		std::string _body;
 
 	public:
+		Response();
+		~Response();
+		Response(const Response& other);
+		Response& operator=(const Response& other);
+		Response(Response&& other) noexcept;
+		Response& operator=(Response&& other) noexcept;
 
-		HttpResponse();
-		~HttpResponse();
-		HttpResponse(const HttpResponse& other);
-		HttpResponse& operator=(const HttpResponse& other);
-		HttpResponse(HttpResponse&& other) noexcept;
-		HttpResponse& operator=(HttpResponse&& other) noexcept;
-
+		void responseReset();
+		
 		int getStatusCode() const;
 		const std::string& getStatusMessage() const;
 		const std::map<std::string, std::string>& getHeaders() const;

@@ -1,13 +1,12 @@
-#include "handler.hpp"
+#include "RequestHandler.hpp"
 
-HttpResponse handleRequest(const HttpRequest& request)
+Response RequestHandler::handleRequest(const Request& request)
 {
-	(void)request;
-	HttpResponse response;
+	(void)request; // unused for now
 
+	Response response;
 	response.setStatusCode(200);
-	response.setBody
-	(
+	response.setBody(
 		"<html>"
 		"<body style=\"color: green; font-size: 48px; font-weight: bold; font-family: Arial, sans-serif;\">"
 		"SERVER UNDER CONSTRUCTION"

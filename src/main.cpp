@@ -17,7 +17,10 @@ int main(void)
 
     try
     {
-        Server s(8081);
+        ConnectionManager connMgr;
+
+        // Pass a reference to Server
+        Server s(8081, connMgr);
         s.run();
     }
     catch (const std::runtime_error& e)
