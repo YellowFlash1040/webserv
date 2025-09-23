@@ -3,7 +3,7 @@
 
 #include <string>
 #include "../ClientRequest/ClientRequest.hpp"
-#include "../Response/Response.hpp"
+#include "../ServerResponse/ServerResponse.hpp"
 
 class ClientState
 {
@@ -26,7 +26,7 @@ class ClientState
 		std::string getFullRequestBuffer() const;
 		const std::string& getRawHeaderBuffer() const;
 		const std::string& getRawBodyBuffer() const;
-		const Response& getRespObj() const;
+		const ServerResponse& getRespObj() const;
 		const ClientRequest& getRequest() const;
 		
 		bool isHeadersComplete() const;
@@ -44,7 +44,7 @@ class ClientState
 		void setContentLength(int value);
 		void setChunked(bool value);
 		void setRequest(const ClientRequest& req);
-		void setResponse(const Response& resp);
+		void setResponse(const ServerResponse& resp);
 		void setReadyToSend(bool value);
 		
 	private:
@@ -54,7 +54,7 @@ class ClientState
 		int _contentLength;
 		bool _chunked;
 		ClientRequest _request;
-		Response _respObj;
+		ServerResponse _respObj;
 		bool _readyToSend;
 };
 

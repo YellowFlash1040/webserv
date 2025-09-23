@@ -1,16 +1,13 @@
 #include "ClientState.hpp"
 
-// Constructor
 ClientState::ClientState()
 	: _headersComplete(false), _contentLength(0), _chunked(false), _readyToSend(false)
 {
 	// buffers are default-initialized
 }
 
-// Destructor
 ClientState::~ClientState() {}
 
-// Copy constructor
 ClientState::ClientState(const ClientState& other)
 	: _headerBuffer(other._headerBuffer),
 	  _bodyBuffer(other._bodyBuffer),
@@ -21,7 +18,6 @@ ClientState::ClientState(const ClientState& other)
 	  _respObj(other._respObj),
 	  _readyToSend(other._readyToSend) {}
 
-// Copy assignment
 ClientState& ClientState::operator=(const ClientState& other) {
 	if (this != &other)
 	{
@@ -122,7 +118,7 @@ const ClientRequest& ClientState::getRequest() const
 	return _request;
 }
 
-const Response& ClientState::getRespObj() const
+const ServerResponse& ClientState::getRespObj() const
 {
 	return _respObj;
 }
@@ -160,7 +156,7 @@ void ClientState::setRequest(const ClientRequest& req)
 {
 	_request = req;
 }
-void ClientState::setResponse(const Response& resp)
+void ClientState::setResponse(const ServerResponse& resp)
 {
 	_respObj = resp;
 }

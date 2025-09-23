@@ -78,7 +78,7 @@ bool ConnectionManager::processData(int clientId, const std::string& data)
 		{
 			ClientRequest request = m_parser.parseCompleteRequest(state);
 			
-			const Response& respObj = m_handler.handleRequest(request);
+			const ServerResponse& respObj = m_handler.handleRequest(request);
 			std::string response = respObj.toString();
 			state.setResponse(respObj);
 			state.setReadyToSend(true); 

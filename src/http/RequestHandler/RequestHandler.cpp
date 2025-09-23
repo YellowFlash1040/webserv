@@ -1,10 +1,10 @@
 #include "RequestHandler.hpp"
 
-Response RequestHandler::handleRequest(const ClientRequest& request)
+ServerResponse RequestHandler::handleRequest(const ClientRequest& request)
 {
 	(void)request; // unused for now
 
-	Response response;
+	ServerResponse response;
 	response.setStatusCode(200);
 	response.setBody(
 		"<html>"

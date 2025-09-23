@@ -2,7 +2,7 @@
 #define REQUESTHANDLER_HPP
 
 #include "../ClientRequest/ClientRequest.hpp"
-#include "../Response/Response.hpp"
+#include "../ServerResponse/ServerResponse.hpp"
 
 class RequestHandler
 {
@@ -17,7 +17,7 @@ class RequestHandler
 		RequestHandler& operator=(RequestHandler&& other) noexcept = default;
 
 		// Handle a request
-		Response handleRequest(const ClientRequest& request);
+		ServerResponse handleRequest(const ClientRequest& request);
 };
 
 #endif
