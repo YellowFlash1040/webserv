@@ -34,7 +34,7 @@ class ConnectionManager
 		void removeClient(int clientId);
 		
 		std::string getResponse(int clientId);
-		const Request& getRequest(int clientId) const;
+		const ClientRequest& getRequest(int clientId) const;
 };
 
 #endif

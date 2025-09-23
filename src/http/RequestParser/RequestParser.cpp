@@ -50,9 +50,9 @@ bool RequestParser::bodyComplete(const ClientState& state) const
 }
 
 // Parse a complete request from raw string
-Request RequestParser::parseCompleteRequest(ClientState& state) const
+ClientRequest RequestParser::parseCompleteRequest(ClientState& state) const
 {
-	Request request;
+	ClientRequest request;
 
 	auto pos = state.getHeaderBuffer().find("\r\n\r\n");
 	if (pos == std::string::npos)

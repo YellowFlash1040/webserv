@@ -117,7 +117,7 @@ bool ClientState::isChunked() const
 	return _chunked;
 }
 
-const Request& ClientState::getRequest() const
+const ClientRequest& ClientState::getRequest() const
 {
 	return _request;
 }
@@ -156,7 +156,7 @@ void ClientState::setChunked(bool value)
 {
 	_chunked = value;
 }
-void ClientState::setRequest(const Request& req)
+void ClientState::setRequest(const ClientRequest& req)
 {
 	_request = req;
 }

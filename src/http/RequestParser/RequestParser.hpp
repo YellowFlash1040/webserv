@@ -7,7 +7,7 @@
 #include <cctype>
 #include <stdexcept>
 #include "../ConnectionManager/ClientState/ClientState.hpp"
-#include "../Request/Request.hpp"
+#include "../ClientRequest/ClientRequest.hpp"
 
 class RequestParser
 {
@@ -23,7 +23,7 @@ class RequestParser
 		bool headersParsed(const ClientState& state) const;
 		size_t extractContentLength(const ClientState& state) const;
 		bool bodyComplete(const ClientState& state) const;
-		Request parseCompleteRequest(ClientState& state) const;
+		ClientRequest parseCompleteRequest(ClientState& state) const;
 
 	private:
 		// helper functions

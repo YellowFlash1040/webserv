@@ -76,7 +76,7 @@ bool ConnectionManager::processData(int clientId, const std::string& data)
 		
 		if (bodyComplete)
 		{
-			Request request = m_parser.parseCompleteRequest(state);
+			ClientRequest request = m_parser.parseCompleteRequest(state);
 			
 			const Response& respObj = m_handler.handleRequest(request);
 			std::string response = respObj.toString();
@@ -145,7 +145,7 @@ std::string ConnectionManager::getResponse(int clientId)
 	return state.getRespObj().toString(); // assuming Response has toString()
 }
 
-const Request& ConnectionManager::getRequest(int clientId) const
+const ClientRequest& ConnectionManager::getRequest(int clientId) const
 {
 	auto it = m_clients.find(clientId);
 	if (it == m_clients.end())

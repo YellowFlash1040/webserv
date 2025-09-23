@@ -145,7 +145,7 @@ void Server::processClient(int clientSocket)
 			// Send response
 			write(clientSocket, response.c_str(), response.size());
 		
-			const Request& req = m_connMgr.getRequest(clientSocket);
+			const ClientRequest& req = m_connMgr.getRequest(clientSocket);
 			std::string connHeader = req.getHeader("Connection");
 			bool clientSentClose = (connHeader == "close");
 

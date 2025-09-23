@@ -2,7 +2,7 @@
 #define CLIENTSTATE
 
 #include <string>
-#include "../Request/Request.hpp"
+#include "../ClientRequest/ClientRequest.hpp"
 #include "../Response/Response.hpp"
 
 class ClientState
@@ -27,7 +27,7 @@ class ClientState
 		const std::string& getRawHeaderBuffer() const;
 		const std::string& getRawBodyBuffer() const;
 		const Response& getRespObj() const;
-		const Request& getRequest() const;
+		const ClientRequest& getRequest() const;
 		
 		bool isHeadersComplete() const;
 		size_t getContentLength() const;
@@ -43,7 +43,7 @@ class ClientState
 		void setHeadersComplete(bool value);
 		void setContentLength(int value);
 		void setChunked(bool value);
-		void setRequest(const Request& req);
+		void setRequest(const ClientRequest& req);
 		void setResponse(const Response& resp);
 		void setReadyToSend(bool value);
 		
@@ -53,7 +53,7 @@ class ClientState
 		bool _headersComplete;
 		int _contentLength;
 		bool _chunked;
-		Request _request;
+		ClientRequest _request;
 		Response _respObj;
 		bool _readyToSend;
 };
