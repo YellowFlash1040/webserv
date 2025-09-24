@@ -3,8 +3,8 @@
 // --------------CONSTRUCTION AND DESTRUCTION--------------
 
 // Default constructor
-Server::Server(int port, ConnectionManager& connMgr)
-	: m_connMgr(connMgr) // initialize reference
+Server::Server(int port)
+	: m_connMgr()
 {
 	fillAddressInfo(port);
 
@@ -112,20 +112,20 @@ void Server::addSocketToEPoll(int socket, uint32_t events)
 
 void Server::acceptNewClient()
 {
-	int clientSocket = accept(m_listeningSocket, NULL, NULL);
-	if (clientSocket == -1)
+	int clientId = accept(m_listeningSocket, NULL, NULL);
+	if (clientId == -1)
 		throw std::runtime_error("accept");
 
-	setNonBlockingAndCloexec(clientSocket);
-	addSocketToEPoll(clientSocket, EPOLLIN);
-	m_connMgr.addClient(clientSocket);
+	setNonBlockingAndCloexec(clientId);
+	addSocketToEPoll(clientId, EPOLLIN);
+	m_connMgr.addClient(clientId);
 	
 }
 
-void Server::processClient(int clientSocket)
+void Server::processClient(int clientId)
 {
 	char buf[8192];
-	int n = read(clientSocket, buf, sizeof(buf) - 1);
+	int n = read(clientId, buf, sizeof(buf) - 1);
 
 	if (n > 0)
 	{
@@ -133,39 +133,35 @@ void Server::processClient(int clientSocket)
 		std::cout << GREEN << "\nDEBUG[SERVER]:" << RESET << " read " << n << " bytes: \n" << buf << "\n";
 		// Pass incoming data to ConnectionManager
 		std::string data(buf, n);
-		bool hasResponse = m_connMgr.processData(clientSocket, data);
+		bool hasResponse = m_connMgr.processData(clientId, data);
 
 		std::cout << GREEN << "DEBUG[SERVER]:" << RESET << " has response? " << hasResponse << "\n";
 		if (hasResponse)
 		{
-			std::string response = m_connMgr.getResponse(clientSocket);
+			std::string response = m_connMgr.getResponse(clientId);
 			std::cout << GREEN << "\nDEBUG[SERVER]" << RESET << " Response size = "
 				<< response.size() << ":\n" << response << "\n\n";
 			
 			// Send response
-			write(clientSocket, response.c_str(), response.size());
-		
-			const ClientRequest& req = m_connMgr.getRequest(clientSocket);
-			std::string connHeader = req.getHeader("Connection");
-			bool clientSentClose = (connHeader == "close");
+			write(clientId, response.c_str(), response.size());
 
-			if (clientSentClose)
+			if (m_connMgr.clientSentClose(clientId))
 			{
-				m_connMgr.removeClient(clientSocket); // only remove if client wants to close
+				m_connMgr.removeClient(clientId); // only remove if client wants to close
 			}
 			else
 			{
-				 m_connMgr.resetClientState(clientSocket); // keep alive
+				 m_connMgr.resetClientState(clientId); // keep alive
 			}
 		}
 	}
 	
 	else if (n == 0)
 	{
-		std::cout << GREEN << "DEBUG:" << RESET << " client closed connection, fd=" << clientSocket << "\n";
-		std::cout << "Client closed the socket on their end, fd=" << clientSocket << "\n";
-		m_connMgr.removeClient(clientSocket);
-		close(clientSocket);
+		std::cout << GREEN << "DEBUG:" << RESET << " client closed connection, fd=" << clientId << "\n";
+		std::cout << "Client closed the socket on their end, fd=" << clientId << "\n";
+		m_connMgr.removeClient(clientId);
+		close(clientId);
 	}
 		
 	else

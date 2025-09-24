@@ -1,7 +1,7 @@
 #ifndef CONNECTIONMANAGER_HPP
 #define CONNECTIONMANAGER_HPP
 
-#include <map>
+#include <unordered_map>
 #include <string>
 #include <iostream>
 #include "../RequestParser/RequestParser.hpp"
@@ -16,9 +16,15 @@
 class ConnectionManager
 {
 	private:
-		std::map<int, ClientState> m_clients;
+		std::unordered_map<int, ClientState> m_clients;
 		RequestParser m_parser;
 		RequestHandler m_handler;
+		
+		void appendDataToBuffers(ClientState& state, const std::string& data);
+		void checkAndParseHeaders(ClientState& state);
+		bool checkAndProcessBody(ClientState& state);
+		void printRequestDebug(const ClientState& state, const ClientRequest& request) const;
+		void printResponseDebug(const ServerResponse& respObj, const std::string& response) const;
 
 	public:
 		ConnectionManager() = default;
@@ -29,8 +35,10 @@ class ConnectionManager
 		ConnectionManager& operator=(ConnectionManager&&) noexcept = default;
 
 		void addClient(int clientId);
+		
 		bool processData(int clientId, const std::string& data);
 		void resetClientState(int clientId);
+		bool clientSentClose(int clientId) const;
 		void removeClient(int clientId);
 		
 		std::string getResponse(int clientId);

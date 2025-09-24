@@ -35,7 +35,7 @@ class Server
 {
 		// Construction and destruction
 	public:
-		Server(int port, ConnectionManager& connMgr);
+		Server(int port);
 		~Server();
 		void run(void);
 
@@ -51,7 +51,7 @@ class Server
 		int m_listeningSocket = -1;
 		int m_epfd = -1; // event poll fd
 		t_sockaddr_in m_address;
-		ConnectionManager& m_connMgr;
+		ConnectionManager m_connMgr;
 				
 		// Methods
 		void fillAddressInfo(int port);

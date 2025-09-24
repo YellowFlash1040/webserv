@@ -11,6 +11,11 @@
 
 class RequestParser
 {
+	private:
+		// helper functions
+		static void removeCarriageReturns(std::string& str);
+		static void trimLeadingWhitespace(std::string& str);
+	
 	public:
 		RequestParser() = default;
 		~RequestParser() = default;
@@ -25,10 +30,6 @@ class RequestParser
 		bool bodyComplete(const ClientState& state) const;
 		ClientRequest parseCompleteRequest(ClientState& state) const;
 
-	private:
-		// helper functions
-		static void removeCarriageReturns(std::string& str);
-		static void trimLeadingWhitespace(std::string& str);
 };
 
 #endif
