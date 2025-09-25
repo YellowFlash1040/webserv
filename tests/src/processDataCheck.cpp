@@ -1,77 +1,77 @@
 #include <gtest/gtest.h>
 #include "ConnectionManager.hpp"
 
-// TEST(ProcessDataTest, RequestLineParsing)
-// {
-// 	// Arrange
-// 	ConnectionManager connMgr;
-// 	int clientId = 1;
-// 	connMgr.addClient(clientId);
-// 	std::string requestString =
-// 		"GET /index.html HTTP/1.1\r\n"
-// 		"Host: localhost\r\n"
-// 		"Connection: keep-alive\r\n"
-// 		"\r\n";
+TEST(ProcessDataTest, RequestLineParsing)
+{
+	// Arrange
+	ConnectionManager connMgr;
+	int clientId = 1;
+	connMgr.addClient(clientId);
+	std::string requestString =
+		"GET /index.html HTTP/1.1\r\n"
+		"Host: localhost\r\n"
+		"Connection: keep-alive\r\n"
+		"\r\n";
 
-// 	// Act
-// 	bool ready = connMgr.processData(clientId, requestString);
-// 	std::cout << "processData ready? " << ready << "\n";
-// 	const ParsedRequest& req = connMgr.getRequest(clientId);
+	// Act
+	bool ready = connMgr.processData(clientId, requestString);
+	std::cout << "processData ready? " << ready << "\n";
+	const ParsedRequest& req = connMgr.getRequest(clientId);
 
-// 	// Assert
-// 	EXPECT_EQ(req.getMethod(), "GET");
-// 	EXPECT_EQ(req.getUri(), "/index.html");
-// 	EXPECT_EQ(req.getHttpVersion(), "HTTP/1.1");
-// 	EXPECT_EQ(req.getHeader("Host"), "localhost");
-// }
+	// Assert
+	EXPECT_EQ(req.getMethod(), "GET");
+	EXPECT_EQ(req.getUri(), "/index.html");
+	EXPECT_EQ(req.getHttpVersion(), "HTTP/1.1");
+	EXPECT_EQ(req.getHeader("Host"), "localhost");
+}
 
-// TEST(ProcessDataTest, IncompleteHeader)
-// {
-// 	// Arrange
-// 	ConnectionManager connMgr;
-// 	int clientId = 1;
-// 	connMgr.addClient(clientId);
-// 	std::string requestString =
-// 		"GET /index.html HTT\r\n"
-// 		"Host: localhost\r\n"
-// 		"Connection: keep-alive\r\n"
-// 		"\r\n";
+TEST(ProcessDataTest, IncompleteHeader)
+{
+	// Arrange
+	ConnectionManager connMgr;
+	int clientId = 1;
+	connMgr.addClient(clientId);
+	std::string requestString =
+		"GET /index.html HTT\r\n"
+		"Host: localhost\r\n"
+		"Connection: keep-alive\r\n"
+		"\r\n";
 
-// 	// Act & Assert: the invalid HTTP version should throw
-// 	EXPECT_THROW(connMgr.processData(clientId, requestString), std::invalid_argument);
-// }
+	// Act & Assert: the invalid HTTP version should throw
+	EXPECT_THROW(connMgr.processData(clientId, requestString), std::invalid_argument);
+}
 
 
-// // Test multiple sequential requests for the same client
-// TEST(ProcessDataTest, MultipleRequestsSequential)
-// {
-// 	ConnectionManager connMgr;
-// 	int clientId = 1;
-// 	connMgr.addClient(clientId);
+// Test multiple sequential requests for the same client
+TEST(ProcessDataTest, MultipleRequestsSequential)
+{
+	ConnectionManager connMgr;
+	int clientId = 1;
+	connMgr.addClient(clientId);
 
-// 	std::string req1 =
-// 		"GET /first.html HTTP/1.1\r\n"
-// 		"Host: localhost\r\n"
-// 		"\r\n";
-// 	bool ready1 = connMgr.processData(clientId, req1);
-// 	const ParsedRequest& r1 = connMgr.getRequest(clientId);
+	std::string req1 =
+		"GET /first.html HTTP/1.1\r\n"
+		"Host: localhost\r\n"
+		"\r\n";
+	bool ready1 = connMgr.processData(clientId, req1);
+	const ParsedRequest& r1 = connMgr.getRequest(clientId);
 
-// 	EXPECT_TRUE(ready1);
-// 	EXPECT_EQ(r1.getUri(), "/first.html");
+	EXPECT_TRUE(ready1);
+	EXPECT_EQ(r1.getUri(), "/first.html");
 
-// 	std::string req2 =
-// 		"POST /submit HTTP/1.1\r\n"
-// 		"Host: localhost\r\n"
-// 		"Content-Length: 11\r\n"
-// 		"\r\n"
-// 		"Hello World";
-// 	bool ready2 = connMgr.processData(clientId, req2);
-// 	const ParsedRequest& r2 = connMgr.getRequest(clientId);
+	std::string req2 =
+		"POST /submit HTTP/1.1\r\n"
+		"Host: localhost\r\n"
+		"Content-Length: 11\r\n"
+		"\r\n"
+		"Hello World";
+	bool ready2 = connMgr.processData(clientId, req2);
+	const ParsedRequest& r2 = connMgr.getRequest(clientId);
 
-// 	EXPECT_TRUE(ready2);
-// 	EXPECT_EQ(r2.getMethod(), "POST");
-// 	EXPECT_EQ(r2.getBody(), "Hello World");
-// }
+	EXPECT_TRUE(ready2);
+	EXPECT_EQ(r2.getMethod(), "POST");
+	EXPECT_EQ(r2.getBody(), "Hello World");
+}
 
 TEST(ProcessDataTest, SplitRequestBuffers)
 {
@@ -143,3 +143,118 @@ TEST(ProcessDataTest, InterleavedClients)
 	EXPECT_EQ(req2.getBody(), "Hello");
 }
 
+TEST(ProcessDataTest, ChunkedRequest)
+{
+	ConnectionManager connMgr;
+	int clientId = 1;
+	connMgr.addClient(clientId);
+
+	// First chunk of headers
+	std::string headers =
+		"POST /upload HTTP/1.1\r\n"
+		"Host: localhost\r\n"
+		"Transfer-Encoding: chunked\r\n"
+		"\r\n";
+
+	bool ready = connMgr.processData(clientId, headers);
+	EXPECT_FALSE(ready); // body not received yet
+
+	// First chunk of body: 5 bytes ("Hello")
+	std::string chunk1 = "5\r\nHello\r\n";
+	ready = connMgr.processData(clientId, chunk1);
+	EXPECT_FALSE(ready); // still more chunks expected
+
+	// Second chunk of body: 6 bytes (" World")
+	std::string chunk2 = "6\r\n World\r\n";
+	ready = connMgr.processData(clientId, chunk2);
+	EXPECT_FALSE(ready); // still waiting for 0-length chunk
+
+	// Final chunk: 0-length, terminates body
+	std::string finalChunk = "0\r\n\r\n";
+	ready = connMgr.processData(clientId, finalChunk);
+	EXPECT_TRUE(ready); // full request complete
+
+	const ParsedRequest& req = connMgr.getRequest(clientId);
+	EXPECT_EQ(req.getMethod(), "POST");
+	EXPECT_EQ(req.getUri(), "/upload");
+	EXPECT_EQ(req.getHeader("Host"), "localhost");
+	EXPECT_EQ(req.getBody(), "Hello World"); // reassembled body
+}
+
+TEST(ProcessDataTest, ChunkedRequestHexLargeChunk)
+{
+	ConnectionManager connMgr;
+	int clientId = 2;
+	connMgr.addClient(clientId);
+
+	std::string headers =
+		"POST /big HTTP/1.1\r\n"
+		"Host: localhost\r\n"
+		"Transfer-Encoding: chunked\r\n"
+		"\r\n";
+
+	connMgr.processData(clientId, headers);
+
+	// Chunk size = 0xA (10 bytes)
+	std::string chunk = "A\r\n0123456789\r\n";
+	bool ready = connMgr.processData(clientId, chunk);
+	EXPECT_FALSE(ready);
+
+	// Terminate with zero-length chunk
+	std::string finalChunk = "0\r\n\r\n";
+	ready = connMgr.processData(clientId, finalChunk);
+	EXPECT_TRUE(ready);
+
+	const ParsedRequest& req = connMgr.getRequest(clientId);
+	EXPECT_EQ(req.getBody(), "0123456789");
+}
+
+TEST(ProcessDataTest, ContentLengthBody)
+{
+	ConnectionManager connMgr;
+	int clientId = 1;
+	connMgr.addClient(clientId);
+
+	// Headers with Content-Length
+	std::string headers =
+		"POST /submit HTTP/1.1\r\n"
+		"Host: localhost\r\n"
+		"Content-Length: 11\r\n"
+		"\r\n";
+
+	bool ready = connMgr.processData(clientId, headers);
+	EXPECT_FALSE(ready); // body not yet received
+
+	// Body exactly 11 bytes
+	std::string body = "Hello World";
+	ready = connMgr.processData(clientId, body);
+	EXPECT_TRUE(ready); // full request complete
+
+	const ParsedRequest& req = connMgr.getRequest(clientId);
+	EXPECT_EQ(req.getMethod(), "POST");
+	EXPECT_EQ(req.getUri(), "/submit");
+	EXPECT_EQ(req.getHeader("Host"), "localhost");
+	EXPECT_EQ(req.getBody(), "Hello World");
+}
+
+TEST(ProcessDataTest, NoBodyLength)
+{
+	ConnectionManager connMgr;
+	int clientId = 1;
+	connMgr.addClient(clientId);
+
+	// Headers without Content-Length or Transfer-Encoding
+	std::string headers =
+		"POST /submit HTTP/1.1\r\n"
+		"Host: localhost\r\n"
+		"\r\n";
+
+	// Send body immediately
+	std::string body = "Hello World";
+	bool ready = connMgr.processData(clientId, headers + body);
+
+	EXPECT_TRUE(ready); 
+
+	const ParsedRequest& req = connMgr.getRequest(clientId);
+	EXPECT_EQ(req.getBody(), "Hello World");
+}

@@ -70,7 +70,12 @@ ParsedRequest RequestParser::parseBufferedRequest(ClientState& clientState) cons
 
 	std::string headerPart = clientState.getRlAndHeadersBuffer().substr(0, pos + 2);
 	std::string bodyPart = clientState.getBodyBuffer();
-
+	
+	if (clientState.isChunked())
+	{
+		bodyPart = decodeChunkedBody(bodyPart);  // decode the chunked transfer encoding
+	}
+	
 	std::istringstream stream(headerPart);
 	std::string line;
 
@@ -105,4 +110,26 @@ ParsedRequest RequestParser::parseBufferedRequest(ClientState& clientState) cons
 	clientState.setContentLength(extractContentLength(clientState));
 
 	return request;
+}
+
+std::string RequestParser::decodeChunkedBody(const std::string& bodyBuffer) const
+{
+	std::string decoded;
+	size_t pos = 0;
+
+	while (pos < bodyBuffer.size()) {
+		size_t endLine = bodyBuffer.find("\r\n", pos);
+		if (endLine == std::string::npos) break;
+
+		std::string sizeStr = bodyBuffer.substr(pos, endLine - pos);
+		size_t chunkSize = std::stoul(sizeStr, nullptr, 16);
+		pos = endLine + 2; // skip \r\n
+
+		if (chunkSize == 0) break;
+
+		decoded += bodyBuffer.substr(pos, chunkSize);
+		pos += chunkSize + 2; // skip chunk data + \r\n
+	}
+
+	return decoded;
 }

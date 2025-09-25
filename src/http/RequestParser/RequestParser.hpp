@@ -27,6 +27,7 @@ class RequestParser
 		size_t extractContentLength(const ClientState& state) const;
 		bool isBodyDone(const ClientState& state) const;
 		ParsedRequest parseBufferedRequest(ClientState& clientState) const;
+		std::string decodeChunkedBody(const std::string& bodyBuffer) const;
 };
 
 #endif
