@@ -18,19 +18,19 @@ void RequestParser::trimLeadingWhitespace(std::string& str)
 // Parsing functions
 bool RequestParser::headersParsed(const ClientState& state) const
 {
-	return state.getRlAndHeaderBuffer().find("\r\n\r\n") != std::string::npos;
+	return state.getRlAndHeadersBuffer().find("\r\n\r\n") != std::string::npos;
 }
 
 // Extract Content-Length from headers
 size_t RequestParser::extractContentLength(const ClientState& state) const
 {
 	const std::string headerName = "Content-Length:";
-	auto pos = state.getRlAndHeaderBuffer().find(headerName);
+	auto pos = state.getRlAndHeadersBuffer().find(headerName);
 	if (pos == std::string::npos)
 		return 0;
 
 	pos += headerName.size();
-	std::string rest = state.getRlAndHeaderBuffer().substr(pos);
+	std::string rest = state.getRlAndHeadersBuffer().substr(pos);
 	trimLeadingWhitespace(rest);
 
 	size_t end = rest.find("\r\n");
@@ -60,16 +60,16 @@ bool RequestParser::isBodyDone(const ClientState& state) const
 }
 
 // Parse a complete request from raw string
-ParsedRequest RequestParser::parseBufferedRequest(ClientState& state) const
+ParsedRequest RequestParser::parseBufferedRequest(ClientState& clientState) const
 {
 	ParsedRequest request;
 
-	auto pos = state.getRlAndHeaderBuffer().find("\r\n\r\n");
+	auto pos = clientState.getRlAndHeadersBuffer().find("\r\n\r\n");
 	if (pos == std::string::npos)
 		throw std::runtime_error("Headers not complete");
 
-	std::string headerPart = state.getRlAndHeaderBuffer().substr(0, pos + 2);
-	std::string bodyPart = state.getBodyBuffer();
+	std::string headerPart = clientState.getRlAndHeadersBuffer().substr(0, pos + 2);
+	std::string bodyPart = clientState.getBodyBuffer();
 
 	std::istringstream stream(headerPart);
 	std::string line;
@@ -101,8 +101,8 @@ ParsedRequest RequestParser::parseBufferedRequest(ClientState& state) const
 	request.setBody(bodyPart);
 
 	// Update ClientState
-	state.setHeadersDone();
-	state.setContentLength(extractContentLength(state));
+	clientState.setHeadersDone();
+	clientState.setContentLength(extractContentLength(clientState));
 
 	return request;
 }

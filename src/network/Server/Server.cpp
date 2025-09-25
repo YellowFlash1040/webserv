@@ -136,14 +136,14 @@ void Server::processClient(int clientId)
 		bool hasResponse = m_connMgr.processData(clientId, data);
 
 		std::cout << GREEN << "DEBUG[SERVER]:" << RESET << " has response? " << hasResponse << "\n";
-		if (hasResponse)
-		{
-			std::string response = m_connMgr.getResponse(clientId);
-			std::cout << GREEN << "\nDEBUG[SERVER]" << RESET << " Response size = "
-				<< response.size() << ":\n" << response << "\n\n";
+		// if (hasResponse)
+		// {
+		// 	std::string response = m_connMgr.getResponse(clientId);
+		// 	std::cout << GREEN << "\nDEBUG[SERVER]" << RESET << " Response size = "
+		// 		<< response.size() << ":\n" << response << "\n\n";
 			
-			// Send response
-			write(clientId, response.c_str(), response.size());
+		// 	// Send response
+		// 	write(clientId, response.c_str(), response.size());
 
 			if (m_connMgr.clientSentClose(clientId))
 			{
@@ -155,8 +155,6 @@ void Server::processClient(int clientId)
 			}
 		}
 		
-	}
-	
 	else if (n == 0)
 	{
 		std::cout << GREEN << "DEBUG:" << RESET << " client closed connection, fd=" << clientId << "\n";

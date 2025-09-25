@@ -112,7 +112,7 @@ void ClientState::prepareForNextRequestBuffersOnly()
 }
 
 // Getters
-const std::string& ClientState::getRlAndHeaderBuffer() const
+const std::string& ClientState::getRlAndHeadersBuffer() const
 {
 	return _rlAndHeadersBuffer;
 }
@@ -132,7 +132,7 @@ const ServerResponse& ClientState::getRespObj() const
 	return _respObj;
 }
 
-const ParsedRequest& ClientState::getRequest() const
+const ParsedRequest& ClientState::getReqObj() const
 {
 	return _reqObj;
 }
@@ -225,4 +225,20 @@ void ClientState::setResponse(const ServerResponse& resp)
 void ClientState::setReadyToSend(bool value)
 {
 	_readyToSend = value;
+}
+
+void ClientState::appendToBuffers(const std::string& data)
+{
+	if (!_headersDone)
+	{
+		_rlAndHeadersBuffer.append(data);
+		std::cout << "[DEBUG] appendToBuffers(): appended " << data.size()
+			<< " bytes to rl+headers buffer (total=" << _rlAndHeadersBuffer.size() << ")\n";
+	}
+	else
+	{
+		_bodyBuffer.append(data);
+		std::cout << "[DEBUG] appendToBuffers(): appended " << data.size()
+			<< " bytes to body buffer (total=" << _bodyBuffer.size() << ")\n";
+	}
 }

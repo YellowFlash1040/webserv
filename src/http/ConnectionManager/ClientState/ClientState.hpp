@@ -2,6 +2,7 @@
 #define CLIENTSTATE
 
 #include <string>
+#include <iostream>
 #include "../ParsedRequest/ParsedRequest.hpp"
 #include "../ServerResponse/ServerResponse.hpp"
 
@@ -31,11 +32,11 @@ class ClientState
 		ClientState& operator=(ClientState&& other) noexcept;
 
 		// Getters
-		const std::string& getRlAndHeaderBuffer() const;
+		const std::string& getRlAndHeadersBuffer() const;
 		const std::string& getBodyBuffer() const;
 		std::string getFullRequestBuffer() const;
 		const ServerResponse& getRespObj() const;
-		const ParsedRequest& getRequest() const;
+		const ParsedRequest& getReqObj() const;
 		size_t getContentLength() const;
 		
 		// Setters
@@ -60,6 +61,7 @@ class ClientState
 		bool isReadyToSend() const;
 		void prepareForNextRequestBuffersOnly();
 		void prepareForNextRequest();
+		void appendToBuffers(const std::string& data);
 
 };
 

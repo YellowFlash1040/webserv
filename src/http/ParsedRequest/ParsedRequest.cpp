@@ -39,7 +39,7 @@ std::string ParsedRequest::getHeader(const std::string& name) const
 	return ""; // return empty string if header not found
 }
 
-const std::map<std::string, std::string>& ParsedRequest::getHeaders() const
+const std::unordered_map<std::string, std::string>& ParsedRequest::getHeaders() const
 {
 	return _headers;
 }

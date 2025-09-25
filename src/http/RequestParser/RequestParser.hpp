@@ -26,7 +26,7 @@ class RequestParser
 		bool headersParsed(const ClientState& state) const;
 		size_t extractContentLength(const ClientState& state) const;
 		bool isBodyDone(const ClientState& state) const;
-		ParsedRequest parseBufferedRequest(ClientState& state) const;
+		ParsedRequest parseBufferedRequest(ClientState& clientState) const;
 };
 
 #endif

@@ -2,7 +2,7 @@
 #define PARSEDREQUEST_HPP
 
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <stdexcept>
 
 class ParsedRequest
@@ -11,7 +11,7 @@ class ParsedRequest
 		std::string _method;
 		std::string _uri;
 		std::string _httpVersion;
-		std::map<std::string, std::string> _headers;
+		std::unordered_map<std::string, std::string> _headers;
 		std::string _body;
 		
 	public:
@@ -27,7 +27,7 @@ class ParsedRequest
 		const std::string& getUri() const;
 		const std::string& getHttpVersion() const;
 		std::string getHeader(const std::string& name) const;
-		const std::map<std::string, std::string>& getHeaders() const;
+		const std::unordered_map<std::string, std::string>& getHeaders() const;
 		const std::string& getBody() const;
 	
 		// Setters

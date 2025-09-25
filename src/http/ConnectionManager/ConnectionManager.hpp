@@ -42,7 +42,7 @@ class ConnectionManager
 		void resetClientState(int clientId);
 		bool clientSentClose(int clientId) const;
 		void removeClient(int clientId);
-
+		
 		
 
 };
