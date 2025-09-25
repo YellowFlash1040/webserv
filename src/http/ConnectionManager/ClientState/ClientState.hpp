@@ -2,60 +2,65 @@
 #define CLIENTSTATE
 
 #include <string>
-#include "../ClientRequest/ClientRequest.hpp"
+#include "../ParsedRequest/ParsedRequest.hpp"
 #include "../ServerResponse/ServerResponse.hpp"
 
 class ClientState
 {
+	private:
+		bool _headersDone;
+		bool _headersSeparatedFromBody;
+		bool _bodyDone;
+		bool _readyToSend;
+	
+		std::string _rlAndHeadersBuffer; //accumulates incoming data until you detect the end of headers (\r\n\r\n)
+		std::string _bodyBuffer;
+		
+		int _contentLength;
+		bool _chunked;
+
+		ParsedRequest _reqObj;
+		ServerResponse _respObj;
+		
 	public:
-		// Constructors / Destructor
 		ClientState();
 		~ClientState();
-
-		// Copy constructor / assignment
 		ClientState(const ClientState& other);
 		ClientState& operator=(const ClientState& other);
-
-		// Move constructor / assignment
 		ClientState(ClientState&& other) noexcept;
 		ClientState& operator=(ClientState&& other) noexcept;
 
 		// Getters
-		const std::string& getHeaderBuffer() const;
+		const std::string& getRlAndHeaderBuffer() const;
 		const std::string& getBodyBuffer() const;
 		std::string getFullRequestBuffer() const;
-		const std::string& getRawHeaderBuffer() const;
-		const std::string& getRawBodyBuffer() const;
 		const ServerResponse& getRespObj() const;
-		const ClientRequest& getRequest() const;
-		
-		bool isHeadersComplete() const;
+		const ParsedRequest& getRequest() const;
 		size_t getContentLength() const;
-		bool isChunked() const;
-		bool isReadyToSend() const;
-		void prepareForNextRequest();
-
-		// Appenders
-		void appendToHeaderBuffer(const std::string& data);
-		void appendToBodyBuffer(const std::string& data);
 		
 		// Setters
-		void setHeadersComplete(bool value);
+		void setHeadersDone();
+		void setBodyDone();
+		void setHeadersSeparatedFromBody();
 		void setContentLength(int value);
 		void setChunked(bool value);
-		void setRequest(const ClientRequest& req);
+		void setRequest(const ParsedRequest& req);
 		void setResponse(const ServerResponse& resp);
 		void setReadyToSend(bool value);
 		
-	private:
-		std::string _headerBuffer;
-		std::string _bodyBuffer;
-		bool _headersComplete;
-		int _contentLength;
-		bool _chunked;
-		ClientRequest _request;
-		ServerResponse _respObj;
-		bool _readyToSend;
+		// Appenders
+		void appendToRlAndHeaderBuffer(const std::string& data);
+		void appendToBodyBuffer(const std::string& data);
+		
+		void clearRlAndHeaderBuffer();
+		bool hasHeadersBeenSeparatedFromBody() const;
+		bool isHeadersDone() const;
+		bool isBodyDone() const;
+		bool isChunked() const;
+		bool isReadyToSend() const;
+		void prepareForNextRequestBuffersOnly();
+		void prepareForNextRequest();
+
 };
 
 #endif

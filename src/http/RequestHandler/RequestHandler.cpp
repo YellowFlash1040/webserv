@@ -1,6 +1,6 @@
 #include "RequestHandler.hpp"
 
-ServerResponse RequestHandler::handleRequest(const ClientRequest& request)
+ServerResponse RequestHandler::handleRequest(const ParsedRequest& request)
 {
 	(void)request; // unused for now
 

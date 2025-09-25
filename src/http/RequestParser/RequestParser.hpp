@@ -7,12 +7,11 @@
 #include <cctype>
 #include <stdexcept>
 #include "../ConnectionManager/ClientState/ClientState.hpp"
-#include "../ClientRequest/ClientRequest.hpp"
+#include "../ParsedRequest/ParsedRequest.hpp"
 
 class RequestParser
 {
 	private:
-		// helper functions
 		static void removeCarriageReturns(std::string& str);
 		static void trimLeadingWhitespace(std::string& str);
 	
@@ -24,12 +23,10 @@ class RequestParser
 		RequestParser(RequestParser&& other) noexcept = default;
 		RequestParser& operator=(RequestParser&& other) noexcept = default;
 
-		// Parsing functions
 		bool headersParsed(const ClientState& state) const;
 		size_t extractContentLength(const ClientState& state) const;
-		bool bodyComplete(const ClientState& state) const;
-		ClientRequest parseCompleteRequest(ClientState& state) const;
-
+		bool isBodyDone(const ClientState& state) const;
+		ParsedRequest parseBufferedRequest(ClientState& state) const;
 };
 
 #endif

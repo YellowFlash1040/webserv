@@ -18,19 +18,19 @@ void RequestParser::trimLeadingWhitespace(std::string& str)
 // Parsing functions
 bool RequestParser::headersParsed(const ClientState& state) const
 {
-	return state.getHeaderBuffer().find("\r\n\r\n") != std::string::npos;
+	return state.getRlAndHeaderBuffer().find("\r\n\r\n") != std::string::npos;
 }
 
 // Extract Content-Length from headers
 size_t RequestParser::extractContentLength(const ClientState& state) const
 {
 	const std::string headerName = "Content-Length:";
-	auto pos = state.getHeaderBuffer().find(headerName);
+	auto pos = state.getRlAndHeaderBuffer().find(headerName);
 	if (pos == std::string::npos)
 		return 0;
 
 	pos += headerName.size();
-	std::string rest = state.getHeaderBuffer().substr(pos);
+	std::string rest = state.getRlAndHeaderBuffer().substr(pos);
 	trimLeadingWhitespace(rest);
 
 	size_t end = rest.find("\r\n");
@@ -41,24 +41,34 @@ size_t RequestParser::extractContentLength(const ClientState& state) const
 }
 
 // Check if body has been completely received
-bool RequestParser::bodyComplete(const ClientState& state) const
+bool RequestParser::isBodyDone(const ClientState& state) const
 {
 	if (state.isChunked())
-		return false; // TODO: implement chunked
-	return state.getBodyBuffer().size() >= state.getContentLength();
-
+	{
+		// Look for the "0\r\n\r\n" terminator
+		return state.getBodyBuffer().find("\r\n0\r\n\r\n") != std::string::npos;
+	}
+	else if (state.getContentLength() > 0)
+	{
+		return state.getBodyBuffer().size() >= state.getContentLength();
+	}
+	else
+	{
+		// No body expected (e.g. GET)
+		return true;
+	}
 }
 
 // Parse a complete request from raw string
-ClientRequest RequestParser::parseCompleteRequest(ClientState& state) const
+ParsedRequest RequestParser::parseBufferedRequest(ClientState& state) const
 {
-	ClientRequest request;
+	ParsedRequest request;
 
-	auto pos = state.getHeaderBuffer().find("\r\n\r\n");
+	auto pos = state.getRlAndHeaderBuffer().find("\r\n\r\n");
 	if (pos == std::string::npos)
 		throw std::runtime_error("Headers not complete");
 
-	std::string headerPart = state.getHeaderBuffer().substr(0, pos + 2);
+	std::string headerPart = state.getRlAndHeaderBuffer().substr(0, pos + 2);
 	std::string bodyPart = state.getBodyBuffer();
 
 	std::istringstream stream(headerPart);
@@ -91,7 +101,7 @@ ClientRequest RequestParser::parseCompleteRequest(ClientState& state) const
 	request.setBody(bodyPart);
 
 	// Update ClientState
-	state.setHeadersComplete(true);
+	state.setHeadersDone();
 	state.setContentLength(extractContentLength(state));
 
 	return request;

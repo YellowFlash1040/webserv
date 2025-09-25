@@ -1,11 +1,11 @@
-#ifndef CLIENTREQUEST_HPP
-#define CLIENTREQUEST_HPP
+#ifndef PARSEDREQUEST_HPP
+#define PARSEDREQUEST_HPP
 
 #include <string>
 #include <map>
 #include <stdexcept>
 
-class ClientRequest
+class ParsedRequest
 {
 	private:
 		std::string _method;
@@ -13,31 +13,31 @@ class ClientRequest
 		std::string _httpVersion;
 		std::map<std::string, std::string> _headers;
 		std::string _body;
-		//queryParams ?
-		//cookies?
 		
 	public:
-		ClientRequest();
-		~ClientRequest();
-		ClientRequest(const ClientRequest& other);
-		ClientRequest& operator=(const ClientRequest& other);
-		ClientRequest(ClientRequest&& other) noexcept;
-		ClientRequest& operator=(ClientRequest&& other) noexcept;
+		ParsedRequest();
+		~ParsedRequest();
+		ParsedRequest(const ParsedRequest& other);
+		ParsedRequest& operator=(const ParsedRequest& other);
+		ParsedRequest(ParsedRequest&& other) noexcept;
+		ParsedRequest& operator=(ParsedRequest&& other) noexcept;
 
-		void requestReset();
-		
+		// Getters
 		const std::string& getMethod() const;
 		const std::string& getUri() const;
 		const std::string& getHttpVersion() const;
 		std::string getHeader(const std::string& name) const;
 		const std::map<std::string, std::string>& getHeaders() const;
 		const std::string& getBody() const;
-
+	
+		// Setters
 		void setMethod(const std::string& m);
 		void setUri(const std::string& u);
 		void setHttpVersion(const std::string& v);
-		void addHeader(const std::string& key, const std::string& value);
 		void setBody(const std::string& b);
+		
+		void addHeader(const std::string& key, const std::string& value);
+		void requestReset();
 };
 
 #endif

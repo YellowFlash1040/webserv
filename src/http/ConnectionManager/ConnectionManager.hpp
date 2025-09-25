@@ -21,9 +21,9 @@ class ConnectionManager
 		RequestHandler m_handler;
 		
 		void appendDataToBuffers(ClientState& state, const std::string& data);
-		void checkAndParseHeaders(ClientState& state);
+		void trySeparateHeadersFromBody(ClientState& state);
 		bool checkAndProcessBody(ClientState& state);
-		void printRequestDebug(const ClientState& state, const ClientRequest& request) const;
+		void printRequestDebug(const ClientState& state, const ParsedRequest& request) const;
 		void printResponseDebug(const ServerResponse& respObj, const std::string& response) const;
 
 	public:
@@ -34,15 +34,17 @@ class ConnectionManager
 		ConnectionManager(ConnectionManager&&) noexcept = default;
 		ConnectionManager& operator=(ConnectionManager&&) noexcept = default;
 
-		void addClient(int clientId);
+		const ParsedRequest& getRequest(int clientId) const;
+		std::string getResponse(int clientId);
 		
+		void addClient(int clientId);
 		bool processData(int clientId, const std::string& data);
 		void resetClientState(int clientId);
 		bool clientSentClose(int clientId) const;
 		void removeClient(int clientId);
+
 		
-		std::string getResponse(int clientId);
-		const ClientRequest& getRequest(int clientId) const;
+
 };
 
 #endif

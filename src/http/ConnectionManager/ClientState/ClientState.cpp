@@ -1,81 +1,120 @@
 #include "ClientState.hpp"
 
+// Default constructor
 ClientState::ClientState()
-	: _headersComplete(false), _contentLength(0), _chunked(false), _readyToSend(false)
-{
-	// buffers are default-initialized
-}
+	: _headersDone(false),
+	  _headersSeparatedFromBody(false),
+	  _bodyDone(false),
+	  _readyToSend(false),
+	  _rlAndHeadersBuffer(),
+	  _bodyBuffer(),
+	  _contentLength(0),
+	  _chunked(false),
+	  _reqObj(),
+	  _respObj()
+{}
 
+// Destructor
 ClientState::~ClientState() {}
 
+// Copy constructor
 ClientState::ClientState(const ClientState& other)
-	: _headerBuffer(other._headerBuffer),
+	: _headersDone(other._headersDone),
+	  _headersSeparatedFromBody(other._headersSeparatedFromBody),
+	  _bodyDone(other._bodyDone),
+	  _readyToSend(other._readyToSend),
+	  _rlAndHeadersBuffer(other._rlAndHeadersBuffer),
 	  _bodyBuffer(other._bodyBuffer),
-	  _headersComplete(other._headersComplete),
 	  _contentLength(other._contentLength),
 	  _chunked(other._chunked),
-	  _request(other._request),
-	  _respObj(other._respObj),
-	  _readyToSend(other._readyToSend) {}
+	  _reqObj(other._reqObj),
+	  _respObj(other._respObj)
+{}
 
-ClientState& ClientState::operator=(const ClientState& other) {
+// Copy assignment
+ClientState& ClientState::operator=(const ClientState& other)
+{
 	if (this != &other)
 	{
-		_headerBuffer = other._headerBuffer;
+		_headersDone = other._headersDone;
+		_headersSeparatedFromBody = other._headersSeparatedFromBody;
+		_bodyDone = other._bodyDone;
+		_readyToSend = other._readyToSend;
+		_rlAndHeadersBuffer = other._rlAndHeadersBuffer;
 		_bodyBuffer = other._bodyBuffer;
-		_headersComplete = other._headersComplete;
 		_contentLength = other._contentLength;
 		_chunked = other._chunked;
-		_request = other._request;
+		_reqObj = other._reqObj;
 		_respObj = other._respObj;
-		_readyToSend = other._readyToSend;
 	}
 	return *this;
 }
 
 // Move constructor
 ClientState::ClientState(ClientState&& other) noexcept
-	: _headerBuffer(std::move(other._headerBuffer)),
+	: _headersDone(other._headersDone),
+	  _headersSeparatedFromBody(other._headersSeparatedFromBody),
+	  _bodyDone(other._bodyDone),
+	  _readyToSend(other._readyToSend),
+	  _rlAndHeadersBuffer(std::move(other._rlAndHeadersBuffer)),
 	  _bodyBuffer(std::move(other._bodyBuffer)),
-	  _headersComplete(other._headersComplete),
 	  _contentLength(other._contentLength),
 	  _chunked(other._chunked),
-	  _request(std::move(other._request)),
-	  _respObj(std::move(other._respObj)),
-	  _readyToSend(other._readyToSend) {}
+	  _reqObj(std::move(other._reqObj)),
+	  _respObj(std::move(other._respObj))
+{}
 
 // Move assignment
-ClientState& ClientState::operator=(ClientState&& other) noexcept {
+ClientState& ClientState::operator=(ClientState&& other) noexcept
+{
 	if (this != &other)
 	{
-		_headerBuffer = std::move(other._headerBuffer);
+		_headersDone = other._headersDone;
+		_headersSeparatedFromBody = other._headersSeparatedFromBody;
+		_bodyDone = other._bodyDone;
+		_readyToSend = other._readyToSend;
+		_rlAndHeadersBuffer = std::move(other._rlAndHeadersBuffer);
 		_bodyBuffer = std::move(other._bodyBuffer);
-		_headersComplete = other._headersComplete;
 		_contentLength = other._contentLength;
 		_chunked = other._chunked;
-		_request = std::move(other._request);
+		_reqObj = std::move(other._reqObj);
 		_respObj = std::move(other._respObj);
-		_readyToSend = other._readyToSend;
 	}
 	return *this;
 }
 
+// Reset all state for next request
 void ClientState::prepareForNextRequest()
 {
-	_headerBuffer.clear();
+	_headersDone = false;
+	_headersSeparatedFromBody = false;
+	_bodyDone = false;
+	_readyToSend = false;
+	_rlAndHeadersBuffer.clear();
 	_bodyBuffer.clear();
-	_headersComplete = false;
 	_contentLength = 0;
 	_chunked = false;
-	_request.requestReset();
+	_reqObj.requestReset();
+	// _respObj stays until overwritten by next response
+}
+
+void ClientState::prepareForNextRequestBuffersOnly()
+{
+	_headersDone = false;
+	_headersSeparatedFromBody = false;
+	_bodyDone = false;
 	_readyToSend = false;
-	// _respObj stays as-is until overwritten by next response
+	_rlAndHeadersBuffer.clear();
+	_bodyBuffer.clear();
+	_contentLength = 0;
+	_chunked = false;
+
 }
 
 // Getters
-const std::string& ClientState::getHeaderBuffer() const 
+const std::string& ClientState::getRlAndHeaderBuffer() const
 {
-	return _headerBuffer;
+	return _rlAndHeadersBuffer;
 }
 
 const std::string& ClientState::getBodyBuffer() const
@@ -85,83 +124,105 @@ const std::string& ClientState::getBodyBuffer() const
 
 std::string ClientState::getFullRequestBuffer() const
 {
-	return _headerBuffer + _bodyBuffer;
-}
-
-const std::string& ClientState::getRawHeaderBuffer() const
-{
-	return _headerBuffer;
-}
-
-const std::string& ClientState::getRawBodyBuffer() const
-{
-	return _bodyBuffer;
-}
-
-bool ClientState::isHeadersComplete() const
-{
-	return _headersComplete;
-}
-
-size_t ClientState::getContentLength() const
-{
-	return _contentLength;
-}
-
-bool ClientState::isChunked() const
-{
-	return _chunked;
-}
-
-const ClientRequest& ClientState::getRequest() const
-{
-	return _request;
+	return _rlAndHeadersBuffer + _bodyBuffer;
 }
 
 const ServerResponse& ClientState::getRespObj() const
 {
 	return _respObj;
 }
+
+const ParsedRequest& ClientState::getRequest() const
+{
+	return _reqObj;
+}
+
+size_t ClientState::getContentLength() const
+{
+	return static_cast<size_t>(_contentLength);
+}
+
+// status queries
+bool ClientState::isHeadersDone() const
+{
+	return _headersDone;
+}
+
+bool ClientState::hasHeadersBeenSeparatedFromBody() const
+{
+	return _headersSeparatedFromBody;
+}
+
+
+bool ClientState::isChunked() const
+{
+	return _chunked;
+}
+
 bool ClientState::isReadyToSend() const
 {
 	return _readyToSend;
 }
 
-// Appenders
-void ClientState::appendToHeaderBuffer(const std::string& data)
+bool ClientState::isBodyDone() const
 {
-	_headerBuffer += data;
+	return _bodyDone;
 }
 
-void ClientState::appendToBodyBuffer(const std::string& data) 
+// Appenders
+void ClientState::appendToRlAndHeaderBuffer(const std::string& data)
+{
+	_rlAndHeadersBuffer += data;
+}
+
+void ClientState::appendToBodyBuffer(const std::string& data)
 {
 	_bodyBuffer += data;
 }
 
-// Setters
-void ClientState::setHeadersComplete(bool value)
+// clear header buffer (useful when replacing header contents after splitting)
+void ClientState::clearRlAndHeaderBuffer()
 {
-	_headersComplete = value;
+	_rlAndHeadersBuffer.clear();
+}
+
+// Setters (correct signatures)
+void ClientState::setHeadersDone()
+{
+	_headersDone = true;
+}
+
+void ClientState::setBodyDone()
+{
+	_bodyDone = true;
+}
+
+void ClientState::setHeadersSeparatedFromBody()
+{
+	_headersSeparatedFromBody = true;
 }
 
 void ClientState::setContentLength(int value)
 {
 	_contentLength = value;
 }
+
 void ClientState::setChunked(bool value)
 {
 	_chunked = value;
 }
-void ClientState::setRequest(const ClientRequest& req)
+
+void ClientState::setRequest(const ParsedRequest& req)
 {
-	_request = req;
+	_reqObj = req;
 }
+
 void ClientState::setResponse(const ServerResponse& resp)
 {
 	_respObj = resp;
 }
+
 void ClientState::setReadyToSend(bool value)
 {
 	_readyToSend = value;
 }
-
