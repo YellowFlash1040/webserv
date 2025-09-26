@@ -12,6 +12,7 @@
 # include <unordered_set>
 # include <vector>
 # include <memory>
+# include <sys/timerfd.h>
 
 # include "Client.hpp"
 # include "NetworkEndpoint.hpp"
@@ -39,6 +40,8 @@ class Server
     void addEndpoint(const NetworkEndpoint& endpoint);
     void removeClient(int clientSocket);
     void printAllClients() const;
+    int createTimerFd(int interval_sec);
+    void checkClientTimeouts();
 
   protected:
     // Properties
@@ -47,6 +50,7 @@ class Server
   private:
     // Properties
     int m_epfd = -1; // event poll fd
+    int m_timerfd = -1;
     std::unordered_map<int, ServerSocket> m_listeners;
     std::unordered_map<int, std::unique_ptr<Client>> m_clients;
     

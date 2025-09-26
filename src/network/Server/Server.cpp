@@ -38,6 +38,9 @@ void Server::run(void)
     if (m_epfd == -1)
         throw std::runtime_error("epoll_create");
 
+    m_timerfd = createTimerFd(5);
+    addSocketToEPoll(m_timerfd, EPOLLIN);
+
     for (auto& it : m_listeners)
         addSocketToEPoll(it.first, EPOLLIN);
 
@@ -45,29 +48,26 @@ void Server::run(void)
 
     while (g_running)
     {
-        int readyFDs = epoll_wait(m_epfd, events, MAX_EVENTS, 1000);
+        int readyFDs = epoll_wait(m_epfd, events, MAX_EVENTS, -1);
         if (readyFDs == -1)
         {
             if (errno == EINTR)
                 continue; // interrupted by signal, retry
             throw std::runtime_error("epoll_wait");
         }
-        for (auto it = m_clients.begin(); it != m_clients.end(); ) 
-        {
-            if (it->second->isTimedOut(std::chrono::seconds(60)))
-            {
-                std::cout << "Client " << it->first << " timed out\n";
-                epoll_ctl(m_epfd, EPOLL_CTL_DEL, it->first, nullptr);
-                close(it->first);
-                it = m_clients.erase(it);
-            }
-            else
-                ++it;
-        }
+
         for (int i = 0; i < readyFDs; ++i)
         {
             int fd = events[i].data.fd;
             uint32_t ev = events[i].events;
+
+            if (fd == m_timerfd)
+            {
+                uint64_t expirations;
+                read(m_timerfd, &expirations, sizeof(expirations));
+                checkClientTimeouts();
+                continue;
+            }
 
             if (m_listeners.count(fd))
             {
@@ -92,10 +92,7 @@ void Server::run(void)
 
             if (ev & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
             {
-                epoll_ctl(m_epfd, EPOLL_CTL_DEL, fd, nullptr);
-                m_clients.erase(fd);
-                close(fd);
-                std::cout << "Client disconnected: " << fd << "\n";
+                removeClient(fd);
             }
         }
     }
@@ -173,7 +170,12 @@ void Server::acceptNewClient(int listeningSocket)
 
 void Server::removeClient(int clientSocket)
 {
+    if (m_epfd != -1)
+        epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr);
+
     m_clients.erase(clientSocket);
+
+    std::cout << "Client removed: " << clientSocket << "\n";
 }
 
 void Server::processClient(int clientSocket)
@@ -183,6 +185,8 @@ void Server::processClient(int clientSocket)
 
     if (n > 0)
     {
+        // processData(buf, clientSocket);
+        
         buf[n] = '\0';
         auto it = m_clients.find(clientSocket);
         if (it != m_clients.end())
@@ -194,9 +198,9 @@ void Server::processClient(int clientSocket)
     }
     else if (n == 0)
     {
-        epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr);
-        m_clients.erase(clientSocket);
-        std::cout << "Client disconnected: " << clientSocket << "\n";
+        // processData(buf, clientSocket);
+
+        removeClient(clientSocket);
     }
     else
     {
@@ -212,4 +216,36 @@ void Server::printAllClients() const
     std::cout << "=== Active Clients ===" << std::endl;
     for (const auto& it : m_clients)
         it.second->printInfo();
+}
+
+int Server::createTimerFd(int interval_sec)
+{
+    int tfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+    if (tfd == -1)
+        throw std::runtime_error("timerfd_create failed");
+
+    itimerspec spec{};
+    spec.it_interval.tv_sec = interval_sec;
+    spec.it_value.tv_sec = interval_sec;
+
+    if (timerfd_settime(tfd, 0, &spec, NULL) == -1)
+        throw std::runtime_error("timerfd_settime failed");
+
+    return tfd;
+}
+
+void Server::checkClientTimeouts()
+{
+    for (auto it = m_clients.begin(); it != m_clients.end(); ) 
+    {
+        if (it->second->isTimedOut(std::chrono::seconds(60)))
+        {
+            std::cout << "Client " << it->first << " timed out\n";
+            epoll_ctl(m_epfd, EPOLL_CTL_DEL, it->first, nullptr);
+            close(it->first);
+            it = m_clients.erase(it);
+        }
+        else
+            ++it;
+    }
 }
