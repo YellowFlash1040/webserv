@@ -51,7 +51,6 @@ class ClientState
 		
 		ParsedRequest& getLatestRequest();
 		void prepareNextRequestWithLeftover(const std::string& leftover);
-		void prepareForNextRequest();
 		void finalizeLatestRequestBody();
 		void prepareForNextRequestPreserveBuffers();
 		

@@ -21,7 +21,7 @@ void ParsedRequest::trimLeadingWhitespace(std::string& str)
 // --- Canonical form ---
 ParsedRequest::ParsedRequest()
 	: _tempBuffer(), _rlAndHeadersBuffer(), _bodyBuffer(), _chunkedBuffer(), _method(), _uri(), _httpVersion(),
-	_headers(), _bodyType(BodyType::NO_BODY), _body(), _headersDone(false), _terminatingZeroReceived(false), _bodyDone(false),
+	_headers(), _bodyType(BodyType::NO_BODY), _body(), _headersDone(false), _terminatingZero(false), _bodyDone(false),
 	_requestDone(false), _contentLength(0), _chunked(false) {}
 
 ParsedRequest::~ParsedRequest() = default;
@@ -48,6 +48,13 @@ std::string& ParsedRequest::getBodyBuffer()
 {
 	return _bodyBuffer;
 }
+
+std::string& ParsedRequest::getContentLengthBuffer()
+{
+	return _contentLengthBuffer;
+}
+
+
 size_t ParsedRequest::getContentLength() const { return _contentLength; }
 bool ParsedRequest::isRequestDone() const { return _requestDone ;}
 bool ParsedRequest::isHeadersDone() const { return _headersDone; }
@@ -145,22 +152,18 @@ bool ParsedRequest::bodyComplete() const
 		return true;
 }
 
-void ParsedRequest::finalizeBody()
-{
-	if (_chunked) _bodyBuffer = decodeChunkedBody();
-	_bodyDone = true;
-}
-
 void ParsedRequest::parseRequestLineAndHeaders(const std::string& headerPart)
 {
 	std::istringstream stream(headerPart);
 	std::string line;
 	if (!std::getline(stream, line))
 		throw std::runtime_error("Malformed request: missing request line");
-
+		
 	removeCarriageReturns(line);
-	parseRequestLine(line);
-	parseHeaders(stream);
+
+	parseRequestLine(line); // throws invalid_argument if broken
+	parseHeaders(stream); // throws invalid_argument if broken
+
 }
 
 
@@ -190,7 +193,7 @@ void ParsedRequest::parseHeaders(std::istringstream& stream)
 		removeCarriageReturns(line);
 		auto colonPos = line.find(':');
 		if (colonPos == std::string::npos)
-			throw std::runtime_error("Malformed header line: " + line);
+			throw std::invalid_argument("Malformed header line: " + line);
 
 		std::string key = line.substr(0, colonPos);
 		std::string value = line.substr(colonPos + 1);
@@ -201,7 +204,7 @@ void ParsedRequest::parseHeaders(std::istringstream& stream)
 		}
 		catch(const std::exception& e)
 		{
-			throw std::runtime_error("Header parse error: " + std::string(e.what()));
+			throw std::invalid_argument("Header parse error: " + std::string(e.what()));
 		}
 	}
 
@@ -212,14 +215,11 @@ void ParsedRequest::parseHeaders(std::istringstream& stream)
 	}
 	else if (!getHeader("Content-Length").empty())
 	{
+		_contentLength = extractContentLength();
 		setBodyType(BodyType::SIZED);
 	} 
-	_contentLength = extractContentLength();
-	if (_contentLength == -1)
-		setBodyType(BodyType::ERROR);
-	
+
 	_headersDone = true;
-	
 }
 
 bool ParsedRequest::iequals(const std::string& a, const std::string& b) const
@@ -246,76 +246,6 @@ void ParsedRequest::setBody(const std::string& body)
 	_body = body;
 }
 
-// bool ParsedRequest::terminatingZeroChunkReceived() const
-// {
-// 	std::cout << GREEN << "DEBUG" << RESET
-// 			  << "[terminatingZeroChunkReceived] Checking _chunkedBuffer of size " << _chunkedBuffer.size() << "\n";
-	
-			  
-// 	std::cout << GREEN << "DEBUG" << RESET << "[terminatingZeroChunkReceived] _chunkedBuffer bytes (hex): ";
-// 	for (unsigned char c : _chunkedBuffer)
-// 		std::cout << std::hex << (int)c << " ";
-// 	std::cout << std::dec << "\n"; // back to decimal
-			  
-// 	size_t pos = 0;
-
-// 	while (true)
-// 	{
-// 		// Find the next CRLF (end of chunk size line)
-// 		size_t crlfPos = _chunkedBuffer.find("\r\n", pos);
-// 		if (crlfPos == std::string::npos)
-// 		{
-// 			std::cout << GREEN << "DEBUG" << RESET
-// 					  << "[terminatingZeroChunkReceived] Incomplete chunk size line at pos " << pos << "\n";
-// 			return false;
-// 		}
-
-// 		std::string sizeStr = _chunkedBuffer.substr(pos, crlfPos - pos);
-// 		size_t chunkSize = 0;
-
-// 		try
-// 		{
-// 			chunkSize = std::stoul(sizeStr, nullptr, 16);
-// 		}
-// 		catch (...)
-// 		{
-// 			std::cout << GREEN << "DEBUG" << RESET
-// 					  << "[terminatingZeroChunkReceived] Malformed chunk size: '" << sizeStr << "'\n";
-// 			return false;
-// 		}
-
-// 		pos = crlfPos + 2; // move past CRLF
-
-// 		if (chunkSize == 0)
-// 		{
-// 			// Check if the trailing CRLF after the zero chunk is present
-// 			if (_chunkedBuffer.size() >= pos + 2)
-// 			{
-// 				std::cout << GREEN << "DEBUG" << RESET
-// 						  << "[terminatingZeroChunkReceived] Terminating zero chunk received with trailing CRLF\n";
-// 				return true;
-// 			}
-// 			else
-// 			{
-// 				std::cout << GREEN << "DEBUG" << RESET
-// 						  << "[terminatingZeroChunkReceived] Terminating zero chunk received, but trailing CRLF missing\n";
-// 				return false;
-// 			}
-// 		}
-
-// 		// Check if the full chunk + CRLF is present
-// 		if (_chunkedBuffer.size() < pos + chunkSize + 2)
-// 		{
-// 			std::cout << GREEN << "DEBUG" << RESET
-// 					  << "[terminatingZeroChunkReceived] Chunk data incomplete at pos " << pos
-// 					  << " (need " << chunkSize + 2 << ", have " << _chunkedBuffer.size() - pos << ")\n";
-// 			return false;
-// 		}
-
-// 		pos += chunkSize + 2; // move past chunk data and CRLF
-// 	}
-// }
-
 std::string& ParsedRequest::getChunkedBuffer()
 {
 	return _chunkedBuffer;
@@ -323,13 +253,12 @@ std::string& ParsedRequest::getChunkedBuffer()
 
 void ParsedRequest::appendToChunkedBuffer(const std::string& data)
 {
-	std::cout << GREEN << "DEBUG" << RESET
-			  << "[appendToChunkedBuffer] Before append, _chunkedBuffer size=" << _chunkedBuffer.size() << "\n";
+	std::cout << "\033[33mDEBUG: appendToChunkedBuffer\033[0m" << std::endl;
+	std::cout << ORANGE << "[appendToChunkedBuffer]: " << RESET << "Before append, _chunkedBuffer size=" << _chunkedBuffer.size() << "\n";
 
 	_chunkedBuffer += data;
 
-	std::cout << GREEN << "DEBUG" << RESET
-			  << "[appendToChunkedBuffer] After append, _chunkedBuffer size=" << _chunkedBuffer.size()
+	std::cout << ORANGE << "[appendToChunkedBuffer]: " << RESET << "After append, _chunkedBuffer size=" << _chunkedBuffer.size()
 			  << ", contents='" << _chunkedBuffer << "'\n";
 }
 
@@ -342,47 +271,87 @@ std::string ParsedRequest::decodeChunkedBody()
 {
     std::string decoded;
     size_t pos = 0;
+		
+    std::cout << ORANGE << "[decodeChunkedBody]: " << RESET << "START, buffer='" 
+              << _chunkedBuffer << "' (size=" << _chunkedBuffer.size() << "\n";
 
     while (pos < _chunkedBuffer.size())
     {
+        std::cout << ORANGE << "[decodeChunkedBody]: " << RESET << "pos=" << pos 
+                  << ", buffer from here='" << _chunkedBuffer.substr(pos) << "'\n";
+
         // Find next CRLF to read chunk size
         size_t crlfPos = _chunkedBuffer.find("\r\n", pos);
         if (crlfPos == std::string::npos)
+		{
+            std::cout << ORANGE << "[decodeChunkedBody]: " << RESET << "No CRLF found, incomplete chunk size\033[0m\n";
             break; // incomplete chunk size line, wait for more data
+        }
 
         std::string sizeStr = _chunkedBuffer.substr(pos, crlfPos - pos);
-        size_t chunkSize = std::stoul(sizeStr, nullptr, 16); // may throw invalid_argument or out_of_range
+        size_t chunkSize = std::stoul(sizeStr, nullptr, 16); // may throw
+
+        std::cout << ORANGE << "[decodeChunkedBody]: " << RESET << "Found chunk size='" << sizeStr 
+                  << "' (" << chunkSize << " bytes)\n";
 
         pos = crlfPos + 2; // move past CRLF
 
         if (chunkSize == 0)
         {
-            setTerminatingZeroChunkReceived();
+            std::cout << ORANGE << "[decodeChunkedBody]:" << RESET << "Zero-size chunk found, terminating body\n";
+            setTerminatingZero();
             pos += 2; // skip final CRLF
             _chunkedBuffer.erase(0, pos);
+            std::cout << ORANGE << "[decodeChunkedBody] " << RESET << "After erase, buffer='" 
+                      << _chunkedBuffer << "'";
             return decoded;
         }
 
         // Check if full chunk data is available
         if (pos + chunkSize > _chunkedBuffer.size())
+		{
+            std::cout << ORANGE << "[decodeChunkedBody]: " << RESET << "Incomplete chunk data, need " 
+                      << chunkSize << " bytes but only " 
+                      << (_chunkedBuffer.size() - pos) << " available\n";
             break; // incomplete chunk, wait for more data
+        }
 
         // Append chunk to decoded
-        decoded += _chunkedBuffer.substr(pos, chunkSize);
+        std::string chunkData = _chunkedBuffer.substr(pos, chunkSize);
+        decoded += chunkData;
+
+        std::cout << ORANGE << "[decodeChunkedBody]: " << RESET << "Appended chunk='" << chunkData 
+                  << "', decoded now='" << decoded << "'\n";
+
         pos += chunkSize;
 
         // Skip CRLF after chunk
         if (_chunkedBuffer.substr(pos, 2) == "\r\n")
+		{
+            std::cout << ORANGE << "[decodeChunkedBody]: " << RESET << "Skipping CRLF after chunk\n";
             pos += 2;
-        else
+        }
+		else
+		{
+            std::cout << ORANGE << "[decodeChunkedBody]: " << RESET << "Missing CRLF after chunk, breaking\n";
             break; // malformed chunk, wait for more data
+        }
     }
 
     // erase fully decoded part of buffer
-    _chunkedBuffer.erase(0, pos);
+    if (pos > 0)
+	{
+        std::cout << ORANGE << "[decodeChunkedBody]: " << RESET << "Erasing " << pos 
+                  << " bytes from buffer\n";
+        _chunkedBuffer.erase(0, pos);
+    }
+
+    std::cout << ORANGE << "[decodeChunkedBody]: " << RESET << "END, decoded='" << decoded 
+              << "', buffer now='" << _chunkedBuffer << "'\n";
 
     return decoded; // may be partial if last chunk incomplete
 }
+
 
 bool ParsedRequest::contentLengthComplete() const
 {
@@ -416,18 +385,18 @@ void ParsedRequest::setBodyType(BodyType type)
 	_bodyType = type;
 }
 
-void ParsedRequest::setTerminatingZeroChunkReceived()
+void ParsedRequest::setTerminatingZero()
 {
-	_terminatingZeroReceived = true;
+	_terminatingZero = true;
 }
 
-bool ParsedRequest::isTerminatingZeroChunkReceived()
+bool ParsedRequest::isTerminatingZero()
 {
-	return _terminatingZeroReceived;
+	return _terminatingZero;
 }
 
 	
-const std::string& ParsedRequest::getTempBuffer() const
+std::string& ParsedRequest::getTempBuffer()
 {
     return _tempBuffer;
 }

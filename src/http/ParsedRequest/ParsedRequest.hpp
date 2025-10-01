@@ -39,7 +39,7 @@ class ParsedRequest
 		
 		// Parsing state
 		bool _headersDone;
-		bool _terminatingZeroReceived;
+		bool _terminatingZero;
 		bool _bodyDone;
 		bool _requestDone;
 		bool _waitingForMoreData;
@@ -98,7 +98,6 @@ class ParsedRequest
 		bool headersParsed() const;
 		size_t extractContentLength() const;
 		bool bodyComplete() const;
-		void finalizeBody();
 		
 		std::string decodeChunkedBody();
 		void parseRequestLineAndHeaders(const std::string& headerPart);
@@ -107,7 +106,7 @@ class ParsedRequest
 		
 		const std::string& getBody() const;
 		void setBody(const std::string& body);
-		void setTerminatingZeroChunkReceived();
+		void setTerminatingZero();
 		std::string& getChunkedBuffer();
 		void appendToChunkedBuffer(const std::string& data);
 		void clearChunkedBuffer();
@@ -123,12 +122,14 @@ class ParsedRequest
 		void parseRequestLine(const std::string& firstLine);
 		void parseHeaders(std::istringstream& stream);
 		
-		bool isTerminatingZeroChunkReceived();
+		bool isTerminatingZero();
 		
-		 const std::string& getTempBuffer() const;
+		std::string& getTempBuffer();
 		void setTempBuffer(const std::string& buffer);
 		void appendTempBuffer(const std::string& data);
 		void clearTempBuffer();
+		
+		std::string& getContentLengthBuffer();
 
 
 	

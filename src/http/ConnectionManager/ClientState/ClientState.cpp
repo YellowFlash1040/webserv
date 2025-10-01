@@ -105,12 +105,6 @@ void ClientState::prepareNextRequestWithLeftover(const std::string& leftover)
 	current.appendToRlAndHeaderBuffer(leftover);
 }
 
-void ClientState::prepareForNextRequest()
-{
-	// Add new empty request for next pipelined message
-	_parsedRequests.emplace_back();
-}
-
 void ClientState::finalizeLatestRequestBody()
 {
 	if (_parsedRequests.empty())
@@ -175,6 +169,9 @@ ParsedRequest& ClientState::getParsedRequest(size_t index)
 
 ParsedRequest& ClientState::addParsedRequest()
 {
+	printf ("made a new request\n");
     _parsedRequests.emplace_back();
-    return _parsedRequests.back();
+    return 
+		_parsedRequests.back();
+
 }
