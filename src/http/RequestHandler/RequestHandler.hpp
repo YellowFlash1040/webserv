@@ -4,6 +4,11 @@
 #include "../ParsedRequest/ParsedRequest.hpp"
 #include "../ServerResponse/ServerResponse.hpp"
 
+#include <string>
+#include <unordered_map>
+
+
+
 class RequestHandler
 {
 	public:

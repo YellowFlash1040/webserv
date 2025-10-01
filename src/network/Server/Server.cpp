@@ -133,27 +133,27 @@ void Server::processClient(int clientId)
 		std::cout << GREEN << "\nDEBUG[SERVER]:" << RESET << " read " << n << " bytes: \n" << buf << "\n";
 		// Pass incoming data to ConnectionManager
 		std::string data(buf, n);
-		bool hasResponse = m_connMgr.processData(clientId, data);
+		bool anyRequestDone = m_connMgr.processData(clientId, data);
 
-		std::cout << GREEN << "DEBUG[SERVER]:" << RESET << " has response? " << hasResponse << "\n";
-		// if (hasResponse)
+		std::cout << GREEN << "DEBUG[SERVER]:" << RESET << " any request processed? " << anyRequestDone << "\n";
+		
+		
+		// // Send all ready responses
+		ClientState& clientState = m_connMgr.getClientStateForTest(clientId);
+		// while (!clientState.responseQueueEmpty())
 		// {
-		// 	std::string response = m_connMgr.getResponse(clientId);
-		// 	std::cout << GREEN << "\nDEBUG[SERVER]" << RESET << " Response size = "
-		// 		<< response.size() << ":\n" << response << "\n\n";
-			
-		// 	// Send response
-		// 	write(clientId, response.c_str(), response.size());
-
-			if (m_connMgr.clientSentClose(clientId))
-			{
-				m_connMgr.removeClient(clientId); // only remove if client wants to close
-			}
-			else
-			{
-				 m_connMgr.resetClientState(clientId); // keep alive
-			}
+		// 	const ServerResponse& resp = clientState.popNextResponse();
+		// 	std::string respStr = resp.toString();
+		// 	write(clientId, respStr.c_str(), respStr.size());
+		// }
+		
+		// Only remove client if last request indicates Connection: close
+		if ((m_connMgr.clientSentClose(clientId))  && !clientState.isReadyToSend())
+		{
+			m_connMgr.removeClient(clientId);
+			close(clientId);
 		}
+	}
 		
 	else if (n == 0)
 	{

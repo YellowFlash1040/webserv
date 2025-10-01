@@ -13,7 +13,11 @@ ServerResponse RequestHandler::handleRequest(const ParsedRequest& request)
 		"</body>"
 		"</html>"
 	);
-	response.addHeader("Content-Type", "text/html");
+	// response.setStatusCode(200);
+    // response.setStatusText("OK");
+    // response.setHeader("Content-Type", "text/html");
+    // response.setBody("<html><body><h1>Hello</h1></body></html>");
+	// response.addHeader("Content-Type", "text/html");
 
 	return response;
 }

@@ -2,39 +2,50 @@
 #define SERVERRESPONSE_HPP
 
 #include <string>
-#include <map>
+#include <unordered_map>
+#include <../ParsedRequest/ParsedRequest.hpp>
 
 class ServerResponse
 {
-	private:
-		int _statusCode;
-		std::string _statusMessage;
-		std::map<std::string, std::string> _headers;
-		std::string _body;
+private:
+	int _statusCode;
+	std::string _statusText;
+	std::unordered_map<std::string, std::string> _headers;
+	std::string _body;
 
-	public:
-		ServerResponse();
-		~ServerResponse();
-		ServerResponse(const ServerResponse& other);
-		ServerResponse& operator=(const ServerResponse& other);
-		ServerResponse(ServerResponse&& other) noexcept;
-		ServerResponse& operator=(ServerResponse&& other) noexcept;
+public:
+	// Constructor
+	ServerResponse();
+	ServerResponse(const ParsedRequest& req);
 
-		void ServerResponseReset();
-		
-		int getStatusCode() const;
-		const std::string& getStatusMessage() const;
-		const std::map<std::string, std::string>& getHeaders() const;
-		const std::string& getBody() const;
+	// Defaults for destructor/copy/move
+	~ServerResponse() = default;
+	ServerResponse(const ServerResponse&) = default;
+	ServerResponse& operator=(const ServerResponse&) = default;
+	ServerResponse(ServerResponse&&) noexcept = default;
+	ServerResponse& operator=(ServerResponse&&) noexcept = default;
 
-		bool hasHeader(const std::string& key) const;
+	// Reset
+	void reset();
 
-		void setStatusCode(int code);
-		void setStatusMessage(const std::string& message);
-		void addHeader(const std::string& key, const std::string& value);
-		void setBody(const std::string& body);
+	// Getters
+	int getStatusCode() const;
+	const std::string& getStatusText() const;
+	const std::unordered_map<std::string, std::string>& getHeaders() const;
+	const std::string& getBody() const;
+	bool hasHeader(const std::string& key) const;
 
-		std::string toString() const;
+	// Setters
+	void setStatusCode(int code);
+	void setStatusText(const std::string& text);
+	void addHeader(const std::string& key, const std::string& value);
+	void setBody(const std::string& body);
+
+	// Serialize response to string
+	std::string toString() const;
+
+	// Map HTTP status code to default text
+	std::string codeToText(int code) const;
 };
 
 #endif

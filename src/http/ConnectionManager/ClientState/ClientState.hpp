@@ -3,66 +3,63 @@
 
 #include <string>
 #include <iostream>
+#include <vector>
+#include <cstdint> // for SIZE_MAX
+#include <queue>
 #include "../ParsedRequest/ParsedRequest.hpp"
 #include "../ServerResponse/ServerResponse.hpp"
+
 
 class ClientState
 {
 	private:
-		bool _headersDone;
-		bool _headersSeparatedFromBody;
-		bool _bodyDone;
-		bool _readyToSend;
-	
-		std::string _rlAndHeadersBuffer; //accumulates incoming data until you detect the end of headers (\r\n\r\n)
-		std::string _bodyBuffer;
-		
-		int _contentLength;
-		bool _chunked;
+		// Requests for this client
+		std::vector<ParsedRequest> _parsedRequests;
 
-		ParsedRequest _reqObj;
-		ServerResponse _respObj;
-		
+		// Responses waiting to be sent
+		std::queue<ServerResponse> _responseQueue;
+
+
+		bool _readyToSend;
+
 	public:
 		ClientState();
-		~ClientState();
-		ClientState(const ClientState& other);
-		ClientState& operator=(const ClientState& other);
-		ClientState(ClientState&& other) noexcept;
-		ClientState& operator=(ClientState&& other) noexcept;
+		~ClientState() = default;
+		ClientState(const ClientState& other) = default;
+		ClientState& operator=(const ClientState& other) = default;
+		ClientState(ClientState&& other) noexcept = default;
+		ClientState& operator=(ClientState&& other) noexcept = default;
 
-		// Getters
-		const std::string& getRlAndHeadersBuffer() const;
-		const std::string& getBodyBuffer() const;
-		std::string getFullRequestBuffer() const;
+		// Request management
+		void addParsedRequest(const ParsedRequest& req);
+		size_t getParsedRequestCount() const;
+		const ParsedRequest& getReqObj(size_t index) const;
+		const ParsedRequest& getLatestReqObj() const;
+		ParsedRequest& getReqObj(size_t index);
+		ParsedRequest& getLatestReqObj();
+		bool latestRequestNeedsBody() const;
+
+		// Response management
+		void enqueueResponse(const ServerResponse& resp);
+		bool responseQueueEmpty() const;
+		ServerResponse popNextResponse();
 		const ServerResponse& getRespObj() const;
-		const ParsedRequest& getReqObj() const;
-		size_t getContentLength() const;
-		
-		// Setters
-		void setHeadersDone();
-		void setBodyDone();
-		void setHeadersSeparatedFromBody();
-		void setContentLength(int value);
-		void setChunked(bool value);
-		void setRequest(const ParsedRequest& req);
-		void setResponse(const ServerResponse& resp);
-		void setReadyToSend(bool value);
-		
-		// Appenders
-		void appendToRlAndHeaderBuffer(const std::string& data);
-		void appendToBodyBuffer(const std::string& data);
-		
-		void clearRlAndHeaderBuffer();
-		bool hasHeadersBeenSeparatedFromBody() const;
-		bool isHeadersDone() const;
-		bool isBodyDone() const;
-		bool isChunked() const;
-		bool isReadyToSend() const;
-		void prepareForNextRequestBuffersOnly();
-		void prepareForNextRequest();
-		void appendToBuffers(const std::string& data);
 
+		// Ready-to-send flag
+		void setReadyToSend(bool value);
+		bool isReadyToSend() const;
+		
+		ParsedRequest& getLatestRequest();
+		void prepareNextRequestWithLeftover(const std::string& leftover);
+		void prepareForNextRequest();
+		void finalizeLatestRequestBody();
+		void prepareForNextRequestPreserveBuffers();
+		
+		ParsedRequest popFirstFinishedRequest();
+		ParsedRequest& getParsedRequest(size_t index);
+
+		ParsedRequest& addParsedRequest();
 };
+
 
 #endif

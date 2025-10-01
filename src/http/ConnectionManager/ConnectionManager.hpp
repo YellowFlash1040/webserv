@@ -4,7 +4,8 @@
 #include <unordered_map>
 #include <string>
 #include <iostream>
-#include "../RequestParser/RequestParser.hpp"
+#include <cstdint>  // for SIZE_MAX
+#include <sstream>
 #include "../RequestHandler/RequestHandler.hpp"
 #include "ClientState/ClientState.hpp"
 
@@ -17,15 +18,12 @@ class ConnectionManager
 {
 	private:
 		std::unordered_map<int, ClientState> m_clients;
-		RequestParser m_parser;
-		RequestHandler m_handler;
 		
-		void appendDataToBuffers(ClientState& state, const std::string& data);
-		void trySeparateHeadersFromBody(ClientState& state);
-		bool checkAndProcessBody(ClientState& state);
-		void printRequestDebug(const ClientState& state, const ParsedRequest& request) const;
-		void printResponseDebug(const ServerResponse& respObj, const std::string& response) const;
-
+		std::string distinguishHeadersFromBody(ClientState& clientState , size_t reqNum);
+		void appendBodyBytes(ClientState& clientState, const std::string& data);
+    	bool hasCompletedRequests(ClientState& clientState);
+    	void handleFinishedRequest(ClientState& clientState, size_t index);
+		
 	public:
 		ConnectionManager() = default;
 		~ConnectionManager() = default;
@@ -34,8 +32,7 @@ class ConnectionManager
 		ConnectionManager(ConnectionManager&&) noexcept = default;
 		ConnectionManager& operator=(ConnectionManager&&) noexcept = default;
 
-		const ParsedRequest& getRequest(int clientId) const;
-		std::string getResponse(int clientId);
+		const ParsedRequest& getRequest(int clientId, size_t index = SIZE_MAX) const;
 		
 		void addClient(int clientId);
 		bool processData(int clientId, const std::string& data);
@@ -43,8 +40,22 @@ class ConnectionManager
 		bool clientSentClose(int clientId) const;
 		void removeClient(int clientId);
 		
+		void generateResponseIfReady(int clientId);
+		ClientState& getClientStateForTest(int clientId);
+		bool accumulateBody(ParsedRequest& request);
+		ParsedRequest popFinishedRequest(int clientId);
+		bool accumulateChunkedBody(ParsedRequest& request, std::string& data);
 		
-
-};
+		std::string processHeaders(ClientState& clientState, size_t reqNum);
+		void processLeftover(ClientState& clientState, size_t reqNum, std::string leftover);
+	
+		//utils
+		void printRequest(ClientState& clientState, size_t i);
+		void printAllRequests(ClientState& clientState);
+		
+		bool remainingAfterParsingHeaders(ClientState& clientState);
+	
+	
+	};
 
 #endif

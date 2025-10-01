@@ -1,162 +1,85 @@
 #include "ClientState.hpp"
+#include <stdexcept>
 
-// Default constructor
+// ===== Constructor =====
 ClientState::ClientState()
-	: _headersDone(false),
-	  _headersSeparatedFromBody(false),
-	  _bodyDone(false),
-	  _readyToSend(false),
-	  _rlAndHeadersBuffer(),
-	  _bodyBuffer(),
-	  _contentLength(0),
-	  _chunked(false),
-	  _reqObj(),
-	  _respObj()
-{}
-
-// Destructor
-ClientState::~ClientState() {}
-
-// Copy constructor
-ClientState::ClientState(const ClientState& other)
-	: _headersDone(other._headersDone),
-	  _headersSeparatedFromBody(other._headersSeparatedFromBody),
-	  _bodyDone(other._bodyDone),
-	  _readyToSend(other._readyToSend),
-	  _rlAndHeadersBuffer(other._rlAndHeadersBuffer),
-	  _bodyBuffer(other._bodyBuffer),
-	  _contentLength(other._contentLength),
-	  _chunked(other._chunked),
-	  _reqObj(other._reqObj),
-	  _respObj(other._respObj)
-{}
-
-// Copy assignment
-ClientState& ClientState::operator=(const ClientState& other)
+	: _parsedRequests()
+	, _responseQueue()
+	, _readyToSend(false)
 {
-	if (this != &other)
-	{
-		_headersDone = other._headersDone;
-		_headersSeparatedFromBody = other._headersSeparatedFromBody;
-		_bodyDone = other._bodyDone;
-		_readyToSend = other._readyToSend;
-		_rlAndHeadersBuffer = other._rlAndHeadersBuffer;
-		_bodyBuffer = other._bodyBuffer;
-		_contentLength = other._contentLength;
-		_chunked = other._chunked;
-		_reqObj = other._reqObj;
-		_respObj = other._respObj;
-	}
-	return *this;
+	// Create the first empty request so getLatestRequest() is always valid
+	_parsedRequests.emplace_back();
 }
 
-// Move constructor
-ClientState::ClientState(ClientState&& other) noexcept
-	: _headersDone(other._headersDone),
-	  _headersSeparatedFromBody(other._headersSeparatedFromBody),
-	  _bodyDone(other._bodyDone),
-	  _readyToSend(other._readyToSend),
-	  _rlAndHeadersBuffer(std::move(other._rlAndHeadersBuffer)),
-	  _bodyBuffer(std::move(other._bodyBuffer)),
-	  _contentLength(other._contentLength),
-	  _chunked(other._chunked),
-	  _reqObj(std::move(other._reqObj)),
-	  _respObj(std::move(other._respObj))
-{}
+// ===== Request management =====
 
-// Move assignment
-ClientState& ClientState::operator=(ClientState&& other) noexcept
+void ClientState::addParsedRequest(const ParsedRequest& req)
 {
-	if (this != &other)
-	{
-		_headersDone = other._headersDone;
-		_headersSeparatedFromBody = other._headersSeparatedFromBody;
-		_bodyDone = other._bodyDone;
-		_readyToSend = other._readyToSend;
-		_rlAndHeadersBuffer = std::move(other._rlAndHeadersBuffer);
-		_bodyBuffer = std::move(other._bodyBuffer);
-		_contentLength = other._contentLength;
-		_chunked = other._chunked;
-		_reqObj = std::move(other._reqObj);
-		_respObj = std::move(other._respObj);
-	}
-	return *this;
+	_parsedRequests.push_back(req);
 }
 
-// Reset all state for next request
-void ClientState::prepareForNextRequest()
+size_t ClientState::getParsedRequestCount() const
 {
-	_headersDone = false;
-	_headersSeparatedFromBody = false;
-	_bodyDone = false;
-	_readyToSend = false;
-	_rlAndHeadersBuffer.clear();
-	_bodyBuffer.clear();
-	_contentLength = 0;
-	_chunked = false;
-	_reqObj.requestReset();
-	// _respObj stays until overwritten by next response
+	return _parsedRequests.size();
 }
 
-void ClientState::prepareForNextRequestBuffersOnly()
+const ParsedRequest& ClientState::getReqObj(size_t index) const
 {
-	_headersDone = false;
-	_headersSeparatedFromBody = false;
-	_bodyDone = false;
-	_readyToSend = false;
-	_rlAndHeadersBuffer.clear();
-	_bodyBuffer.clear();
-	_contentLength = 0;
-	_chunked = false;
-
+	if (index >= _parsedRequests.size())
+		throw std::out_of_range("Requested ParsedRequest index out of range");
+	return _parsedRequests[index];
 }
 
-// Getters
-const std::string& ClientState::getRlAndHeadersBuffer() const
+const ParsedRequest& ClientState::getLatestReqObj() const
 {
-	return _rlAndHeadersBuffer;
+	if (_parsedRequests.empty())
+		throw std::runtime_error("No requests available in ClientState");
+	return _parsedRequests.back();
 }
 
-const std::string& ClientState::getBodyBuffer() const
+bool ClientState::latestRequestNeedsBody() const
 {
-	return _bodyBuffer;
+	if (_parsedRequests.empty())
+		return false;
+	const ParsedRequest& latest = _parsedRequests.back();
+
+	// Needs a body if headers are done but body isn’t
+	return latest.isHeadersDone() && !latest.isBodyDone();
 }
 
-std::string ClientState::getFullRequestBuffer() const
+// ===== Response management =====
+
+void ClientState::enqueueResponse(const ServerResponse& resp)
 {
-	return _rlAndHeadersBuffer + _bodyBuffer;
+	_responseQueue.push(resp);
+}
+
+bool ClientState::responseQueueEmpty() const
+{
+	return _responseQueue.empty();
+}
+
+ServerResponse ClientState::popNextResponse()
+{
+	if (_responseQueue.empty())
+		throw std::runtime_error("No responses in queue");
+	ServerResponse resp = _responseQueue.front();
+	_responseQueue.pop();
+	return resp;
 }
 
 const ServerResponse& ClientState::getRespObj() const
 {
-	return _respObj;
+	if (_responseQueue.empty())
+		throw std::runtime_error("No responses in queue");
+	return _responseQueue.front();
 }
 
-const ParsedRequest& ClientState::getReqObj() const
-{
-	return _reqObj;
-}
+// ===== Ready-to-send flag =====
 
-size_t ClientState::getContentLength() const
+void ClientState::setReadyToSend(bool value)
 {
-	return static_cast<size_t>(_contentLength);
-}
-
-// status queries
-bool ClientState::isHeadersDone() const
-{
-	return _headersDone;
-}
-
-bool ClientState::hasHeadersBeenSeparatedFromBody() const
-{
-	return _headersSeparatedFromBody;
-}
-
-
-bool ClientState::isChunked() const
-{
-	return _chunked;
+	_readyToSend = value;
 }
 
 bool ClientState::isReadyToSend() const
@@ -164,81 +87,94 @@ bool ClientState::isReadyToSend() const
 	return _readyToSend;
 }
 
-bool ClientState::isBodyDone() const
+ParsedRequest& ClientState::getLatestRequest()
 {
-	return _bodyDone;
-}
-
-// Appenders
-void ClientState::appendToRlAndHeaderBuffer(const std::string& data)
-{
-	_rlAndHeadersBuffer += data;
-}
-
-void ClientState::appendToBodyBuffer(const std::string& data)
-{
-	_bodyBuffer += data;
-}
-
-// clear header buffer (useful when replacing header contents after splitting)
-void ClientState::clearRlAndHeaderBuffer()
-{
-	_rlAndHeadersBuffer.clear();
-}
-
-// Setters (correct signatures)
-void ClientState::setHeadersDone()
-{
-	_headersDone = true;
-}
-
-void ClientState::setBodyDone()
-{
-	_bodyDone = true;
-}
-
-void ClientState::setHeadersSeparatedFromBody()
-{
-	_headersSeparatedFromBody = true;
-}
-
-void ClientState::setContentLength(int value)
-{
-	_contentLength = value;
-}
-
-void ClientState::setChunked(bool value)
-{
-	_chunked = value;
-}
-
-void ClientState::setRequest(const ParsedRequest& req)
-{
-	_reqObj = req;
-}
-
-void ClientState::setResponse(const ServerResponse& resp)
-{
-	_respObj = resp;
-}
-
-void ClientState::setReadyToSend(bool value)
-{
-	_readyToSend = value;
-}
-
-void ClientState::appendToBuffers(const std::string& data)
-{
-	if (!_headersDone)
+	if (_parsedRequests.empty())
 	{
-		_rlAndHeadersBuffer.append(data);
-		std::cout << "[DEBUG] appendToBuffers(): appended " << data.size()
-			<< " bytes to rl+headers buffer (total=" << _rlAndHeadersBuffer.size() << ")\n";
+		_parsedRequests.emplace_back(); // default-construct a new request
 	}
-	else
+	return _parsedRequests.back();
+}
+
+void ClientState::prepareNextRequestWithLeftover(const std::string& leftover)
+{
+	if (leftover.empty())
+		return; // nothing to do
+
+	ParsedRequest& current = getLatestReqObj();
+	current.appendToRlAndHeaderBuffer(leftover);
+}
+
+void ClientState::prepareForNextRequest()
+{
+	// Add new empty request for next pipelined message
+	_parsedRequests.emplace_back();
+}
+
+void ClientState::finalizeLatestRequestBody()
+{
+	if (_parsedRequests.empty())
+		return;
+
+	ParsedRequest& latest = _parsedRequests.back();
+	latest.setBodyDone();
+}
+
+void ClientState::prepareForNextRequestPreserveBuffers()
+{
+	// Create a new ParsedRequest but preserve leftover buffers from the current one
+	if (_parsedRequests.empty())
 	{
-		_bodyBuffer.append(data);
-		std::cout << "[DEBUG] appendToBuffers(): appended " << data.size()
-			<< " bytes to body buffer (total=" << _bodyBuffer.size() << ")\n";
+		_parsedRequests.emplace_back();
+		return;
 	}
+
+	ParsedRequest& latest = _parsedRequests.back();
+	std::string leftoverHeaders = latest.getRlAndHeadersBuffer();
+	std::string leftoverBody = latest.getBodyBuffer();
+
+	_parsedRequests.emplace_back(); // new empty request
+	ParsedRequest& newReq = _parsedRequests.back();
+
+	// Preserve leftover
+	newReq.setRlAndHeadersBuffer(leftoverHeaders);
+	newReq.appendToBodyBuffer(leftoverBody);
+}
+
+ParsedRequest& ClientState::getReqObj(size_t index)
+{
+	return _parsedRequests.at(index);
+}
+
+ParsedRequest& ClientState::getLatestReqObj()
+{
+	return _parsedRequests.back();
+}
+
+ParsedRequest ClientState::popFirstFinishedRequest()
+{
+	for (auto it = _parsedRequests.begin(); it != _parsedRequests.end(); ++it)
+	{
+		if (it->isBodyDone())
+		{
+			ParsedRequest finished = std::move(*it);
+			_parsedRequests.erase(it);
+			return finished;
+		}
+	}
+
+	throw std::runtime_error("No finished request found");
+}
+
+ParsedRequest& ClientState::getParsedRequest(size_t index)
+{
+	if (index >= _parsedRequests.size())
+		throw std::out_of_range("ParsedRequest index out of range");
+	return _parsedRequests[index];
+}
+
+ParsedRequest& ClientState::addParsedRequest()
+{
+    _parsedRequests.emplace_back();
+    return _parsedRequests.back();
 }
