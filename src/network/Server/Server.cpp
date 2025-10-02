@@ -1,6 +1,8 @@
 #include "Server.hpp"
 #include "Client.hpp"
 
+#include "Router.hpp"
+
 // --------------CONSTRUCTION AND DESTRUCTION--------------
 
 // Default constructor
@@ -183,19 +185,60 @@ void Server::processClient(int clientSocket)
     char buf[512];
     int n = recv(clientSocket, buf, sizeof(buf) - 1, 0);
 
+    // if (n > 0)
+    // {
+    //     // processData(buf, clientSocket);
+        
+    //     buf[n] = '\0';
+    //     auto it = m_clients.find(clientSocket);
+    //     if (it != m_clients.end())
+    //     {
+    //         it->second->appendToInBuffer(buf);
+    //         it->second->updateLastActivity(); 
+    //     }
+    //     std::cout << "Received from " << clientSocket << ": " << buf << "\n";
+    // }
+
     if (n > 0)
     {
-        // processData(buf, clientSocket);
-        
         buf[n] = '\0';
+        std::cout << "Received from " << clientSocket << ": " << buf << "\n";
+
+        // ======= Временный тест Router + CGI =======
+        HttpRequest req;
+
+        // упрощённо: buf содержит строку вида "GET /cgi-bin/test.py HTTP/1.1"
+        std::string requestLine(buf);
+        size_t methodEnd = requestLine.find(' ');
+        size_t uriEnd = requestLine.find(' ', methodEnd + 1);
+
+        if (methodEnd != std::string::npos && uriEnd != std::string::npos)
+        {
+            req.method = requestLine.substr(0, methodEnd);
+            req.uri = requestLine.substr(methodEnd + 1, uriEnd - methodEnd - 1);
+            req.body = ""; // пока без тела
+        }
+
+        Router router;
+        HttpResponse resp = router.route(req);
+
+        // Отправляем обратно клиенту
+        std::string out = resp.headers + resp.body;
         auto it = m_clients.find(clientSocket);
         if (it != m_clients.end())
         {
-            it->second->appendToInBuffer(buf);
-            it->second->updateLastActivity(); 
+            it->second->appendToOutBuffer(out);
+            it->second->updateLastActivity();
+            struct epoll_event mod;
+            mod.data.fd = clientSocket;
+            mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP | EPOLLOUT;
+            if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, clientSocket, &mod) == -1)
+                perror("epoll_ctl EPOLLOUT");
         }
-        std::cout << "Received from " << clientSocket << ": " << buf << "\n";
+        // send(clientSocket, out.c_str(), out.size(), 0);
+        // ==========================================
     }
+
     else if (n == 0)
     {
         // processData(buf, clientSocket);

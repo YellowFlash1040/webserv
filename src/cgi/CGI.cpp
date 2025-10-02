@@ -1,8 +1,59 @@
 #include "CGI.hpp"
-#include <sys/stat.h>
-#include <limits.h>
 
-static void validateScriptPath(const std::string &scriptPath, const std::string &rootDir)
+#include <limits.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <iostream>
+#include <cstring>
+#include <stdexcept>
+
+std::string cleanShebang(const std::string &line)
+{
+    if (line.size() < 3 || line[0] != '#' || line[1] != '!')
+        return "";
+
+    size_t start = 2; // после #!
+    // пропускаем пробелы в начале пути
+    while (start < line.size() && std::isspace(line[start]))
+        start++;
+
+    if (start >= line.size())
+        return "";
+
+    size_t end = line.find_first_of(" \t\n", start);
+    if (end == std::string::npos)
+        end = line.size();
+
+    return line.substr(start, end - start);
+}
+
+std::string getShebangInterpreter(const std::string &path)
+{
+    std::ifstream f(path);
+    if (!f.is_open())
+        throw std::runtime_error("Failed to open script for reading shebang: " + path);
+
+    std::string line;
+    std::getline(f, line);
+    std::string interpreter = cleanShebang(line);
+
+    if (interpreter.empty() || interpreter[0] != '/')
+        throw std::runtime_error("Invalid or missing shebang in script: " + path);
+
+    // Проверяем существование интерпретатора
+    struct stat st;
+    if (stat(interpreter.c_str(), &st) == -1 || !(st.st_mode & S_IXUSR))
+        throw std::runtime_error("Interpreter in shebang not found or not executable: " + interpreter);
+
+    return interpreter;
+}
+
+// Проверка пути + shebang
+std::string validateScriptPath(const std::string &scriptPath, const std::string &rootDir)
 {
     struct stat st;
     if (stat(scriptPath.c_str(), &st) == -1)
@@ -11,9 +62,7 @@ static void validateScriptPath(const std::string &scriptPath, const std::string 
     if (S_ISDIR(st.st_mode))
         throw std::runtime_error("CGI script is a directory: " + scriptPath);
 
-    if (!(st.st_mode & S_IXUSR))
-        throw std::runtime_error("CGI script is not executable: " + scriptPath);
-
+    // Защита от path traversal
     char realScript[PATH_MAX];
     char realRoot[PATH_MAX];
     if (!realpath(scriptPath.c_str(), realScript) || !realpath(rootDir.c_str(), realRoot))
@@ -21,18 +70,30 @@ static void validateScriptPath(const std::string &scriptPath, const std::string 
 
     std::string realScriptStr(realScript);
     std::string realRootStr(realRoot);
-
     if (realScriptStr.find(realRootStr) != 0)
         throw std::runtime_error("Path traversal detected: " + scriptPath);
+
+    // Если файл исполняемый, возвращаем путь к скрипту
+    if (st.st_mode & S_IXUSR)
+        return scriptPath;
+
+    // Если не исполняемый, проверяем shebang
+    std::string interpreter = getShebangInterpreter(scriptPath);
+    if (!interpreter.empty())
+        return interpreter; // будем вызывать через интерпретатор
+
+    throw std::runtime_error("CGI script is not executable and has no shebang: " + scriptPath);
 }
 
-CGIResponse execute(const std::string &scriptPath, const std::vector<std::string> &args, const std::vector<std::string> &env, const std::string &input = "", const std::string &rootDir = "/var/www/cgi-bin/")
+CGIResponse CGI::execute(const std::string &scriptPath,
+                    const std::vector<std::string> &args,
+                    const std::vector<std::string> &env,
+                    const std::string &input,
+                    const std::string &rootDir)
 {
-    validateScriptPath(scriptPath, rootDir);
+    std::string execPath = validateScriptPath(scriptPath, rootDir);
 
-    int pipe_in[2];
-    int pipe_out[2];
-
+    int pipe_in[2], pipe_out[2];
     if (pipe(pipe_in) == -1 || pipe(pipe_out) == -1)
         throw std::runtime_error("Failed to create pipes");
 
@@ -40,7 +101,7 @@ CGIResponse execute(const std::string &scriptPath, const std::vector<std::string
     if (pid < 0)
         throw std::runtime_error("Fork failed");
 
-    if (pid == 0) 
+    if (pid == 0)
     {
         dup2(pipe_in[0], STDIN_FILENO);
         dup2(pipe_out[1], STDOUT_FILENO);
@@ -52,8 +113,13 @@ CGIResponse execute(const std::string &scriptPath, const std::vector<std::string
         close(pipe_out[1]);
 
         std::vector<char*> c_args;
-        
-        c_args.push_back(const_cast<char*>(scriptPath.c_str()));
+        if (execPath != scriptPath) {
+            // запускаем через интерпретатор
+            c_args.push_back(const_cast<char*>(execPath.c_str()));
+            c_args.push_back(const_cast<char*>(scriptPath.c_str()));
+        } else {
+            c_args.push_back(const_cast<char*>(scriptPath.c_str()));
+        }
         for (auto &a : args)
             c_args.push_back(const_cast<char*>(a.c_str()));
         c_args.push_back(nullptr);
@@ -63,18 +129,17 @@ CGIResponse execute(const std::string &scriptPath, const std::vector<std::string
             c_env.push_back(const_cast<char*>(e.c_str()));
         c_env.push_back(nullptr);
 
-        execve(scriptPath.c_str(), c_args.data(), c_env.data());
+        execve(execPath.c_str(), c_args.data(), c_env.data());
         perror("execve failed");
         _exit(1);
-    } 
+    }
     else
     {
         close(pipe_in[0]);
         close(pipe_out[1]);
 
-        if (!input.empty()) {
+        if (!input.empty())
             write(pipe_in[1], input.c_str(), input.size());
-        }
         close(pipe_in[1]);
 
         std::string raw;
