@@ -37,13 +37,19 @@ class ConnectionManager
 		const ParsedRequest& getRequest(int clientId, size_t index = SIZE_MAX) const;
 		
 		void addClient(int clientId);
-		bool processData(int clientId, const std::string& data);
+		
+		bool processData(int clientId, const std::string& tcpData);
+		size_t processReqs(int clientId, const std::string& tcpData);
+		void genRespsForReadyReqs(int clientId);
+		std::string genResp(int clientId);
+		
+		
 		bool clientSentClose(int clientId) const;
 		void removeClient(int clientId);
 		
-		void generateResponseIfReady(int clientId);
+		
 		ClientState& getClientStateForTest(int clientId);
-		ParsedRequest popFinishedRequest(int clientId);
+		ParsedRequest popFinishedReq(int clientId);
 		
 		
 		std::string processHeaders(ClientState& clientState, size_t reqNum);
@@ -53,9 +59,16 @@ class ConnectionManager
 		void printRequest(ClientState& clientState, size_t i);
 		void printAllRequests(ClientState& clientState);
 		
-		void remainingAfterParsingHeaders(ClientState& clientState);
+		// void remainingAfterParsingHeaders(ClientState& clientState);
 		void separateHeadersFromBody(ParsedRequest& request);
 	
+		std::string bodyTypeToString(BodyType t);
+		void printSingleRequest(const ParsedRequest& req, size_t i = 0);
+		
+		void printBodyBuffers(ParsedRequest& req);
+		
+		//for gtests
+		ParsedRequest popFinishedRequest(int clientId);
 	};
 
 #endif

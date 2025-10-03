@@ -9,6 +9,13 @@
 #include "../ParsedRequest/ParsedRequest.hpp"
 #include "../ServerResponse/ServerResponse.hpp"
 
+#define GREEN "\033[0;32m"
+#define YELLOW "\033[0;33m"
+#define ORANGE "\033[38;5;214m"
+#define TEAL "\033[36m"
+#define BLUE "\033[38;2;100;149;237m"
+#define RED "\033[31m"
+#define RESET "\033[0m"
 
 class ClientState
 {
@@ -19,8 +26,12 @@ class ClientState
 		// Responses waiting to be sent
 		std::queue<ServerResponse> _responseQueue;
 
-
+		// Buffer that holds leftover data for the next request
+    	std::string _forNextRequest;
+		
 		bool _readyToSend;
+		
+		
 
 	public:
 		ClientState();
@@ -31,7 +42,7 @@ class ClientState
 		ClientState& operator=(ClientState&& other) noexcept = default;
 
 		// Request management
-		void addParsedRequest(const ParsedRequest& req);
+		// void addParsedRequest(const ParsedRequest& req);
 		size_t getParsedRequestCount() const;
 		const ParsedRequest& getReqObj(size_t index) const;
 		const ParsedRequest& getLatestReqObj() const;
@@ -54,10 +65,22 @@ class ClientState
 		void finalizeLatestRequestBody();
 		void prepareForNextRequestPreserveBuffers();
 		
-		ParsedRequest popFirstFinishedRequest();
 		ParsedRequest& getParsedRequest(size_t index);
 
 		ParsedRequest& addParsedRequest();
+		
+		const std::string& getForNextRequest() const;
+    	void setForNextRequest(const std::string& buf);
+    	void appendForNextRequest(const std::string& more);
+    	void clearForNextRequest();
+
+				//requests
+		ParsedRequest& getRequest(size_t idx);
+		size_t getLatestRequestIndex() const;
+    
+		
+		//for gtests
+		ParsedRequest popFirstFinishedRequest();
 };
 
 

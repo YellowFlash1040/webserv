@@ -16,7 +16,7 @@ TEST(ProcessDataTest, RequestLineParsing)
 	// Act
 	bool ready = connMgr.processData(clientId, requestString);
 	std::cout << "processData ready? " << ready << "\n";
-	const ParsedRequest& req = connMgr.getRequest(clientId, 0);
+	ParsedRequest req = connMgr.popFinishedRequest(clientId); // instead of getRequest
 
 	// Assert
 	EXPECT_EQ(req.getMethod(), "GET");
@@ -52,10 +52,10 @@ TEST(ProcessDataTest, MultipleRequestsSequentialPop)
         "Host: localhost\r\n"
         "\r\n";
     bool ready1 = connMgr.processData(clientId, req1);
-
-    EXPECT_TRUE(ready1);
-
+	
+    ASSERT_TRUE(ready1);
     ParsedRequest r1 = connMgr.popFinishedRequest(clientId);
+	
     EXPECT_EQ(r1.getUri(), "/first.html");
 
     std::string req2 =
@@ -261,40 +261,102 @@ TEST(ProcessDataTest, ContentLengthBody)
 	EXPECT_EQ(req.getBody(), "Hello World");
 }
 
-// TEST(ProcessDataTest, PipelinedRequestsRepeatedCalls)
-// {
-// 	ConnectionManager connMgr;
-// 	int clientId = 1;
-// 	connMgr.addClient(clientId);
+TEST(ProcessDataTest, PipelinedRequestsRepeatedCalls)
+{
+	ConnectionManager connMgr;
+	int clientId = 1;
+	connMgr.addClient(clientId);
+	std::string pipelined =
+		"GET /first HTTP/1.1\r\n"
+		"Host: localhost\r\n"
+		"\r\n"
+		"GET /second HTTP/1.1\r\n"
+		"Host: localhost22\r\n"
+		"\r\n";
 
-// 	std::string pipelined =
-// 		"GET /first HTTP/1.1\r\n"
-// 		"Host: localhost\r\n"
-// 		"\r\n"
-// 		"GET /second HTTP/1.1\r\n"
-// 		"Host: localhost22\r\n"
-// 		"\r\n";
+	bool ready = connMgr.processData(clientId, pipelined);
+	ASSERT_TRUE(ready);
+	ClientState& clientState = connMgr.getClientStateForTest(clientId);
+	size_t numRequests = clientState.getParsedRequestCount();
+	ASSERT_EQ(numRequests, 2u);
+	ParsedRequest req1 = connMgr.popFinishedRequest(clientId);
+	EXPECT_EQ(req1.getMethod(), "GET");
+	EXPECT_EQ(req1.getUri(), "/first");
+	EXPECT_EQ(req1.getHeader("Host"), "localhost");
 
-// 	bool ready = connMgr.processData(clientId, pipelined);
-// 	EXPECT_TRUE(ready);
+	// Check second request
+	ParsedRequest req2 = connMgr.popFinishedRequest(clientId);
+	EXPECT_EQ(req2.getMethod(), "GET");
+	EXPECT_EQ(req2.getUri(), "/second");
+	EXPECT_EQ(req2.getHeader("Host"), "localhost22");
+}
 
-// 	// Access client state safely
-// 	ClientState& clientState = connMgr.getClientStateForTest(clientId);
-// 	size_t numRequests = clientState.getParsedRequestCount();
-// 	EXPECT_EQ(numRequests, 2u); // note the 'u' for unsigned
+TEST(ProcessDataTest, PipelinedMixedRequests)
+{
+    ConnectionManager connMgr;
+    int clientId = 1;
+    connMgr.addClient(clientId);
 
-// 	// Check first request
-// 	const ParsedRequest& req1 = connMgr.getRequest(clientId, 0);
-// 	EXPECT_EQ(req1.getMethod(), "GET");
-// 	EXPECT_EQ(req1.getUri(), "/first");
-// 	EXPECT_EQ(req1.getHeader("Host"), "localhost");
+    std::string pipelined =
+        // 1. GET without body
+        "GET /first HTTP/1.1\r\n"
+        "Host: localhost\r\n"
+        "\r\n"
+        // 2. POST with Content-Length
+        "POST /submit HTTP/1.1\r\n"
+        "Host: localhost\r\n"
+        "Content-Length: 11\r\n"
+        "\r\n"
+        "Hello World"
+        // 3. POST with chunked body
+        "POST /upload HTTP/1.1\r\n"
+        "Host: localhost\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "\r\n"
+        "5\r\nHello\r\n"
+        "6\r\n World\r\n"
+        "0\r\n\r\n"
+        // 4. GET without body
+        "GET /second HTTP/1.1\r\n"
+        "Host: localhost22\r\n"
+        "\r\n";
 
-// 	// Check second request
-// 	const ParsedRequest& req2 = connMgr.getRequest(clientId, 1);
-// 	EXPECT_EQ(req2.getMethod(), "GET");
-// 	EXPECT_EQ(req2.getUri(), "/second");
-// 	EXPECT_EQ(req2.getHeader("Host"), "localhost22");
-// }
+    bool ready = connMgr.processData(clientId, pipelined);
+    ASSERT_TRUE(ready);
+
+    ClientState& clientState = connMgr.getClientStateForTest(clientId);
+    size_t numRequests = clientState.getParsedRequestCount();
+    ASSERT_EQ(numRequests, 4u);
+
+    // Check first request: GET no body
+    ParsedRequest req1 = connMgr.popFinishedRequest(clientId);
+    EXPECT_EQ(req1.getMethod(), "GET");
+    EXPECT_EQ(req1.getUri(), "/first");
+    EXPECT_EQ(req1.getHeader("Host"), "localhost");
+    EXPECT_EQ(req1.getBody(), "");
+
+    // Check second request: POST with Content-Length
+    ParsedRequest req2 = connMgr.popFinishedRequest(clientId);
+    EXPECT_EQ(req2.getMethod(), "POST");
+    EXPECT_EQ(req2.getUri(), "/submit");
+    EXPECT_EQ(req2.getHeader("Host"), "localhost");
+    EXPECT_EQ(req2.getBody(), "Hello World");
+
+    // Check third request: POST chunked
+    ParsedRequest req3 = connMgr.popFinishedRequest(clientId);
+    EXPECT_EQ(req3.getMethod(), "POST");
+    EXPECT_EQ(req3.getUri(), "/upload");
+    EXPECT_EQ(req3.getHeader("Host"), "localhost");
+    EXPECT_EQ(req3.getBody(), "Hello World");
+
+    // Check fourth request: GET no body
+    ParsedRequest req4 = connMgr.popFinishedRequest(clientId);
+    EXPECT_EQ(req4.getMethod(), "GET");
+    EXPECT_EQ(req4.getUri(), "/second");
+    EXPECT_EQ(req4.getHeader("Host"), "localhost22");
+    EXPECT_EQ(req4.getBody(), "");
+}
+
 
 
 // TEST(ProcessDataTest, NoBodyLength) //???

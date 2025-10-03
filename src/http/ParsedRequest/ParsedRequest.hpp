@@ -9,9 +9,8 @@
 #define GREEN "\033[0;32m"
 #define YELLOW "\033[0;33m"
 #define ORANGE "\033[38;5;214m"
+#define RED "\033[31m"
 #define RESET "\033[0m"
-
-
 
 enum class BodyType
 {
@@ -27,7 +26,7 @@ class ParsedRequest
 		// Buffers
 		std::string _tempBuffer;
 		std::string _rlAndHeadersBuffer;
-		std::string _bodyBuffer;
+		std::string _body;
 		std::string _chunkedBuffer;
 		std::string _contentLengthBuffer;
 		std::string _method;
@@ -35,12 +34,12 @@ class ParsedRequest
 		std::string _httpVersion;
 		std::unordered_map<std::string, std::string> _headers;
 		BodyType _bodyType;
-		std::string _body;
 		
 		// Parsing state
 		bool _headersDone;
 		bool _terminatingZero;
 		bool _bodyDone;
+		bool _needResp;
 		bool _requestDone;
 		bool _waitingForMoreData;
 		
@@ -68,12 +67,11 @@ class ParsedRequest
 		const std::string& getHttpVersion() const;
 		std::string getHeader(const std::string& name) const;
 		const std::string& getRlAndHeadersBuffer() const;
-		std::string& getBodyBuffer();
+		const std::string& getBody() const;
 		size_t getContentLength() const;
 		bool isRequestDone() const;
 		bool isHeadersDone() const;
 		bool isBodyDone() const;
-		bool isChunked() const;
 
 		// Setters
 		void setMethod(const std::string& m);
@@ -89,22 +87,21 @@ class ParsedRequest
 
 		// Buffer manipulation
 		void appendToRlAndHeaderBuffer(const std::string& data);
-		void appendToBodyBuffer(const std::string& data);
+		void appendTobody(const std::string& data);
 		void appendToBuffers(const std::string& data);
 		void clearRlAndHeaderBuffer();
-		void clearBodyBuffer();
+		void clearbody();
 
 		// Parsing / Body handling
 		bool headersParsed() const;
 		size_t extractContentLength() const;
 		bool bodyComplete() const;
 		
-		std::string decodeChunkedBody();
+		std::string decodeChunkedBody(size_t& bytesProcessed);
 		void parseRequestLineAndHeaders(const std::string& headerPart);
 		bool iequals(const std::string& a, const std::string& b) const;
 		void clearRlAndHeadersBuffer();
 		
-		const std::string& getBody() const;
 		void setBody(const std::string& body);
 		void setTerminatingZero();
 		std::string& getChunkedBuffer();
@@ -130,9 +127,17 @@ class ParsedRequest
 		void clearTempBuffer();
 		
 		std::string& getContentLengthBuffer();
+		
+    	bool needsResponse() const;
+    	void setNeedsResp(bool needsResp);
+		void setResponseAdded();
+		
+		size_t getRemainingContentLength() const;
+		void consumeTempBuffer(size_t n);
+		void appendToBody(const std::string& data);
 
+		void setChunkedBuffer(std::string&& newBuffer);
 
-	
-	};
+};
 
 #endif

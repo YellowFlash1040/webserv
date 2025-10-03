@@ -44,13 +44,23 @@ ClientState& ConnectionManager::getClientStateForTest(int clientId)
 {
 	return m_clients.at(clientId);
 }
+bool ConnectionManager::processData(int clientId, const std::string& tcpData)
+{
 
+	// 1. Parse incoming TCP data
+	size_t reqsNum = processReqs(clientId, tcpData);
 
+	// 2. Generate responses for all ready requests
+	if (reqsNum > 0)
+    	genRespsForReadyReqs(clientId);
+		
+	return reqsNum > 0;
+}
 
-bool ConnectionManager::processData(int clientId, const std::string& data)
+size_t ConnectionManager::processReqs(int clientId, const std::string& data)
 {
 	
-	std::cout << "\033[33mDEBUG: processData\033[0m" << std::endl;
+	std::cout << YELLOW << "DEBUG: processReqs: " << RESET  << std::endl;
 	auto it = m_clients.find(clientId);
 	if (it == m_clients.end())
 		return false;
@@ -58,113 +68,172 @@ bool ConnectionManager::processData(int clientId, const std::string& data)
 	ClientState& clientState = it->second;
 	printAllRequests(clientState);
 	
-	// if (clientState.getParsedRequestCount() > 0 && req.isRequestDone())
-	if (clientState.getParsedRequestCount() == 0 || clientState.getLatestRequest().isRequestDone())
-	{
-		std::cout << BLUE << "processData: a new request made" << RESET << std::endl;
-
-		// Add a new ParsedRequest to the client
-		clientState.addParsedRequest();
-	}
-	
 	ParsedRequest& req = clientState.getLatestRequest();
+	
 	// Append all incoming bytes to _tempBuffer
 	req.appendTempBuffer(data);
 	
-	std::cout <<  "tempBuffer is" << req.getTempBuffer() << "\n";
+	std::cout << "[processReqs] tempBuffer is |" << req.getTempBuffer() << "|\n";
 	
+	
+	size_t parsedCount = 0;
+	while(true)
+	{
+		ParsedRequest& req = clientState.getLatestRequest();
+		std::cout << RED << "forNextRequest: |" << clientState.getForNextRequest()
+		<< "|" << RESET << "\n";
+		//if we don’t yet have headers for this request, try to parse them.
+		if (req.isHeadersDone() == false)
+		{
+			separateHeadersFromBody(req);
+			if (req.isHeadersDone() == false)
+			{
+                break; // Need more data for headers, exit loop until next call;
+				std::cout << "[processReqs]: headers are not finished yet\n";
+			}
+		}
+		
+		//If headers are done, append body bytes if needed.
+		if (req.isHeadersDone() && req.isBodyDone() == false)
+		{
+			appendBodyBytes(clientState, req.getTempBuffer());
+			if (req.isBodyDone() == false)
+			{
+				std::cout << "[processReqs]: body not finished yet\n";
+				break; // Need more data for body, exit loop until next call
+			}
+		}
+		
+		//At this point headers and body are done = full request parsed
+		if (req.isHeadersDone() && req.isBodyDone())
+        {
+	
+			std::cout << "[processReqs]: setting request done" << "\n";
+            req.setRequestDone();
+            parsedCount++;
+			
+			// Prepare for next request if leftover exists
+        	if (req.getTempBuffer().empty() == false)
+            {
+				//overwrite the buffer that store leftovers for next request
+				clientState.setForNextRequest(req.getTempBuffer());
+				std::cout << RED << "[processReqs]: getForNextRequest(): " << RESET << "|" << RESET << clientState.getForNextRequest() 
+				<< "|\n";
+				
+				std::cout << "[processReqs]: adding request" << "\n";
+				
+				ParsedRequest& newReq = clientState.addParsedRequest();
+				printAllRequests(clientState);
+				std::cout << "clientState.getForNextRequest() |" << clientState.getForNextRequest() << "|\n";
+
+				newReq.setTempBuffer(clientState.getForNextRequest());
+				printAllRequests(clientState);
+				
+				clientState.setForNextRequest("");
+				continue;
+				
+            }
+            else
+            {
+                break; // no leftover, stop processing
+            }
+		}
+		else
+        {
+            break; // not done yet
+        }
+	}
+	return (parsedCount);
+}
 	
 
-	// Determine leftover bytes after headers
+void ConnectionManager::genRespsForReadyReqs(int clientId)
+{
+	auto it = m_clients.find(clientId);
+    if (it == m_clients.end())
+		return;
 	
-	//if (req.isHeadersDone() == false)
-	{
-		remainingAfterParsingHeaders(clientState);
-		
-		printAllRequests(clientState);
-		std::cout << "tempBuffer "<< req.getTempBuffer() << "\n";
-		
-		if ((req.getTempBuffer().empty() == false && req.isBodyDone() == false)
-		|| (req.getBodyType() == BodyType::CHUNKED && req.isTerminatingZero() == false))
-		{
-			// Not enough bytes yet for a request with a body
-			std::cout << BLUE << "processData: not enough bytes yet" RESET << std::endl;
-			return false;
-		}
-	}
+    ClientState& clientState = it->second;
 	
-	if (req.isBodyDone() == false && req.getBodyType() == BodyType::SIZED)
-		appendBodyBytes(clientState, req.getTempBuffer());
+	std::string allResponses;
+	
+
+    while (clientState.getParsedRequestCount() > 0) 
+    {
+		// printf ("In genRespsForReadyReqs:\n");
+		// printAllRequests(clientState);
+        ParsedRequest &req = clientState.getParsedRequest(0);
+
+        if (!req.isRequestDone() || !req.needsResponse())
+            break; // stop at first incomplete request
+
+        // Generate/send the response for this request
+         // Concatenate the response
+        allResponses += genResp(clientId);
+		req.setResponseAdded();  // mark as done
+		//std::cout << "allResponses is: |" << allResponses << "|\n";
 		
-	return hasCompletedRequests(clientState);
+		// std::cout << "forNextRequest: |" << clientState.getForNextRequest()
+		// << "|\n";
+		//for production, comment out while testing:
+		// popFinishedReq(clientId);
+
+    }
 }
 
-void ConnectionManager::remainingAfterParsingHeaders(ClientState& clientState)
+std::string ConnectionManager::genResp(int clientId)
 {
-	std::cout << "\033[33mDEBUG: remainingAfterParsingHeaders\033[0m" << std::endl;
-	ParsedRequest& request = clientState.getLatestRequest();
-	// const std::string& temp = request.getTempBuffer();
-	
-	printRequest(clientState, 0);
-	
-	if (request.isHeadersDone() == false)
-		separateHeadersFromBody(request);
+    auto it = m_clients.find(clientId);
+    if (it == m_clients.end())
+        return "";
 
-	if (request.getTempBuffer().empty() == false)
-	{
-		// Depending on body type, append to correct buffer
-		switch (request.getBodyType())
-		{
-			case BodyType::SIZED:
-				{	
-					std::cout << "inside the case, tempBuffer over is " << request.getTempBuffer()
-					<< " and contentLengthbuffer is " << request.getContentLengthBuffer() << "\n";
-					request.appendToContentLengthBuffer(request.getTempBuffer());
-						if (request.contentLengthComplete())
-						{
-							request.setBody(request.getContentLengthBuffer());
-							request.setBodyDone();
-							request.getTempBuffer().clear(); // all consumed
-						}
-					std::cout << "inside the case again, left over is " << request.getTempBuffer()
-					<< " and contentLengthbuffer is " << request.getContentLengthBuffer() << "\n";
-				}
-				break;
-			case BodyType::CHUNKED:
-			{
-				request.appendToChunkedBuffer(request.getTempBuffer());
-				std::string decoded = request.decodeChunkedBody();
-				if (request.isTerminatingZero())
-				{
-					printf ("found terminating\n");
-					request.setBody(decoded);
-					request.setBodyDone();
-					request.getTempBuffer().clear(); // all consumed
-				}
-			}
-				break;
-			case BodyType::NO_BODY:
-			case BodyType::ERROR:
-				break; // nothing to do
-		}
-	}
+    ClientState &clientState = it->second;
+
+    if (clientState.getParsedRequestCount() == 0)
+        return "";
+
+    ParsedRequest &req = clientState.getParsedRequest(0);
+
+    if (!req.isRequestDone())
+        return ""; // nothing ready
+
+    // Simple hardcoded response for testing
+    std::string response = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello, world!";
+
+    return response;
 }
 
 void ConnectionManager::separateHeadersFromBody(ParsedRequest& request)
 {
+	std::cout << YELLOW << "DEBUG: separateHeadersFromBody: " << RESET  << std::endl;
     const std::string& temp = request.getTempBuffer();
+    std::cout << "[separateHeadersFromBody] tempBuffer = |" << temp << "|\n";
+
     size_t headerEnd = temp.find("\r\n\r\n");
     if (headerEnd == std::string::npos)
+	{
+        std::cout << "[separateHeadersFromBody] Headers incomplete (\\r\\n\\r\\n not found)\n";
         return; // headers incomplete
+    }
 
     std::string headerPart = temp.substr(0, headerEnd + 4);
+    std::cout << "[separateHeadersFromBody] Header part = |" << headerPart << "|\n";
 
     try
     {
         request.parseRequestLineAndHeaders(headerPart);
     }
+    catch (const std::exception& e)
+    {
+        std::cout << "[separateHeadersFromBody] Exception parsing headers: " << e.what() << "\n";
+        request.setBodyType(BodyType::ERROR);
+        request.setBodyDone();
+        request.clearTempBuffer();
+        throw;
+    }
     catch (...)
     {
+        std::cout << "[separateHeadersFromBody] Unknown exception parsing headers\n";
         request.setBodyType(BodyType::ERROR);
         request.setBodyDone();
         request.clearTempBuffer();
@@ -173,23 +242,27 @@ void ConnectionManager::separateHeadersFromBody(ParsedRequest& request)
 
     if (request.getBodyType() == BodyType::NO_BODY)
     {
+        std::cout << "No body, marking body and request done\n";
         request.setBodyDone();
         request.setRequestDone();
     }
 
     // Keep leftover (after headers) in tempBuffer
-   	std::string leftover =  temp.substr(headerEnd + 4); // leftover for body
-	request.setTempBuffer(leftover);
+    std::string leftover = temp.substr(headerEnd + 4); // leftover for body and maybe next requests
+    request.setTempBuffer(leftover);
+    std::cout << "Temp buffer after headers removed = |" << request.getTempBuffer() << "|\n";
+
+	printSingleRequest(request);
 }
 
 
 
 void ConnectionManager::appendBodyBytes(ClientState& clientState, const std::string& data)
 {
-	std::cout << "\033[33mDEBUG: appendBodyBytes\033[0m" << std::endl;
+	std::cout << YELLOW << "[DEBUG: appendBodyBytes]" << RESET << std::endl;
 	ParsedRequest& request = clientState.getLatestRequest();
 
-	std::cout << GREEN << "appendBodyBytes, before appending:" << RESET << "\n"
+	std::cout << GREEN << "[appendBodyBytes] before appending:" << RESET << "\n"
 		<< "ContentLengthBuffer() = " << request.getContentLengthBuffer() << "\n"
 		<< "ChunkedBuffer() = " << request.getChunkedBuffer() << "\n";
 		
@@ -197,23 +270,56 @@ void ConnectionManager::appendBodyBytes(ClientState& clientState, const std::str
 	{
 		case BodyType::SIZED:
 		{
-			request.appendToContentLengthBuffer(data);
+			size_t remaining = request.getRemainingContentLength(); // bytes still needed
+			size_t toAppend = std::min(remaining, data.size());
+			request.appendToContentLengthBuffer(data.substr(0, toAppend));
+			request.consumeTempBuffer(toAppend); // remove exactly what we consumed
 			if (request.contentLengthComplete())
+			{
+				request.appendTobody(request.getContentLengthBuffer());
 				request.setBodyDone();
-			std::cout << GREEN << "appendBodyBytes, after appending:" << RESET << "\n"
+			}
+			std::cout << GREEN << "[appendBodyBytes] after appending:" << RESET << "\n"
 			<< "ContentLengthBuffer() = " << request.getContentLengthBuffer() << "\n";
 			break;
 		}
 
 		case BodyType::CHUNKED:
 		{
-			request.appendToChunkedBuffer(data);
-			std::string decoded = request.decodeChunkedBody();
-			request.setBody(decoded);
+			request.appendToChunkedBuffer(request.getTempBuffer());
+    		std::cout << GREEN << "[appendBodyBytes]: " << RESET
+				<< "appeneded chunkBuffer with data from tempBuffer. It is now |"
+				<< request.getChunkedBuffer() << "|\n";
+			request.setTempBuffer(""); // consumed for decoding
+			size_t bytesProcessed = 0;
+			
+			// decode as much as possible
+			std::string decoded = request.decodeChunkedBody(bytesProcessed);
+			request.appendToBody(decoded); // append only the decoded chunks
+			
+			// remove processed bytes from _chunkedBuffer
+			request.setChunkedBuffer(request.getChunkedBuffer().substr(bytesProcessed));
+			
 			if (request.isTerminatingZero())
+			{
+				std::cout << GREEN << "[appendBodyBytes]: " << RESET
+				<< "TerminatingZero found\n";
 				request.setBodyDone();
-			std::cout << GREEN << "appendBodyBytes, after appending:" << RESET << "\n"
-			<< "ChunkedBuffer() = " << request.getChunkedBuffer() << "\n";
+				request.setTempBuffer(request.getChunkedBuffer());
+				request.clearChunkedBuffer();
+				std::cout << GREEN << "[appendBodyBytes]: " << RESET
+					<< "set tempBuffer to the contents of hunkedBuffer, it is now = |"
+					<< request.getTempBuffer() << "| and cleared chunkBuffer\n";
+				
+			}
+			else
+			{
+				// partial chunk left? move leftovers to tempBuffer for next process
+				request.setTempBuffer(request.getChunkedBuffer() + request.getTempBuffer());
+				
+				std::cout << GREEN << "[appendBodyBytes]: " << RESET
+				<< "TerminatingZero not found yet\n";
+			}
 			break;
 		}
 
@@ -228,84 +334,9 @@ void ConnectionManager::appendBodyBytes(ClientState& clientState, const std::str
 }
 
 
-//returns true if one or more requests were processed
-bool ConnectionManager::hasCompletedRequests(ClientState& clientState)
-{
-	std::cout << "\033[33mDEBUG: hasCompletedRequests\033[0m" << std::endl;
-
-	bool anyRequestDone = false;
-
-	for (size_t i = 0; i < clientState.getParsedRequestCount(); ++i)
-	{
-		ParsedRequest& req = clientState.getParsedRequest(i);
-		
-		// Wait until the request body is comple
-		if (!req.isBodyDone())
-			break;
-			
-		//Handle finished request (send response, log, etc.)
-		// Here we assume handleFinishedRequest manages sending and cleanup
-		handleFinishedRequest(clientState, i);
-
-		anyRequestDone = true;
-
-		if (!req.isRequestDone())
-		{
-			std::cout << RED << "hasCompletedRequests: no more requests done" << RESET << "\n";
-			break; // cannot process further requests until this one is done
-		}
-
-        // Optional: if you remove finished requests from the list
-        // clientState.popFirstFinishedRequest();
-        // --i; // adjust index since we removed a request
-	}
-	std::cout << RED << "hasCompletedRequests: found requests done\n" << RESET << "\n";
-	return anyRequestDone;
-}
-
-void ConnectionManager::handleFinishedRequest(ClientState& clientState, size_t index)
-{
-	std::cout << "\033[33mDEBUG: handleFinishedRequest\033[0m" << std::endl;
-    ParsedRequest& finishedReq = clientState.getParsedRequest(index);
-
-    // Send response / logging / etc.
-    // sendResponse(req);
-
-    // Determine if there is leftover data in body buffers
-    std::string leftover;
-
-    if (finishedReq.getBodyType() == BodyType::CHUNKED)
-        leftover = finishedReq.getChunkedBuffer();
-    else if (finishedReq.getBodyType() == BodyType::SIZED)
-        leftover = finishedReq.getContentLengthBuffer();
-
-    // Clear finished request's buffers
-    finishedReq.clearBodyBuffer();
-    finishedReq.clearChunkedBuffer();
-    finishedReq.clearContentLengthBuffer();
-	
-	printf ("handleFinishedRequest: before addParsedRequest\n");
-	printAllRequests(clientState);
-	
-    // If leftover exists, move it to a new request
-	std::cout << "\033[31mDEBUG: handleFinishedRequest:leftover is\033[0m " << leftover << std::endl;
-    if (!leftover.empty())
-    {
-		std::cout << "\033[31mDEBUG: handleFinishedRequest: a new request made\033[0m" << std::endl;
-        ParsedRequest& newReq = clientState.addParsedRequest();
-        newReq.appendTempBuffer(leftover);
-    }
-	printf ("handleFinishedRequest: after addParsedRequest\n");
-	printAllRequests(clientState);
-	printf ("\n");
-	
-	// Mark request done
-    finishedReq.setRequestDone();
-}
-
 std::string ConnectionManager::processHeaders(ClientState& clientState, size_t reqNum)
 {
-	printf ("in processHeaders:\n");
+	std::cout << YELLOW << "DEBUG: processHeaders" << RESET << std::endl;
 	printAllRequests(clientState);
 	
 	ParsedRequest& request = clientState.getParsedRequest(reqNum);
@@ -369,7 +400,7 @@ std::string ConnectionManager::processHeaders(ClientState& clientState, size_t r
 	return leftover;
 }
 
-ParsedRequest ConnectionManager::popFinishedRequest(int clientId)
+ParsedRequest ConnectionManager::popFinishedReq(int clientId)
 {
 	auto it = m_clients.find(clientId);
 	if (it == m_clients.end())
@@ -378,65 +409,7 @@ ParsedRequest ConnectionManager::popFinishedRequest(int clientId)
 	return it->second.popFirstFinishedRequest();
 }
 
-// bool ConnectionManager::accumulateChunkedBody(ParsedRequest& request, std::string& data)
-// {
-// 	std::string& buffer = request.getChunkedBuffer(); // accumulate here
-// 	size_t pos = 0;
-
-// 	while (pos < data.size())
-// 	{
-// 		size_t crlfPos = data.find("\r\n", pos);
-// 		if (crlfPos == std::string::npos)
-// 			break;
-
-// 		std::string sizeLine = data.substr(pos, crlfPos - pos);
-// 		size_t chunkSize = 0;
-
-// 		try
-// 		{
-// 			chunkSize = std::stoul(sizeLine, nullptr, 16);
-// 		}
-// 		catch (...)
-// 		{
-// 			throw std::runtime_error("Invalid chunk size: " + sizeLine);
-// 		}
-
-// 		pos = crlfPos + 2; // move past CRLF
-
-// 		if (pos + chunkSize > data.size())
-// 			break; // incomplete chunk
-
-// 		// Append chunk to chunked buffer
-// 		buffer.append(data.substr(pos, chunkSize));
-// 		pos += chunkSize;
-		
-// 		// Expect CRLF after chunk data
-// 		if (pos + 2 > data.size())
-// 			break;
-// 		if (data.substr(pos, 2) != "\r\n")
-// 			throw std::runtime_error("Missing CRLF after chunk");
-// 		pos += 2;
-		
-// 		// Last chunk?
-// 		if (chunkSize == 0)
-// 		{
-// 			request.setBody(buffer); // finalize body from chunked buffer
-// 			request.setBodyDone();
-// 			request.clearChunkedBuffer(); //clear raw chunked data
-// 			data = (pos < data.size()) ? data.substr(pos) : "";
-// 			return true;
-// 		}
-// 	}
-	
-// 	 // remove processed bytes
-// 	data = data.substr(pos);
-// 	return request.isBodyDone();
-// }
-
-
-
-
-static std::string bodyTypeToString(BodyType t)
+std::string ConnectionManager::bodyTypeToString(BodyType t)
 {
 	switch (t)
 	{
@@ -457,7 +430,7 @@ void ConnectionManager::printRequest(ClientState& clientState, size_t i)
 		return;
 	}
 
-	const ParsedRequest& req = clientState.getParsedRequest(i);
+	ParsedRequest& req = clientState.getParsedRequest(i);
 	std::cout << TEAL << "Request #" << i << RESET << "\n"
 			  << "Method = " << req.getMethod()
 			  << ", URI = " << req.getUri()
@@ -465,9 +438,12 @@ void ConnectionManager::printRequest(ClientState& clientState, size_t i)
 			  << ", HeadersDone = " << (req.isHeadersDone() ? "true" : "false")
 			  << ", BodyDone = " << (req.isBodyDone() ? "true" : "false")
 			  << ", RequestDone = " << (req.isRequestDone() ? "true" : "false")
+			  << ", NeedsResponse = " << (req.needsResponse() ? "true" : "false") 
 			  << "\n";
 			  if (!req.getBody().empty())
 				std::cout << "  Body: '" << req.getBody() << "'\n";
+			if (!req.getTempBuffer().empty())
+				std::cout << " tempBuffer: '" << req.getTempBuffer() << "'\n";
 
 	// Print key headers if available
 	std::string host = req.getHeader("Host");
@@ -488,7 +464,7 @@ void ConnectionManager::printAllRequests(ClientState& clientState)
 	size_t count = clientState.getParsedRequestCount();
 	if (count == 0)
 	{
-		std::cout << "No requests in client state.\n";
+		std::cout << "No requests in client state\n";
 		return;
 	}
 
@@ -497,4 +473,64 @@ void ConnectionManager::printAllRequests(ClientState& clientState)
 		printRequest(clientState, i);
 	}
 	std::cout << "\n";
+}
+
+//without last paramenter prints latest
+void ConnectionManager::printSingleRequest(const ParsedRequest& req, size_t i)
+{
+    std::cout << TEAL << "Request #" << i << RESET << "\n"
+              << "Method = " << req.getMethod()
+              << ", URI = " << req.getUri()
+              << ", BodyType = " << bodyTypeToString(req.getBodyType())
+              << ", HeadersDone = " << (req.isHeadersDone() ? "true" : "false")
+              << ", BodyDone = " << (req.isBodyDone() ? "true" : "false")
+              << ", RequestDone = " << (req.isRequestDone() ? "true" : "false")
+              << ", NeedsResponse = " << (req.needsResponse() ? "true" : "false")
+              << "\n";
+
+    if (!req.getBody().empty())
+	{
+        std::cout << "  Body: '" << req.getBody() << "'\n";
+	}
+		
+    std::string host = req.getHeader("Host");
+    std::string te   = req.getHeader("Transfer-Encoding");
+    std::string cl   = req.getHeader("Content-Length");
+
+    if (!host.empty()) std::cout << "  Host: " << host << "\n";
+    if (!te.empty())   std::cout << "  Transfer-Encoding: " << te << "\n";
+    if (!cl.empty())   std::cout << "  Content-Length: " << cl << "\n";
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+//for gtests
+ParsedRequest ConnectionManager::popFinishedRequest(int clientId)
+{
+	auto it = m_clients.find(clientId);
+	if (it == m_clients.end())
+		throw std::runtime_error("Client not found");
+
+	return it->second.popFirstFinishedRequest();
+}
+void ConnectionManager::printBodyBuffers(ParsedRequest& req)
+{
+	std::cout << "=== Body Buffers for Request ===\n";
+    std::cout << "TempBuffer:            |" << req.getTempBuffer() << "|\n";
+    std::cout << "ContentLengthBuffer:   |" << req.getContentLengthBuffer() << "|\n";
+    std::cout << "ChunkedBuffer:         |" << req.getChunkedBuffer() << "|\n";
+    std::cout << "Final Body (_body):    |" << req.getBody() << "|\n";
+    std::cout << "HeadersDone: " << req.isHeadersDone()
+              << " BodyDone: " << req.isBodyDone()
+              << " RequestDone: " << req.isRequestDone() << "\n";
 }
