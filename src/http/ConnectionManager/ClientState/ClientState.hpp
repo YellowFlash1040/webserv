@@ -4,7 +4,8 @@
 #include <string>
 #include <iostream>
 #include <vector>
-#include <cstdint> // for SIZE_MAX
+#include <cstdint>
+#include <stdexcept>
 #include <queue>
 #include "../ParsedRequest/ParsedRequest.hpp"
 #include "../ServerResponse/ServerResponse.hpp"
@@ -26,13 +27,8 @@ class ClientState
 		// Responses waiting to be sent
 		std::queue<ServerResponse> _responseQueue;
 
-		// Buffer that holds leftover data for the next request
-    	std::string _forNextRequest;
-		
 		bool _readyToSend;
 		
-		
-
 	public:
 		ClientState();
 		~ClientState() = default;
@@ -42,7 +38,6 @@ class ClientState
 		ClientState& operator=(ClientState&& other) noexcept = default;
 
 		// Request management
-		// void addParsedRequest(const ParsedRequest& req);
 		size_t getParsedRequestCount() const;
 		const ParsedRequest& getReqObj(size_t index) const;
 		const ParsedRequest& getLatestReqObj() const;
@@ -63,22 +58,15 @@ class ClientState
 		ParsedRequest& getLatestRequest();
 		void prepareNextRequestWithLeftover(const std::string& leftover);
 		void finalizeLatestRequestBody();
-		void prepareForNextRequestPreserveBuffers();
 		
 		ParsedRequest& getParsedRequest(size_t index);
 
 		ParsedRequest& addParsedRequest();
 		
-		const std::string& getForNextRequest() const;
-    	void setForNextRequest(const std::string& buf);
-    	void appendForNextRequest(const std::string& more);
-    	void clearForNextRequest();
-
-				//requests
+		//requests
 		ParsedRequest& getRequest(size_t idx);
 		size_t getLatestRequestIndex() const;
     
-		
 		//for gtests
 		ParsedRequest popFirstFinishedRequest();
 };

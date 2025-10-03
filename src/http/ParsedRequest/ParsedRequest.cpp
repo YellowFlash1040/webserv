@@ -1,7 +1,4 @@
 #include "ParsedRequest.hpp"
-#include <sstream>
-#include <algorithm>
-#include <stdexcept>
 
 // --- Helpers ---
 void ParsedRequest::removeCarriageReturns(std::string& str)
@@ -98,20 +95,14 @@ void ParsedRequest::setBodyDone()
 	_bodyDone = true;
 }
 void ParsedRequest::setRequestDone() { _requestDone = true; }
-void ParsedRequest::setContentLength(int value) { _contentLength = value; }
-void ParsedRequest::setChunked(bool value) { _chunked = value; }
+
+
 void ParsedRequest::setRlAndHeadersBuffer(const std::string& newBuf) { _rlAndHeadersBuffer = newBuf; }
 
 // --- Buffer manipulation ---
 void ParsedRequest::appendToRlAndHeaderBuffer(const std::string& data) { _rlAndHeadersBuffer += data; }
 void ParsedRequest::appendTobody(const std::string& data) { _body += data; }
-void ParsedRequest::appendToBuffers(const std::string& data)
-{
-	if (!_headersDone)
-		_rlAndHeadersBuffer += data;
-	else
-		_body += data;
-}
+
 void ParsedRequest::clearRlAndHeaderBuffer() { _rlAndHeadersBuffer.clear(); }
 
 void ParsedRequest::clearbody() { _body.clear(); }
@@ -141,17 +132,6 @@ size_t ParsedRequest::extractContentLength() const
 	{
 		throw std::invalid_argument("Invalid Content-Length header: " + clIt->second);
 	}
-}
-
-
-bool ParsedRequest::bodyComplete() const
-{
-	if (_chunked)
-		return _body.find("\r\n0\r\n\r\n") != std::string::npos;
-	else if (_contentLength > 0)
-		return _body.size() >= static_cast<size_t>(_contentLength);
-	else
-		return true;
 }
 
 void ParsedRequest::parseRequestLineAndHeaders(const std::string& headerPart)
@@ -329,7 +309,7 @@ std::string ParsedRequest::decodeChunkedBody(size_t& bytesProcessed)
 			std::cout << ORANGE << "[decodeChunkedBody]: " << RESET
 				<< "Appended chunkData |" << chunkData 
 				<< "|, to decoded. decoded is now |" << decoded
-				<< "| ,decoded.size = " << decoded.size() << "\n";
+				<< "|, decoded.size = " << decoded.size() << "\n";
 			
 				pos = chunkDataEnd + 2; // skip chunkData + trailing \r\n
 				std::cout << ORANGE << "[decodeChunkedBody]: " << RESET
@@ -347,7 +327,6 @@ std::string ParsedRequest::decodeChunkedBody(size_t& bytesProcessed)
 				<< "zeroChunkEnd is set to 2 bytes after chunkDataStart (" << chunkDataStart
 				<< "), so at " << zeroChunkEnd << "\n";
 			
-
 			// 	_chunkedBuffer[chunkDataStart] == '\r' &&
 			// 	_chunkedBuffer[chunkDataStart + 1] == '\n')
 			if (_chunkedBuffer.size() >= zeroChunkEnd
@@ -473,11 +452,18 @@ size_t ParsedRequest::getRemainingContentLength() const
 
 void ParsedRequest::consumeTempBuffer(size_t n)
 {
-	if (n >= _tempBuffer.size()) {
-		_tempBuffer.clear();
-	} else {
-		_tempBuffer.erase(0, n);  // remove the first n bytes
-	}
+	std::cout << MINT << "[consumeTempBuffer]: " << RESET << "_tempbuffer before: |" << _tempBuffer << "|, size = " << _tempBuffer.size() << "\n";
+
+    if (n >= _tempBuffer.size())
+    {
+        _tempBuffer.clear();
+    }
+    else
+    {
+        _tempBuffer.erase(0, n);  // remove the first n bytes
+    }
+
+    std::cout << MINT << "[consumeTempBuffer]: " << RESET << "after consuming:  |" << _tempBuffer << "|, size = " << _tempBuffer.size() << "\n";
 }
 
 void ParsedRequest::appendToBody(const std::string& data)
@@ -491,13 +477,6 @@ void ParsedRequest::appendToBody(const std::string& data)
 			  << "_body now = |" << _body << "|\n";
 }
 
-// void ParsedRequest::setChunkedBuffer(const std::string& newBuffer)
-// {
-//     std::cout << ORANGE << "[setChunkedBuffer]: old size=" << _chunkedBuffer.size()
-//               << ", new size=" << newBuffer.size() << RESET << "\n";
-//     _chunkedBuffer = newBuffer;
-// }
-
 void ParsedRequest::setChunkedBuffer(std::string&& newBuffer)
 {
 	std::cout << ORANGE << "[setChunkedBuffer]: " << RESET << "old size of chunkedBuffer = " << _chunkedBuffer.size() << "\n";
@@ -506,3 +485,4 @@ void ParsedRequest::setChunkedBuffer(std::string&& newBuffer)
 	<< "(moved). content = |" << _chunkedBuffer 
 	<< RESET << "|\n";
 }
+

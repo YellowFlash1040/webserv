@@ -357,26 +357,101 @@ TEST(ProcessDataTest, PipelinedMixedRequests)
     EXPECT_EQ(req4.getBody(), "");
 }
 
+TEST(ProcessDataTest, PartialContentLengthPackets)
+{
+    ConnectionManager connMgr;
+    int clientId = 1;
+    connMgr.addClient(clientId);
 
+    // Packet 1: full GET request, plus start of POST headers and partial body
+    std::string packet1 =
+        "GET /first HTTP/1.1\r\n"
+        "Host: localhost\r\n"
+        "\r\n"
+        "POST /submit HTTP/1.1\r\n"
+        "Host: localhost\r\n"
+        "Content-Length: 11\r\n"
+        "\r\n"
+        "Hello";  // only part of the body arrives
 
-// TEST(ProcessDataTest, NoBodyLength) //???
-// {
-// 	ConnectionManager connMgr;
-// 	int clientId = 1;
-// 	connMgr.addClient(clientId);
+    bool ready = connMgr.processData(clientId, packet1);
+    EXPECT_TRUE(ready);  // not all data for POST body yet
 
-// 	// Headers without Content-Length or Transfer-Encoding
-// 	std::string headers =
-// 		"POST /submit HTTP/1.1\r\n"
-// 		"Host: localhost\r\n"
-// 		"\r\n";
+    // Packet 2: remainder of the POST body
+    std::string packet2 = " World";
 
-// 	// Send body immediately
-// 	std::string body = "Hello World";
-// 	bool ready = connMgr.processData(clientId, headers + body);
+    ready = connMgr.processData(clientId, packet2);
+    EXPECT_TRUE(ready);
 
-// 	EXPECT_TRUE(ready); 
+    // Pop and check the GET request
+    ParsedRequest req1 = connMgr.popFinishedRequest(clientId);
+    EXPECT_EQ(req1.getMethod(), "GET");
+    EXPECT_EQ(req1.getUri(), "/first");
+    EXPECT_EQ(req1.getHeader("Host"), "localhost");
+    EXPECT_EQ(req1.getBody(), "");
 
-// 	const ParsedRequest& req = connMgr.getRequest(clientId, 0);
-// 	EXPECT_EQ(req.getBody(), "Hello World");
-// }
+    // Pop and check the POST request
+    ParsedRequest req2 = connMgr.popFinishedRequest(clientId);
+    EXPECT_EQ(req2.getMethod(), "POST");
+    EXPECT_EQ(req2.getUri(), "/submit");
+    EXPECT_EQ(req2.getHeader("Host"), "localhost");
+    EXPECT_EQ(req2.getBody(), "Hello World");
+}
+
+TEST(ProcessDataTest, PartialContentLengthAndChunkedPackets)
+{
+	ConnectionManager connMgr;
+	int clientId = 1;
+	connMgr.addClient(clientId);
+
+	// Packet 1: full GET request + partial POST headers and body
+	std::string packet1 =
+		"GET /first HTTP/1.1\r\n"
+		"Host: localhost\r\n"
+		"\r\n"
+		"POST /submit HTTP/1.1\r\n"
+		"Host: localhost\r\n"
+		"Content-Length: 11\r\n"
+		"\r\n"
+		"Partial";  // first part of POST body
+
+	connMgr.processData(clientId, packet1);
+
+	// Packet 2: remainder of POST body + start of chunked POST headers
+	std::string packet2 =
+		"Body"
+		"POST /upload HTTP/1.1\r\n"
+		"Host: localhost\r\n"
+		"Transfer-Encoding: chunked\r\n"
+		"\r\n"
+		"7\r\nChunked\r\n"; // first chunk partial
+
+	connMgr.processData(clientId, packet2);
+
+	// Packet 3: remainder of chunked body
+	std::string packet3 =
+		"8\r\n Message\r\n5\r\n Data\r\n0\r\n\r\n";
+
+	connMgr.processData(clientId, packet3);
+
+	// Pop GET request
+	ParsedRequest req1 = connMgr.popFinishedRequest(clientId);
+	EXPECT_EQ(req1.getMethod(), "GET");
+	EXPECT_EQ(req1.getUri(), "/first");
+	EXPECT_EQ(req1.getHeader("Host"), "localhost");
+	EXPECT_EQ(req1.getBody(), "");
+
+	// Pop POST request with Content-Length
+	ParsedRequest req2 = connMgr.popFinishedRequest(clientId);
+	EXPECT_EQ(req2.getMethod(), "POST");
+	EXPECT_EQ(req2.getUri(), "/submit");
+	EXPECT_EQ(req2.getHeader("Host"), "localhost");
+	EXPECT_EQ(req2.getBody(), "PartialBody");
+
+	// Pop chunked POST request
+	ParsedRequest req3 = connMgr.popFinishedRequest(clientId);
+	EXPECT_EQ(req3.getMethod(), "POST");
+	EXPECT_EQ(req3.getUri(), "/upload");
+	EXPECT_EQ(req3.getHeader("Host"), "localhost");
+	EXPECT_EQ(req3.getBody(), "Chunked Message Data");
+}

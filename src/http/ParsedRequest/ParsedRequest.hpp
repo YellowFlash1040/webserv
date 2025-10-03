@@ -5,11 +5,18 @@
 #include <unordered_map>
 #include <iostream>
 #include <variant>
+#include <sstream>
+#include <algorithm>
+#include <stdexcept>
+
+
+
 
 #define GREEN "\033[0;32m"
 #define YELLOW "\033[0;33m"
 #define ORANGE "\033[38;5;214m"
 #define RED "\033[31m"
+#define MINT "\033[38;2;150;255;200m"
 #define RESET "\033[0m"
 
 enum class BodyType
@@ -41,9 +48,8 @@ class ParsedRequest
 		bool _bodyDone;
 		bool _needResp;
 		bool _requestDone;
-		bool _waitingForMoreData;
-		
 
+		
 		// Message framing
 		int  _contentLength;
 		bool _chunked;
@@ -81,21 +87,20 @@ class ParsedRequest
 		void setHeadersDone();
 		void setBodyDone();
 		void setRequestDone();
-		void setContentLength(int value);
-		void setChunked(bool value);
+
+
 		void setRlAndHeadersBuffer(const std::string& newBuf);
 
 		// Buffer manipulation
 		void appendToRlAndHeaderBuffer(const std::string& data);
 		void appendTobody(const std::string& data);
-		void appendToBuffers(const std::string& data);
+
 		void clearRlAndHeaderBuffer();
 		void clearbody();
 
 		// Parsing / Body handling
 		bool headersParsed() const;
 		size_t extractContentLength() const;
-		bool bodyComplete() const;
 		
 		std::string decodeChunkedBody(size_t& bytesProcessed);
 		void parseRequestLineAndHeaders(const std::string& headerPart);
