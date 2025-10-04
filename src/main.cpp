@@ -1,20 +1,16 @@
 #include <iostream>
-#include "FileReader.hpp"
-#include "Lexer.hpp"
-#include "Parser.hpp"
-#include "Validator.hpp"
+#include "Config.hpp"
 
 int main(void)
 {
     const char* filepath = "./webserv.conf";
     try
     {
-        std::string text = FileReader::readFile(filepath);
-        auto tokens = Lexer::tokenize(text);
-        auto directives = Parser::parse(tokens);
-        Validator::validate(directives);
-        std::cout << "Well done :)"
-                  << "\n";
+        Config config = Config::fromFile(filepath);
+
+        RequestContext context = config.createRequestContext("server.com", "/");
+
+        std::cout << "Well done :)" << "\n";
     }
     catch (const ConfigException& e)
     {

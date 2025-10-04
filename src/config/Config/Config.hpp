@@ -51,19 +51,27 @@ class Config
                                      BlockDirective* block);
     void findAll(const std::string& directiveName, BlockDirective* block,
                  std::vector<ADirective*>& result);
-    HttpBlock buildHttpBlock(const std::unique_ptr<ADirective>& httpNode);
-    ServerBlock buildServerBlock(const std::unique_ptr<ADirective>& serverNode);
-    LocationBlock buildLocationBlock(
+
+    // Final Implementation
+    static HttpBlock buildHttpBlock(
+        const std::unique_ptr<ADirective>& httpNode);
+    static ServerBlock buildServerBlock(
+        const std::unique_ptr<ADirective>& serverNode);
+    static LocationBlock buildLocationBlock(
         const std::unique_ptr<ADirective>& locationNode);
 
-    static void assign(std::string& property,
-                       const std::vector<std::string>& args);
-    static void assign(bool& property, const std::vector<std::string>& args);
-    static void assign(size_t& property, const std::vector<std::string>& args);
-    static void assign(std::vector<ErrorPage>& property,
-                       const std::vector<std::string>& args);
-    static void assign(std::vector<std::string>& property,
-                       const std::vector<std::string>& args);
-}
+    static void assign(Property<std::string>& property,
+                       const std::vector<Argument>& args);
+    static void assign(Property<bool>& property,
+                       const std::vector<Argument>& args);
+    static void assign(Property<size_t>& property,
+                       const std::vector<Argument>& args);
+    static void assign(Property<std::vector<ErrorPage>>& property,
+                       const std::vector<Argument>& args);
+    static void assign(Property<std::vector<std::string>>& property,
+                       const std::vector<Argument>& args);
+    static void assign(Property<std::vector<HttpMethod>>& property,
+                       const std::vector<Argument>& args);
+};
 
 #endif

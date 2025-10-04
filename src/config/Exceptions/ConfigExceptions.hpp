@@ -3,9 +3,8 @@
 #ifndef CONFIGEXCEPTIONS_HPP
 # define CONFIGEXCEPTIONS_HPP
 
-# include "ParserException.hpp"
-# include "DirectiveNotAllowedException.hpp"
-# include "DirectiveWrongParentException.hpp"
-# include "InvalidArgumentCountException.hpp"
+# include "ConfigException.hpp"
+# include "ParserExceptions.hpp"
+# include "ValidatorExceptions.hpp"
 
 #endif

@@ -1000,13 +1000,6 @@ TEST_F(ParserErrorTest, NestedBlocks_location_MissingCloseBrace)
            {TokenType::DIRECTIVE, "location", 2, 5},
            {TokenType::VALUE, "/", 2, 14},
            {TokenType::OPEN_BRACE, "{", 2, 16},
-           {TokenType::DIRECTIVE, "limit_except", 3, 9},
-           {TokenType::VALUE, "GET", 3, 22},
-           {TokenType::OPEN_BRACE, "{", 3, 26},
-           {TokenType::DIRECTIVE, "deny", 4, 13},
-           {TokenType::VALUE, "all", 4, 18},
-           {TokenType::SEMICOLON, ";", 4, 21},
-           {TokenType::CLOSE_BRACE, "}", 5, 9}, // Closes limit_except
            // Missing location close brace
            {TokenType::CLOSE_BRACE, "}", 6, 1}, // Closes server
            {TokenType::END, "", 7, 1}};
@@ -1153,7 +1146,6 @@ TEST_F(ParserErrorTest, AllSimpleDirectives_MissingSemicolons)
     testCases.push_back({"index", "index.html", 9});
     testCases.push_back({"upload_store", "/tmp/uploads", 10});
     testCases.push_back({"cgi_pass", "/usr/bin/python3", 11});
-    testCases.push_back({"deny", "all", 12});
 
     for (const auto& testCase : testCases)
     {
@@ -1193,9 +1185,9 @@ TEST_F(ParserErrorTest, AllBlockDirectives_MissingOpenBraces)
     };
 
     std::vector<TestCase> testCases;
-    testCases.push_back({"server", "", 1});
-    testCases.push_back({"location", "/", 2});
-    testCases.push_back({"limit_except", "GET POST", 3});
+    testCases.push_back({"http", "", 1});
+    testCases.push_back({"server", "", 2});
+    testCases.push_back({"location", "/", 3});
 
     for (const auto& testCase : testCases)
     {

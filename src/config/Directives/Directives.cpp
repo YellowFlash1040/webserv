@@ -16,111 +16,110 @@ enum ArgCountType
 struct DirectiveSpec
 {
     DirectiveType type; // "simple" or "block"
-    std::string required_parent;
-    std::set<std::string> allowed_in;
-    ArgCountType arg_type;
-    size_t min_args;
-    size_t max_args;
+    std::set<std::string> allowedIn;
+    ArgCountType argCount;
+    size_t minArgs;
+    size_t maxArgs;
+    std::vector<ArgumentType> argTypes;
 };
 
 const std::map<std::string, DirectiveSpec> directives = {
-    {"http", {
+    {HTTP, {
         DirectiveType::BLOCK,
-        "",              // no required parent
-        {""},            // allowed in root
+        {GLOBAL_CONTEXT},
         FixedCount, 0, 0,
+        {}
     }},
-    {"server", {
+    {SERVER, {
         DirectiveType::BLOCK,
-        "http",
-        {"http"},
-        FixedCount, 0, 0
+        {HTTP},
+        FixedCount, 0, 0,
+        {}
     }},
-    {"server_name", {
+    {SERVER_NAME, {
         DirectiveType::SIMPLE,
-        "server",
-        {"server"},
-        FixedCount, 1, 1
+        {SERVER},
+        FixedCount, 1, 1,
+        {ArgumentType::URL}
     }},
-    {"listen", {
+    {LISTEN, {
         DirectiveType::SIMPLE,
-        "server",
-        {"server"},
-        FixedCount, 1, 1
+        {SERVER},
+        FixedCount, 1, 1,
+        {ArgumentType::NetworkEndpoint}
     }},
-    {"error_page", {
+    {ERROR_PAGE, {
         DirectiveType::SIMPLE,
-        "",
-        {"http", "server"},
-        FixedCount, 2, 2
+        {HTTP, SERVER, LOCATION},
+        FixedCount, 2, 2,
+        {ArgumentType::StatusCode, ArgumentType::URL}
     }},
-    {"client_max_body_size", {
+    {CLIENT_MAX_BODY_SIZE, {
         DirectiveType::SIMPLE,
-        "",
-        {"http", "server", "location"},
-        FixedCount, 1, 1
+        {HTTP, SERVER, LOCATION},
+        FixedCount, 1, 1,
+        {ArgumentType::DataSize}
     }},
-    {"location", {
+    {LOCATION, {
         DirectiveType::BLOCK,
-        "server",
-        {"server"},
-        AtLeast, 1, static_cast<size_t>(-1)
+        {SERVER},
+        FixedCount, 1, 1,
+        {ArgumentType::URL}
     }},
-    {"limit_except", {
-        DirectiveType::BLOCK,
-        "location",
-        {"location"},
-        Between, 1, 4
-    }},
-    {"deny", {
+    {ACCEPTED_METHODS, {
         DirectiveType::SIMPLE,
-        "limit_except",
-        {"limit_except"},
-        FixedCount, 1, 1
+        {LOCATION},
+        Between, 1, 4,
+        {ArgumentType::HttpMethod}
     }},
-    {"return", {
+    {RETURN, {
         DirectiveType::SIMPLE,
-        "location",
-        {"location"},
-        FixedCount, 2, 2
+        {SERVER, LOCATION},
+        FixedCount, 2, 2,
+        {ArgumentType::StatusCode, ArgumentType::URL}
     }},
-    {"root", {
+    {ROOT, {
         DirectiveType::SIMPLE,
-        "",
-        {"server", "location"},
-        FixedCount, 1, 1
+        {HTTP, SERVER, LOCATION},
+        FixedCount, 1, 1,
+        {ArgumentType::FilePath}
     }},
-    {"alias", {
+    {ALIAS, {
         DirectiveType::SIMPLE,
-        "location",
-        {"location"},
-        FixedCount, 1, 1
+        {LOCATION},
+        FixedCount, 1, 1,
+        {ArgumentType::FilePath}
     }},
-    {"autoindex", {
+    {AUTOINDEX, {
         DirectiveType::SIMPLE,
-        "location",
-        {"location"},
-        FixedCount, 1, 1
+        {HTTP, SERVER, LOCATION},
+        FixedCount, 1, 1,
+        {ArgumentType::OnOff}
     }},
-    {"index", {
+    {INDEX, {
         DirectiveType::SIMPLE,
-        "location",
-        {"location"},
-        AtLeast, 1, static_cast<size_t>(-1)
+        {HTTP, SERVER, LOCATION},
+        AtLeast, 1, static_cast<size_t>(-1),
+        {ArgumentType::FilePath}
     }},
-    {"upload_store", {
+    {UPLOAD_STORE, {
         DirectiveType::SIMPLE,
-        "location",
-        {"location"},
-        FixedCount, 1, 1
+        {LOCATION},
+        FixedCount, 1, 1,
+        {ArgumentType::FilePath}
     }},
-    {"cgi_pass", {
+    {CGI_PASS, {
         DirectiveType::SIMPLE,
-        "location",
-        {"location"},
-        FixedCount, 1, 1
+        {LOCATION},
+        FixedCount, 1, 1,
+        {ArgumentType::FilePath}
     }}
 };
+
+bool isKnownDirective(const std::string& name)
+{
+    return directives.count(name) > 0;
+}
 
 DirectiveType getDirectiveType(const std::string& name)
 {
@@ -164,27 +163,20 @@ bool isAllowedInContext(const std::string& name, const std::string& context)
         return false;
 
     DirectiveSpec specs = it->second;
-    if (specs.allowed_in.count(context) == 0)
+    if (specs.allowedIn.count(context) == 0)
         return false;
 
     return true;
 }
 
-std::pair<bool, std::string> hasRequiredParentContext(
-    const std::string& name, const std::string& parentContext)
+std::set<std::string> getAllowedContextsFor(const std::string& name)
 {
     auto it = directives.find(name);
-    if (it == directives.end()) // if we didn't found such a directive, which can not happen
-        return {false, ""}; // I return false here, so that it would cause an error
+    if (it == directives.end()) // if we didn't find such a directive (which cannot happen)
+        return {}; // Then it's not allowed anywhere
 
     DirectiveSpec specs = it->second;
-    if (specs.required_parent.empty())
-        return {true, ""};
-
-    if (specs.required_parent == parentContext)
-        return {true, specs.required_parent};
-
-    return {false, specs.required_parent};
+    return specs.allowedIn;
 }
 
 bool hasRightAmountOfArguments(const std::string& name, size_t amount)
@@ -195,25 +187,49 @@ bool hasRightAmountOfArguments(const std::string& name, size_t amount)
 
     DirectiveSpec specs = it->second;
 
-    if (specs.arg_type == FixedCount
-        && amount == specs.min_args)
+    if (specs.argCount == FixedCount
+        && amount == specs.minArgs)
         return true;
 
-    if (specs.arg_type == AtLeast
-        && amount >= specs.min_args)
+    if (specs.argCount == AtLeast
+        && amount >= specs.minArgs)
         return true;
 
-    if (specs.arg_type == Between
-        && amount >= specs.min_args
-        && amount <= specs.max_args)
+    if (specs.argCount == Between
+        && amount >= specs.minArgs
+        && amount <= specs.maxArgs)
         return true;
 
-    if (specs.arg_type == Any)
+    if (specs.argCount == Any)
         return true;
     
     return false;
 }
 
 // clang-format on
+
+std::vector<ArgumentType> getDirectiveArgTypes(const std::string& directiveName)
+{
+    auto it = directives.find(directiveName);
+
+    DirectiveSpec specs = it->second;
+    return specs.argTypes;
+}
+
+// void validateDirectiveArgs(const std::string& name,
+//                            const std::vector<Argument>& args)
+// {
+//     const DirectiveSpec& spec = directives.at(name);
+//     std::vector<ArgumentType> argTypes = spec.argTypes;
+
+//     if (!hasRightAmountOfArguments(name, args.size()))
+//         throw InvalidArgumentCountException("error message");
+
+//     for (size_t i = 0; i < args.size(); ++i)
+//     {
+//         if (args[i].type() != pattern[i])
+//             throw std::logic_error("error message");
+//     }
+// }
 
 } // namespace Directives

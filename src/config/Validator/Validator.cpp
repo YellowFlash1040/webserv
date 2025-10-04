@@ -24,8 +24,18 @@ void Validator::validate()
 
     const BlockDirective* block
         = dynamic_cast<const BlockDirective*>(m_rootNode.get());
-    if (block)
-        validateChildren(*block, name);
+    if (!block)
+        throw std::logic_error(
+            "The root node has to be a block directive 'global'");
+
+    if (block->name() != "global")
+        throw std::logic_error(
+            "The root node has to be a block directive 'global'");
+
+    validateChildren(*block, name);
+
+    if (block->directives().size() > 1)
+        throw std::logic_error("duplicate 'http' directive");
 }
 
 void Validator::validateNode(const std::unique_ptr<ADirective>& node,
@@ -35,8 +45,7 @@ void Validator::validateNode(const std::unique_ptr<ADirective>& node,
     m_errorLine = node->line();
     m_errorColumn = node->column();
 
-    checkParentConstraint(name, parentContext);
-    checkAllowedDirective(name, parentContext);
+    checkIfAllowedDirective(name, parentContext);
     checkArguments(name, node->args());
 
     const BlockDirective* block
@@ -52,25 +61,12 @@ void Validator::validateChildren(const BlockDirective& block,
         validateNode(directive, parentContext);
 }
 
-void Validator::checkParentConstraint(const std::string& name,
-                                      const std::string& parentContext)
-{
-    std::pair<bool, std::string> result
-        = Directives::hasRequiredParentContext(name, parentContext);
-    if (result.first)
-        return;
-
-    const std::string& requiredParent = result.second;
-    throw DirectiveWrongParentException(m_errorLine, m_errorColumn, name,
-                                        requiredParent);
-}
-
-void Validator::checkAllowedDirective(const std::string& name,
-                                      const std::string& context)
+void Validator::checkIfAllowedDirective(const std::string& name,
+                                        const std::string& context)
 {
     if (!Directives::isAllowedInContext(name, context))
-        throw DirectiveNotAllowedException(m_errorLine, m_errorColumn, name,
-                                           context);
+        throw DirectiveContextException(m_errorLine, m_errorColumn, name,
+                                        context);
 }
 
 void Validator::checkArguments(const std::string& name,
@@ -78,4 +74,7 @@ void Validator::checkArguments(const std::string& name,
 {
     if (!Directives::hasRightAmountOfArguments(name, args.size()))
         throw InvalidArgumentCountException(m_errorLine, m_errorColumn, name);
+
+    // for (Argument arg : args)
+    //     if (arg.type() !=)
 }

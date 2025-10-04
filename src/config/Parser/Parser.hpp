@@ -13,6 +13,9 @@
 # include "Directives.hpp"
 
 # include "ParserException.hpp"
+# include "UnknownDirectiveException.hpp"
+# include "MissingTokenException.hpp"
+# include "ExtraTokenException.hpp"
 
 class Parser
 {

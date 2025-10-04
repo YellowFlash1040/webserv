@@ -1,15 +1,15 @@
-#pragma once
+// #pragma once
 
 #ifndef VALIDATOR_HPP
-# define VALIDATOR_HPP
+#define VALIDATOR_HPP
 
-# include <utility>
-# include <vector>
-# include <memory>
+#include <utility>
+#include <vector>
+#include <memory>
 
-# include "Directives.hpp"
+#include "Directives.hpp"
 
-# include "ConfigExceptions.hpp"
+#include "ConfigExceptions.hpp"
 
 class Validator
 {
@@ -40,8 +40,8 @@ class Validator
                           const std::string& parentContext);
     void checkParentConstraint(const std::string& name,
                                const std::string& parentContext);
-    void checkAllowedDirective(const std::string& name,
-                               const std::string& context);
+    void checkIfAllowedDirective(const std::string& name,
+                                 const std::string& context);
     void checkArguments(const std::string& name,
                         const std::vector<Argument>& args);
 };

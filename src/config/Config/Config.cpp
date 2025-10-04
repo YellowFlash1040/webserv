@@ -51,37 +51,14 @@ Config Config::fromFile(const std::string& filepath)
     return Config(std::move(ast));
 }
 
-// std::vector<std::string> Config::getAllEnpoints()
-// {
-//     std::vector<ADirective*> listenDirs = findAll("listen", m_rootNode);
-
-//     std::vector<std::string> endpoints;
-//     endpoints.reserve(listenDirs.size());
-//     for (const auto directive : listenDirs)
-//         endpoints.push_back(directive->args()[0].value());
-
-//     return endpoints;
-// }
-
-std::vector<ADirective*> Config::findAll(const std::string& directiveName,
-                                         BlockDirective* block)
+std::vector<std::string> Config::getAllEnpoints()
 {
-    std::vector<ADirective*> result;
-    findAll(directiveName, block, result);
-    return result;
-}
+    std::vector<std::string> endpoints;
+    endpoints.reserve(m_httpBlock.servers->size());
+    for (const auto& server : m_httpBlock.servers)
+        endpoints.emplace_back(server.listen);
 
-void Config::findAll(const std::string& directiveName, BlockDirective* block,
-                     std::vector<ADirective*>& result)
-{
-    for (const auto& directive : block->directives())
-    {
-        if (directive->name() == directiveName)
-            result.push_back(directive.get());
-        else if (auto childBlock
-                 = dynamic_cast<BlockDirective*>(directive.get()))
-            findAll(directiveName, childBlock, result);
-    }
+    return endpoints;
 }
 
 ///----------------------------///
@@ -95,28 +72,17 @@ HttpBlock Config::buildHttpBlock(const std::unique_ptr<ADirective>& httpNode)
     auto httpDirective = dynamic_cast<BlockDirective*>(httpNode.get());
     for (const auto& directive : httpDirective->directives())
     {
-        if (directive->name() == Directives::SERVER)
+        const std::string& name = directive->name();
+        const std::vector<Argument>& args = directive->args();
+        if (name == Directives::SERVER)
         {
             httpBlock.servers->emplace_back(buildServerBlock(directive));
             httpBlock.servers.isSet() = true;
         }
-        else if (directive->name() == Directives::CLIENT_MAX_BODY_SIZE)
-        {
-            size_t size = BodySize(directive->args()[0].value()).value();
-            httpBlock.clientMaxBodySize = size;
-        }
-        else if (directive->name() == Directives::ERROR_PAGE)
-        {
-            auto statusCode = static_cast<HttpStatusCode>(
-                std::stoi(directive->args()[0].value()));
-            std::string filePath = directive->args()[1].value();
-
-            std::vector<HttpStatusCode> statusCodes{};
-            statusCodes.push_back(statusCode);
-
-            httpBlock.errorPages->emplace_back(statusCodes, filePath);
-            httpBlock.errorPages.isSet() = true;
-        }
+        else if (name == Directives::CLIENT_MAX_BODY_SIZE)
+            assign(httpBlock.clientMaxBodySize, args);
+        else if (name == Directives::ERROR_PAGE)
+            assign(httpBlock.errorPages, args);
     }
 
     return httpBlock;
@@ -130,57 +96,27 @@ ServerBlock Config::buildServerBlock(
     auto serverDirective = dynamic_cast<BlockDirective*>(serverNode.get());
     for (const auto& directive : serverDirective->directives())
     {
-        if (directive->name() == Directives::LOCATION)
+        const std::string& name = directive->name();
+        const std::vector<Argument>& args = directive->args();
+        if (name == Directives::LOCATION)
         {
             serverBlock.locations->emplace_back(buildLocationBlock(directive));
             serverBlock.locations.isSet() = true;
         }
-        else if (directive->name() == Directives::LISTEN)
-        {
-            std::string networkEndpoint = directive->args()[0].value();
-            serverBlock.listen = networkEndpoint;
-        }
-        else if (directive->name() == Directives::SERVER_NAME)
-        {
-            std::string serverName = directive->args()[0].value();
-            serverBlock.serverName = serverName;
-        }
-        else if (directive->name() == Directives::ROOT)
-        {
-            std::string root = directive->args()[0].value();
-            serverBlock.root = root;
-        }
-        else if (directive->name() == Directives::ALIAS)
-        {
-            std::string alias = directive->args()[0].value();
-            serverBlock.alias = alias;
-        }
-        else if (directive->name() == Directives::ERROR_PAGE)
-        {
-            auto statusCode = static_cast<HttpStatusCode>(
-                std::stoi(directive->args()[0].value()));
-            std::string filePath = directive->args()[1].value();
-
-            std::vector<HttpStatusCode> statusCodes{};
-            statusCodes.push_back(statusCode);
-
-            serverBlock.errorPages->emplace_back(statusCodes, filePath);
-            serverBlock.errorPages.isSet() = true;
-        }
-        else if (directive->name() == Directives::CLIENT_MAX_BODY_SIZE)
-        {
-            size_t size = std::stoul(directive->args()[0].value());
-            serverBlock.clientMaxBodySize = size;
-        }
-        else if (directive->name() == Directives::AUTOINDEX)
-        {
-            std::string value = directive->args()[0].value();
-
-            if (value == "on")
-                serverBlock.autoindex = true;
-            else
-                serverBlock.autoindex = false;
-        }
+        else if (name == Directives::LISTEN)
+            assign(serverBlock.listen, args);
+        else if (name == Directives::SERVER_NAME)
+            assign(serverBlock.serverName, args);
+        else if (name == Directives::ROOT)
+            assign(serverBlock.root, args);
+        else if (name == Directives::ALIAS)
+            assign(serverBlock.alias, args);
+        else if (name == Directives::ERROR_PAGE)
+            assign(serverBlock.errorPages, args);
+        else if (name == Directives::CLIENT_MAX_BODY_SIZE)
+            assign(serverBlock.clientMaxBodySize, args);
+        else if (name == Directives::AUTOINDEX)
+            assign(serverBlock.autoindex, args);
     }
 
     return serverBlock;
@@ -192,81 +128,78 @@ LocationBlock Config::buildLocationBlock(
     LocationBlock locationBlock;
 
     auto locationDirective = dynamic_cast<BlockDirective*>(locationNode.get());
-
-    std::string path = locationDirective->args()[0].value();
-    locationBlock.path = path;
-
     for (const auto& directive : locationDirective->directives())
     {
-        if (directive->name() == Directives::ROOT)
-        {
-            std::string root = directive->args()[0].value();
-            locationBlock.root = root;
-        }
-        else if (directive->name() == Directives::ALIAS)
-        {
-            std::string alias = directive->args()[0].value();
-            locationBlock.alias = alias;
-        }
-        else if (directive->name() == Directives::AUTOINDEX)
-        {
-            std::string value = directive->args()[0].value();
-
-            if (value == "on")
-                locationBlock.autoindex = true;
-            else
-                locationBlock.autoindex = false;
-        }
-        else if (directive->name() == Directives::INDEX)
-        {
-            for (Argument arg : directive->args())
-                locationBlock.index->emplace_back(arg.value());
-            locationBlock.index.isSet() = true;
-        }
-        else if (directive->name() == Directives::ACCEPTED_METHODS)
-        {
-            for (Argument arg : directive->args())
-                locationBlock.acceptedHttpMethods->emplace_back(arg.value());
-            locationBlock.acceptedHttpMethods.isSet() = true;
-        }
+        const std::string& name = directive->name();
+        const std::vector<Argument>& args = directive->args();
+        if (name == Directives::ROOT)
+            assign(locationBlock.root, args);
+        else if (name == Directives::ALIAS)
+            assign(locationBlock.alias, args);
+        else if (name == Directives::AUTOINDEX)
+            assign(locationBlock.autoindex, args);
+        else if (name == Directives::INDEX)
+            assign(locationBlock.index, args);
+        else if (name == Directives::ACCEPTED_METHODS)
+            assign(locationBlock.acceptedHttpMethods, args);
     }
 
     if (locationBlock.acceptedHttpMethods->empty())
-    {
-        locationBlock.acceptedHttpMethods->emplace_back("GET");
-        locationBlock.acceptedHttpMethods->emplace_back("POST");
-        locationBlock.acceptedHttpMethods->emplace_back("DELETE");
-    }
+        HttpMethod::setDefaultHttpMethods(
+            locationBlock.acceptedHttpMethods.value());
+
+    locationBlock.path = locationDirective->args()[0].value();
 
     return locationBlock;
 }
 
-void Config::assign(std::string& property, const std::vector<std::string>& args)
+void Config::assign(Property<std::string>& property,
+                    const std::vector<Argument>& args)
 {
-    property = args[0];
+    property = args[0].value();
 }
 
-void Config::assign(bool& property, const std::vector<std::string>& args)
+void Config::assign(Property<bool>& property, const std::vector<Argument>& args)
 {
-    property = (args[0] == "on");
+    property = (args[0].value() == "on");
 }
 
-void Config::assign(size_t& property, const std::vector<std::string>& args)
+void Config::assign(Property<size_t>& property,
+                    const std::vector<Argument>& args)
 {
-    property = std::stoul(args[0]);
+    // property = std::stoul(args[0].value());
+    property = BodySize(args[0].value()).value();
 }
 
-void Config::assign(std::vector<ErrorPage>& property,
-                    const std::vector<std::string>& args)
+void Config::assign(Property<std::vector<ErrorPage>>& errorPages,
+                    const std::vector<Argument>& args)
 {
-    auto statusCode = static_cast<HttpStatusCode>(std::stoi(args[0]));
-    property.emplace_back(std::vector{statusCode}, args[1]);
+    std::vector<HttpStatusCode> statusCodes;
+
+    for (size_t i = 0; i < args.size() - 1; ++i)
+        statusCodes.push_back(
+            static_cast<HttpStatusCode>(std::stoi(args[i].value())));
+
+    std::string filePath = args.back().value();
+
+    errorPages->emplace_back(statusCodes, filePath);
+    errorPages.isSet() = true;
 }
 
-void Config::assign(std::vector<std::string>& property,
-                    const std::vector<std::string>& args)
+void Config::assign(Property<std::vector<HttpMethod>>& httpMethods,
+                    const std::vector<Argument>& args)
 {
-    property.insert(property.end(), args.begin(), args.end());
+    for (Argument arg : args)
+        httpMethods->emplace_back(arg.value());
+    httpMethods.isSet() = true;
+}
+
+void Config::assign(Property<std::vector<std::string>>& property,
+                    const std::vector<Argument>& args)
+{
+    for (Argument arg : args)
+        property->emplace_back(arg.value());
+    property.isSet() = true;
 }
 
 ///----------------///

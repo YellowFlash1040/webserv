@@ -10,17 +10,19 @@
 class ConfigException : public std::exception
 {
   public:
-    ConfigException();
-    explicit ConfigException(const std::string& message);
+    ConfigException(size_t line, size_t column);
 
     const char* what() const noexcept override;
 
   protected:
     // Properties
     std::string m_message;
+    size_t m_line;
+    size_t m_column;
+
+  private:
     // Methods
-    std::ostream& addErrorLocationMessage(std::ostream& os, size_t line,
-                                          size_t column);
+    std::string createLocationMessage(size_t line, size_t column);
 };
 
 #endif

@@ -85,6 +85,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS) $(TEMPLATES) Makefile
 
 # Collect all .o files into .a file to use it for unit tests
 $(LIBRARY_FOR_TESTS): $(OBJ)
+	@mkdir -p $(TESTS_BIN_FOLDER)
 	@ar src $@ $^
 	@ar d $@ main.o
 
@@ -93,7 +94,7 @@ $(LIBRARY_FOR_TESTS): $(OBJ)
 tests: $(TESTS_NAME)
 
 # Build tests
-$(TESTS_NAME): $(TESTS_OBJ) $(LIBRARY_FOR_TESTS) $(GTEST_LIB)
+$(TESTS_NAME): $(LIBRARY_FOR_TESTS) $(TESTS_OBJ) $(GTEST_LIB)
 	@mkdir -p $(dir $@)
 	@$(CC) $(TESTS_CFLAGS) $(TESTS_OBJ) $(LIBRARY_FOR_TESTS) $(GTEST_LIB) $(LDFLAGS) -o $@
 	@echo "$(GREEN)Compiled $@ successfully!$(RESET)"
