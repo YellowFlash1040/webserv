@@ -33,12 +33,10 @@ class Config
     // Class specific features
   public:
     // Accessors
+    HttpBlock& httpBlock();
     // Methods
-
     static Config fromFile(const std::string& filepath);
     std::vector<std::string> getAllEnpoints();
-
-    HttpBlock& httpBlock();
     RequestContext createRequestContext(const std::string& host,
                                         const std::string& url);
 

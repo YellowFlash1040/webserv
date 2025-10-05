@@ -16,6 +16,7 @@
 # include <csignal>
 # include <iostream>
 
+# include "Config.hpp"
 # include "MemoryUtils.hpp"
 # include "NetworkEndpoint.hpp"
 
@@ -35,7 +36,7 @@ class Server
 {
 		// Construction and destruction
 	public:
-		Server(int port);
+		Server::Server(int port, Config config);
 		~Server();
 		void run(void);
 

@@ -2,8 +2,11 @@
 #include <iostream>
 #include <string.h>
 #include <csignal>
+#include "config/Config/Config.hpp"
 
 volatile std::sig_atomic_t g_running = true;
+
+const char* filepath = "./webserv.conf";
 
 void handle_signal(int)
 {
@@ -20,7 +23,9 @@ int main(void)
 		ConnectionManager connMgr;
 
 		// Pass a reference to Server
-		Server s(8081);
+		Config config = Config::fromFile(filepath); 
+		Server s(8081, config);
+		
 		s.run();
 	}
 	catch (const std::runtime_error& e)
