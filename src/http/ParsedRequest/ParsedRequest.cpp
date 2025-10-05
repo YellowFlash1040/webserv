@@ -15,6 +15,26 @@ void ParsedRequest::trimLeadingWhitespace(std::string& str)
 	);
 }
 
+bool ParsedRequest::iequals(const std::string& a, const std::string& b)
+{
+	if (a.size() != b.size()) return false;
+	for (size_t i = 0; i < a.size(); ++i)
+		if (std::tolower(a[i]) != std::tolower(b[i]))
+			return false;
+	return true;
+}
+
+std::string ParsedRequest::bodyTypeToString(BodyType t)
+{
+	switch (t)
+	{
+		case BodyType::NO_BODY:    return "NO_BODY";
+		case BodyType::SIZED:   return "SIZED";
+		case BodyType::CHUNKED: return "CHUNKED";
+		default:                return "UNKNOWN";
+	}
+}
+
 // --- Canonical form ---
 ParsedRequest::ParsedRequest()
 	: _tempBuffer(), _rlAndHeadersBuffer(), _body(), _chunkedBuffer(), _method(), _uri(), _httpVersion(),
@@ -34,7 +54,7 @@ const std::string& ParsedRequest::getMethod() const { return _method; }
 const std::string& ParsedRequest::getUri() const { return _uri; }
 const std::string& ParsedRequest::getHttpVersion() const { return _httpVersion; }
 
-std::string ParsedRequest::getHeader(const std::string& name) const
+const std::string ParsedRequest::getHeader(const std::string& name) const
 {
 	auto it = _headers.find(name);
 	return (it != _headers.end()) ? it->second : "";
@@ -47,7 +67,7 @@ const std::string& ParsedRequest::getBody() const
 	return _body;
 }
 
-std::string& ParsedRequest::getContentLengthBuffer()
+const std::string& ParsedRequest::getContentLengthBuffer() const
 {
 	return _contentLengthBuffer;
 }
@@ -57,7 +77,7 @@ size_t ParsedRequest::getContentLength() const { return _contentLength; }
 bool ParsedRequest::isRequestDone() const { return _requestDone ;}
 bool ParsedRequest::isHeadersDone() const { return _headersDone; }
 bool ParsedRequest::isBodyDone() const { return _bodyDone; }
-// bool ParsedRequest::isChunked() const { return _chunked; }
+
 
 // --- Setters ---
 void ParsedRequest::setMethod(const std::string& m) { _method = m; }
@@ -103,15 +123,8 @@ void ParsedRequest::setRlAndHeadersBuffer(const std::string& newBuf) { _rlAndHea
 void ParsedRequest::appendToRlAndHeaderBuffer(const std::string& data) { _rlAndHeadersBuffer += data; }
 void ParsedRequest::appendTobody(const std::string& data) { _body += data; }
 
-void ParsedRequest::clearRlAndHeaderBuffer() { _rlAndHeadersBuffer.clear(); }
+// void ParsedRequest::clearRlAndHeaderBuffer() { _rlAndHeadersBuffer.clear(); }
 
-void ParsedRequest::clearbody() { _body.clear(); }
-
-
-bool ParsedRequest::headersParsed() const
-{
-	return _rlAndHeadersBuffer.find("\r\n\r\n") != std::string::npos;
-}
 
 size_t ParsedRequest::extractContentLength() const
 {
@@ -204,22 +217,9 @@ void ParsedRequest::parseHeaders(std::istringstream& stream)
 	_headersDone = true;
 }
 
-bool ParsedRequest::iequals(const std::string& a, const std::string& b) const
-{
-	if (a.size() != b.size()) return false;
-	for (size_t i = 0; i < a.size(); ++i)
-		if (std::tolower(a[i]) != std::tolower(b[i]))
-			return false;
-	return true;
-}
-
-void ParsedRequest::clearRlAndHeadersBuffer()
-{
-	_rlAndHeadersBuffer.clear();
-}
 
 
-std::string& ParsedRequest::getChunkedBuffer()
+const std::string& ParsedRequest::getChunkedBuffer() const
 {
 	return _chunkedBuffer;
 }
@@ -358,7 +358,7 @@ std::string ParsedRequest::decodeChunkedBody(size_t& bytesProcessed)
 }
 
 
-bool ParsedRequest::contentLengthComplete() const
+bool ParsedRequest::isContentLengthComplete() const
 {
 	if (_contentLength < 0) // defensive: invalid content length
 		return false;
@@ -366,11 +366,6 @@ bool ParsedRequest::contentLengthComplete() const
 	return _contentLengthBuffer.size() >= static_cast<size_t>(_contentLength);
 }
 
-const std::string& ParsedRequest::getContentLengthBuffer() const
-{
-	return _contentLengthBuffer;
-}
- 
 void ParsedRequest::appendToContentLengthBuffer(const std::string& data)
 {
 	_contentLengthBuffer += data;
@@ -400,8 +395,7 @@ bool ParsedRequest::isTerminatingZero()
 	return _terminatingZero;
 }
 
-	
-std::string& ParsedRequest::getTempBuffer()
+const std::string& ParsedRequest::getTempBuffer() const
 {
 	return _tempBuffer;
 }
@@ -428,11 +422,6 @@ bool ParsedRequest::needsResponse() const
 	return _needResp;
 }
 
-void ParsedRequest::setNeedsResp(bool needsResp)
-{
-	_needResp = needsResp;
-}
-
 void ParsedRequest::setResponseAdded()
 {
 	_needResp = false;
@@ -443,7 +432,7 @@ void ParsedRequest::setBody(const std::string& body)
 	_body = body;
 }
 
-size_t ParsedRequest::getRemainingContentLength() const
+size_t ParsedRequest::remainingContentLength() const
 {
 	return static_cast<size_t>(_contentLength) > _contentLengthBuffer.size()
 		? static_cast<size_t>(_contentLength) - _contentLengthBuffer.size()
@@ -485,4 +474,135 @@ void ParsedRequest::setChunkedBuffer(std::string&& newBuffer)
 	<< "(moved). content = |" << _chunkedBuffer 
 	<< RESET << "|\n";
 }
+
+void ParsedRequest::appendBodyBytes(const std::string& data)
+{
+	std::cout << YELLOW << "[DEBUG: appendBodyBytes]" << RESET << std::endl;
+	
+
+	std::cout << GREEN << "[appendBodyBytes] before appending:" << RESET << "\n"
+		<< "ContentLengthBuffer() = " << getContentLengthBuffer() << "\n"
+		<< "ChunkedBuffer() = " << getChunkedBuffer() << "\n";
+		
+	switch (getBodyType())
+	{
+		case BodyType::SIZED:
+		{
+			size_t remaining = remainingContentLength(); // bytes still needed
+			std::cout << MINT << "[appendBodyBytes]: " << RESET "remaining bytes of content to append: "
+				<< remaining << "\n";
+			size_t toAppend = std::min(remaining, data.size());
+			std::cout << MINT << "[appendBodyBytes]: " << RESET "bytes to will be appended in reality: "
+				<< toAppend << "\n";
+			appendToContentLengthBuffer(data.substr(0, toAppend));
+			consumeTempBuffer(toAppend); // remove exactly what we consumed
+			if (isContentLengthComplete())
+			{
+				appendTobody(getContentLengthBuffer());
+				setBodyDone();
+			}
+			std::cout << GREEN << "[appendBodyBytes] after appending:" << RESET << "\n"
+			<< "ContentLengthBuffer() = " << getContentLengthBuffer() << "\n";
+			std::cout << "[appendBodyBytes]: after finishing body length, requests:\n";
+			break;
+		}
+
+		case BodyType::CHUNKED:
+		{
+			appendToChunkedBuffer(getTempBuffer());
+    		std::cout << GREEN << "[appendBodyBytes]: " << RESET
+				<< "appeneded chunkBuffer with data from tempBuffer. It is now |"
+				<< getChunkedBuffer() << "|\n";
+			setTempBuffer(""); // consumed for decoding
+			size_t bytesProcessed = 0;
+			
+			// decode as much as possible
+			std::string decoded = decodeChunkedBody(bytesProcessed);
+			appendToBody(decoded); // append only the decoded chunks
+			
+			// remove processed bytes from _chunkedBuffer
+			setChunkedBuffer(getChunkedBuffer().substr(bytesProcessed));
+			
+			if (isTerminatingZero())
+			{
+				std::cout << GREEN << "[appendBodyBytes]: " << RESET
+				<< "TerminatingZero found\n";
+				setBodyDone();
+				setTempBuffer(getChunkedBuffer());
+				clearChunkedBuffer();
+				std::cout << GREEN << "[appendBodyBytes]: " << RESET
+					<< "set tempBuffer to the contents of hunkedBuffer, it is now = |"
+					<< getTempBuffer() << "| and cleared chunkBuffer\n";
+				
+			}
+			else
+			{
+				// partial chunk left? move leftovers to tempBuffer for next process
+				setTempBuffer(getChunkedBuffer() + getTempBuffer());
+				
+				std::cout << GREEN << "[appendBodyBytes]: " << RESET
+				<< "TerminatingZero not found yet\n";
+			}
+			break;
+		}
+
+		case BodyType::NO_BODY:
+			// Nothing to append
+			break;
+
+		case BodyType::ERROR:
+			throw std::runtime_error("Cannot append body data: request in ERROR state");
+	}
+	
+}
+
+void ParsedRequest::separateHeadersFromBody()
+{
+    std::cout << YELLOW << "DEBUG: separateHeadersFromBody: " << RESET << std::endl;
+    std::cout << "[separateHeadersFromBody] tempBuffer = |" << _tempBuffer << "|\n";
+
+    size_t headerEnd = _tempBuffer.find("\r\n\r\n");
+    if (headerEnd == std::string::npos)
+    {
+        std::cout << "[separateHeadersFromBody] Headers incomplete (\\r\\n\\r\\n not found)\n";
+        return; // headers incomplete
+    }
+
+    std::string headerPart = _tempBuffer.substr(0, headerEnd + 4);
+    std::cout << "[separateHeadersFromBody] Header part = |" << headerPart << "|\n";
+
+    try
+    {
+        parseRequestLineAndHeaders(headerPart);
+    }
+    catch (const std::exception& e)
+    {
+        std::cout << "[separateHeadersFromBody] Exception parsing headers: " << e.what() << "\n";
+        _bodyType = BodyType::ERROR;
+        _bodyDone = true;
+        _tempBuffer.clear();
+        throw;
+    }
+    catch (...)
+    {
+        std::cout << "[separateHeadersFromBody] Unknown exception parsing headers\n";
+        _bodyType = BodyType::ERROR;
+        _bodyDone = true;
+        _tempBuffer.clear();
+        throw;
+    }
+
+    if (_bodyType == BodyType::NO_BODY)
+    {
+        std::cout << "No body, marking body and request done\n";
+        _bodyDone = true;
+        _requestDone = true;
+    }
+
+    // Keep leftover (after headers) in tempBuffer
+    _tempBuffer = _tempBuffer.substr(headerEnd + 4);
+    std::cout << "Temp buffer after headers removed = |" << _tempBuffer << "|\n";
+}
+
+
 

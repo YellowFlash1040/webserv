@@ -1,11 +1,11 @@
-#ifndef SERVERRESPONSE_HPP
-#define SERVERRESPONSE_HPP
+#ifndef RESPONSE_HPP
+#define RESPONSE_HPP
 
 #include <string>
 #include <unordered_map>
-#include <../ParsedRequest/ParsedRequest.hpp>
+#include "../ParsedRequest/ParsedRequest.hpp"
 
-class ServerResponse
+class Response
 {
 private:
 	int _statusCode;
@@ -15,15 +15,15 @@ private:
 
 public:
 	// Constructor
-	ServerResponse();
-	ServerResponse(const ParsedRequest& req);
+	Response();
+	Response(const ParsedRequest& req);
 
 	// Defaults for destructor/copy/move
-	~ServerResponse() = default;
-	ServerResponse(const ServerResponse&) = default;
-	ServerResponse& operator=(const ServerResponse&) = default;
-	ServerResponse(ServerResponse&&) noexcept = default;
-	ServerResponse& operator=(ServerResponse&&) noexcept = default;
+	~Response() = default;
+	Response(const Response&) = default;
+	Response& operator=(const Response&) = default;
+	Response(Response&&) noexcept = default;
+	Response& operator=(Response&&) noexcept = default;
 
 	// Reset
 	void reset();
@@ -46,6 +46,9 @@ public:
 
 	// Map HTTP status code to default text
 	std::string codeToText(int code) const;
+	std::string genResp(const ParsedRequest& req);
+	
+	
 };
 
 #endif

@@ -3,7 +3,6 @@
 ClientState::ClientState()
 	: _parsedRequests()
 	, _responseQueue()
-	, _readyToSend(false)
 {
 	// The first empty request so getLatestRequest() is always valid
 	std::cout << RED << "[ClientState Constructor] Creating first empty ParsedRequest so getLatestRequest() is always valid\n";
@@ -39,7 +38,7 @@ bool ClientState::latestRequestNeedsBody() const
 	return latest.isHeadersDone() && !latest.isBodyDone();
 }
 
-void ClientState::enqueueResponse(const ServerResponse& resp)
+void ClientState::enqueueResponse(const Response& resp)
 {
 	_responseQueue.push(resp);
 }
@@ -49,30 +48,11 @@ bool ClientState::responseQueueEmpty() const
 	return _responseQueue.empty();
 }
 
-ServerResponse ClientState::popNextResponse()
-{
-	if (_responseQueue.empty())
-		throw std::runtime_error("No responses in queue");
-	ServerResponse resp = _responseQueue.front();
-	_responseQueue.pop();
-	return resp;
-}
-
-const ServerResponse& ClientState::getRespObj() const
+const Response& ClientState::getRespObj() const
 {
 	if (_responseQueue.empty())
 		throw std::runtime_error("No responses in queue");
 	return _responseQueue.front();
-}
-
-void ClientState::setReadyToSend(bool value)
-{
-	_readyToSend = value;
-}
-
-bool ClientState::isReadyToSend() const
-{
-	return _readyToSend;
 }
 
 ParsedRequest& ClientState::getLatestRequest()
@@ -80,40 +60,15 @@ ParsedRequest& ClientState::getLatestRequest()
 	if (_parsedRequests.empty())
 	{
 		 std::cout << RED 
-            << "[getLatestRequest] _parsedRequests empty, creating a new ParsedRequest" 
-            << RESET << "\n";
+			<< "[getLatestRequest] _parsedRequests empty, creating a new ParsedRequest" 
+			<< RESET << "\n";
 		_parsedRequests.emplace_back(); // default-construct a new request
 	}
 	return _parsedRequests.back();
 }
 
-void ClientState::prepareNextRequestWithLeftover(const std::string& leftover)
-{
-	if (leftover.empty())
-		return; // nothing to do
 
-	ParsedRequest& current = getLatestReqObj();
-	current.appendToRlAndHeaderBuffer(leftover);
-}
 
-void ClientState::finalizeLatestRequestBody()
-{
-	if (_parsedRequests.empty())
-		return;
-
-	ParsedRequest& latest = _parsedRequests.back();
-	latest.setBodyDone();
-}
-
-ParsedRequest& ClientState::getReqObj(size_t index)
-{
-	return _parsedRequests.at(index);
-}
-
-ParsedRequest& ClientState::getLatestReqObj()
-{
-	return _parsedRequests.back();
-}
 
 ParsedRequest& ClientState::getParsedRequest(size_t index)
 {
@@ -125,8 +80,8 @@ ParsedRequest& ClientState::getParsedRequest(size_t index)
 ParsedRequest& ClientState::addParsedRequest()
 {
 	std::cout << RED << "[addParsedRequest]: made a new request" << RESET << "\n";
-    _parsedRequests.emplace_back();
-    return 
+	_parsedRequests.emplace_back();
+	return 
 		_parsedRequests.back();
 
 }
@@ -134,16 +89,16 @@ ParsedRequest& ClientState::addParsedRequest()
 //requests
 ParsedRequest& ClientState::getRequest(size_t idx)
 {
-    return _parsedRequests.at(idx);
+	return _parsedRequests.at(idx);
 }
 
 size_t ClientState::getLatestRequestIndex() const
 {
-    return _parsedRequests.empty() ? 0 : _parsedRequests.size() - 1;
+	return _parsedRequests.empty() ? 0 : _parsedRequests.size() - 1;
 }
 
 //For gtests 
-ParsedRequest ClientState::popFirstFinishedRequest()
+ParsedRequest ClientState::popFirstFinishedReq()
 {
 	std::cout << YELLOW << "DEBUG: popFirstFinishedRequest(for GTESTS):" << RESET << std::endl;
 std::cout << "[popFirstFinishedRequest]: _parsedRequests size = " << _parsedRequests.size() << "\n";

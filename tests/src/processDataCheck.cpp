@@ -16,7 +16,7 @@ TEST(ProcessDataTest, RequestLineParsing)
 	// Act
 	bool ready = connMgr.processData(clientId, requestString);
 	std::cout << "processData ready? " << ready << "\n";
-	ParsedRequest req = connMgr.popFinishedRequest(clientId); // instead of getRequest
+	ParsedRequest req = connMgr.popFinishedReq(clientId); // instead of getRequest
 
 	// Assert
 	EXPECT_EQ(req.getMethod(), "GET");
@@ -54,7 +54,7 @@ TEST(ProcessDataTest, MultipleRequestsSequentialPop)
     bool ready1 = connMgr.processData(clientId, req1);
 	
     ASSERT_TRUE(ready1);
-    ParsedRequest r1 = connMgr.popFinishedRequest(clientId);
+    ParsedRequest r1 = connMgr.popFinishedReq(clientId);
 	
     EXPECT_EQ(r1.getUri(), "/first.html");
 
@@ -68,7 +68,7 @@ TEST(ProcessDataTest, MultipleRequestsSequentialPop)
 
     EXPECT_TRUE(ready2);
 
-    ParsedRequest r2 = connMgr.popFinishedRequest(clientId);
+    ParsedRequest r2 = connMgr.popFinishedReq(clientId);
     EXPECT_EQ(r2.getMethod(), "POST");
     EXPECT_EQ(r2.getBody(), "Hello World");
 }
@@ -279,13 +279,13 @@ TEST(ProcessDataTest, PipelinedRequestsRepeatedCalls)
 	ClientState& clientState = connMgr.getClientStateForTest(clientId);
 	size_t numRequests = clientState.getParsedRequestCount();
 	ASSERT_EQ(numRequests, 2u);
-	ParsedRequest req1 = connMgr.popFinishedRequest(clientId);
+	ParsedRequest req1 = connMgr.popFinishedReq(clientId);
 	EXPECT_EQ(req1.getMethod(), "GET");
 	EXPECT_EQ(req1.getUri(), "/first");
 	EXPECT_EQ(req1.getHeader("Host"), "localhost");
 
 	// Check second request
-	ParsedRequest req2 = connMgr.popFinishedRequest(clientId);
+	ParsedRequest req2 = connMgr.popFinishedReq(clientId);
 	EXPECT_EQ(req2.getMethod(), "GET");
 	EXPECT_EQ(req2.getUri(), "/second");
 	EXPECT_EQ(req2.getHeader("Host"), "localhost22");
@@ -329,28 +329,28 @@ TEST(ProcessDataTest, PipelinedMixedRequests)
     ASSERT_EQ(numRequests, 4u);
 
     // Check first request: GET no body
-    ParsedRequest req1 = connMgr.popFinishedRequest(clientId);
+    ParsedRequest req1 = connMgr.popFinishedReq(clientId);
     EXPECT_EQ(req1.getMethod(), "GET");
     EXPECT_EQ(req1.getUri(), "/first");
     EXPECT_EQ(req1.getHeader("Host"), "localhost");
     EXPECT_EQ(req1.getBody(), "");
 
     // Check second request: POST with Content-Length
-    ParsedRequest req2 = connMgr.popFinishedRequest(clientId);
+    ParsedRequest req2 = connMgr.popFinishedReq(clientId);
     EXPECT_EQ(req2.getMethod(), "POST");
     EXPECT_EQ(req2.getUri(), "/submit");
     EXPECT_EQ(req2.getHeader("Host"), "localhost");
     EXPECT_EQ(req2.getBody(), "Hello World");
 
     // Check third request: POST chunked
-    ParsedRequest req3 = connMgr.popFinishedRequest(clientId);
+    ParsedRequest req3 = connMgr.popFinishedReq(clientId);
     EXPECT_EQ(req3.getMethod(), "POST");
     EXPECT_EQ(req3.getUri(), "/upload");
     EXPECT_EQ(req3.getHeader("Host"), "localhost");
     EXPECT_EQ(req3.getBody(), "Hello World");
 
     // Check fourth request: GET no body
-    ParsedRequest req4 = connMgr.popFinishedRequest(clientId);
+    ParsedRequest req4 = connMgr.popFinishedReq(clientId);
     EXPECT_EQ(req4.getMethod(), "GET");
     EXPECT_EQ(req4.getUri(), "/second");
     EXPECT_EQ(req4.getHeader("Host"), "localhost22");
@@ -384,14 +384,14 @@ TEST(ProcessDataTest, PartialContentLengthPackets)
     EXPECT_TRUE(ready);
 
     // Pop and check the GET request
-    ParsedRequest req1 = connMgr.popFinishedRequest(clientId);
+    ParsedRequest req1 = connMgr.popFinishedReq(clientId);
     EXPECT_EQ(req1.getMethod(), "GET");
     EXPECT_EQ(req1.getUri(), "/first");
     EXPECT_EQ(req1.getHeader("Host"), "localhost");
     EXPECT_EQ(req1.getBody(), "");
 
     // Pop and check the POST request
-    ParsedRequest req2 = connMgr.popFinishedRequest(clientId);
+    ParsedRequest req2 = connMgr.popFinishedReq(clientId);
     EXPECT_EQ(req2.getMethod(), "POST");
     EXPECT_EQ(req2.getUri(), "/submit");
     EXPECT_EQ(req2.getHeader("Host"), "localhost");
@@ -435,21 +435,21 @@ TEST(ProcessDataTest, PartialContentLengthAndChunkedPackets)
 	connMgr.processData(clientId, packet3);
 
 	// Pop GET request
-	ParsedRequest req1 = connMgr.popFinishedRequest(clientId);
+	ParsedRequest req1 = connMgr.popFinishedReq(clientId);
 	EXPECT_EQ(req1.getMethod(), "GET");
 	EXPECT_EQ(req1.getUri(), "/first");
 	EXPECT_EQ(req1.getHeader("Host"), "localhost");
 	EXPECT_EQ(req1.getBody(), "");
 
 	// Pop POST request with Content-Length
-	ParsedRequest req2 = connMgr.popFinishedRequest(clientId);
+	ParsedRequest req2 = connMgr.popFinishedReq(clientId);
 	EXPECT_EQ(req2.getMethod(), "POST");
 	EXPECT_EQ(req2.getUri(), "/submit");
 	EXPECT_EQ(req2.getHeader("Host"), "localhost");
 	EXPECT_EQ(req2.getBody(), "PartialBody");
 
 	// Pop chunked POST request
-	ParsedRequest req3 = connMgr.popFinishedRequest(clientId);
+	ParsedRequest req3 = connMgr.popFinishedReq(clientId);
 	EXPECT_EQ(req3.getMethod(), "POST");
 	EXPECT_EQ(req3.getUri(), "/upload");
 	EXPECT_EQ(req3.getHeader("Host"), "localhost");

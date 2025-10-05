@@ -6,8 +6,9 @@
 #include <iostream>
 #include <cstdint>
 #include <sstream>
-#include "../RequestHandler/RequestHandler.hpp"
+#include "../ParsedRequest/ParsedRequest.hpp"
 #include "ClientState/ClientState.hpp"
+#include "../utilities/ParsedRequestUtils/ParsedRequestUtils.hpp"
 
 #define GREEN "\033[0;32m"
 #define YELLOW "\033[0;33m"
@@ -37,26 +38,15 @@ class ConnectionManager
 		bool clientSentClose(int clientId) const;
 		void removeClient(int clientId);
 		ClientState& getClientStateForTest(int clientId);
-		ParsedRequest popFinishedReq(int clientId);
+		
 	
 		bool processData(int clientId, const std::string& tcpData);
 		size_t processReqs(int clientId, const std::string& tcpData);
 		void genRespsForReadyReqs(int clientId);
 		std::string genResp(int clientId);
 		
-		
-		//Why is this here???
-		std::string bodyTypeToString(BodyType t);
-		void appendBodyBytes(ClientState& clientState, const std::string& data);
-		void separateHeadersFromBody(ParsedRequest& request);
-		
-		void printSingleRequest(const ParsedRequest& req, size_t i = 0);
-		void printBodyBuffers(ParsedRequest& req);
-		void printRequest(ClientState& clientState, size_t i);
-		void printAllRequests(ClientState& clientState);
-		
 		//for gtests
-		ParsedRequest popFinishedRequest(int clientId);
+		ParsedRequest popFinishedReq(int clientId);
 	};
 
 #endif

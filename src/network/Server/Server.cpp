@@ -133,22 +133,19 @@ void Server::processClient(int clientId)
 		std::cout << GREEN << "\nDEBUG[SERVER]:" << RESET << " read " << n << " bytes: \n" << buf << "\n";
 		// Pass incoming data to ConnectionManager
 		std::string data(buf, n);
+		
 		bool anyRequestDone = m_connMgr.processData(clientId, data);
 
 		std::cout << GREEN << "DEBUG[SERVER]:" << RESET << " any request processed? " << anyRequestDone << "\n";
 		
 		
-		// // Send all ready responses
-		ClientState& clientState = m_connMgr.getClientStateForTest(clientId);
-		// while (!clientState.responseQueueEmpty())
-		// {
-		// 	const ServerResponse& resp = clientState.popNextResponse();
+		// //Send all ready responses
+		// 	const Response& resp = clientState.popNextResponse();
 		// 	std::string respStr = resp.toString();
 		// 	write(clientId, respStr.c_str(), respStr.size());
-		// }
-		
+
 		// Only remove client if last request indicates Connection: close
-		if ((m_connMgr.clientSentClose(clientId))  && !clientState.isReadyToSend())
+		if (m_connMgr.clientSentClose(clientId))
 		{
 			m_connMgr.removeClient(clientId);
 			close(clientId);

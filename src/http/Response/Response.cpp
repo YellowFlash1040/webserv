@@ -1,20 +1,20 @@
-#include "ServerResponse.hpp"
+#include "Response.hpp"
 #include <sstream>     // for ostringstream
 #include <stdexcept>   // for invalid_argument
 
 
-ServerResponse::ServerResponse() 
+Response::Response() 
   : _statusCode(200), _statusText("OK"), _headers({{"Content-Type","text/html"},{"Connection","keep-alive"}}), _body("")
 {}
 
-ServerResponse::ServerResponse(const ParsedRequest& req)
-    : _statusCode(200),
-      _statusText("OK"),
-      _headers({{"Content-Type", "text/html"}, {"Connection", "keep-alive"}}),
-      _body("<html><body>Requested URI: " + req.getUri() + "</body></html>")
+Response::Response(const ParsedRequest& req)
+	: _statusCode(200),
+	  _statusText("OK"),
+	  _headers({{"Content-Type", "text/html"}, {"Connection", "keep-alive"}}),
+	  _body("<html><body>Requested URI: " + req.getUri() + "</body></html>")
 {}
 
-void ServerResponse::reset()
+void Response::reset()
 {
 	_statusCode = 200;
 	_statusText = "OK";
@@ -22,16 +22,16 @@ void ServerResponse::reset()
 	_body.clear();
 }
 
-int ServerResponse::getStatusCode() const { return _statusCode; }
-const std::string& ServerResponse::getStatusText() const { return _statusText; }
-const std::unordered_map<std::string, std::string>& ServerResponse::getHeaders() const { return _headers; }
-const std::string& ServerResponse::getBody() const { return _body; }
-bool ServerResponse::hasHeader(const std::string& key) const
+int Response::getStatusCode() const { return _statusCode; }
+const std::string& Response::getStatusText() const { return _statusText; }
+const std::unordered_map<std::string, std::string>& Response::getHeaders() const { return _headers; }
+const std::string& Response::getBody() const { return _body; }
+bool Response::hasHeader(const std::string& key) const
 {
 	return _headers.find(key) != _headers.end();
 }
 
-void ServerResponse::setStatusCode(int code)
+void Response::setStatusCode(int code)
 {
 	if (code < 100 || code > 599)
 		throw std::invalid_argument("Invalid HTTP status code");
@@ -39,15 +39,15 @@ void ServerResponse::setStatusCode(int code)
 	_statusText = codeToText(code);
 }
 
-void ServerResponse::setStatusText(const std::string& text) { _statusText = text; }
-void ServerResponse::addHeader(const std::string& key, const std::string& value) { _headers[key] = value; }
-void ServerResponse::setBody(const std::string& body)
+void Response::setStatusText(const std::string& text) { _statusText = text; }
+void Response::addHeader(const std::string& key, const std::string& value) { _headers[key] = value; }
+void Response::setBody(const std::string& body)
 {
 	_body = body;
 	_headers["Content-Length"] = std::to_string(body.size());
 }
 
-std::string ServerResponse::toString() const
+std::string Response::toString() const
 {
 	std::ostringstream oss;
 
@@ -70,7 +70,7 @@ std::string ServerResponse::toString() const
 	return oss.str();
 }
 
-std::string ServerResponse::codeToText(int code) const
+std::string Response::codeToText(int code) const
 {
 	switch (code)
 	{
@@ -90,4 +90,24 @@ std::string ServerResponse::codeToText(int code) const
 		case 503: return "Service Unavailable";
 		default: return "Unknown";
 	}
+}
+	
+std::string Response::genResp(const ParsedRequest& req)
+{
+    // Create a Response object from the request
+    
+	if (!req.isRequestDone())
+		return ""; // nothing ready
+	
+	Response resp(req);
+
+    // Hardcode response for testing
+    resp.setStatusCode(200);
+    resp.setStatusText("OK");
+    resp.addHeader("Content-Length", "13");
+    resp.addHeader("Content-Type", "text/plain");
+    resp.setBody("Hello, world!");
+
+    // Serialize the response to a string
+    return resp.toString();
 }

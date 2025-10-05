@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <queue>
 #include "../ParsedRequest/ParsedRequest.hpp"
-#include "../ServerResponse/ServerResponse.hpp"
+#include "../Response/Response.hpp"
 
 #define GREEN "\033[0;32m"
 #define YELLOW "\033[0;33m"
@@ -21,13 +21,8 @@
 class ClientState
 {
 	private:
-		// Requests for this client
 		std::vector<ParsedRequest> _parsedRequests;
-
-		// Responses waiting to be sent
-		std::queue<ServerResponse> _responseQueue;
-
-		bool _readyToSend;
+		std::queue<Response> _responseQueue;
 		
 	public:
 		ClientState();
@@ -37,7 +32,6 @@ class ClientState
 		ClientState(ClientState&& other) noexcept = default;
 		ClientState& operator=(ClientState&& other) noexcept = default;
 
-		// Request management
 		size_t getParsedRequestCount() const;
 		const ParsedRequest& getReqObj(size_t index) const;
 		const ParsedRequest& getLatestReqObj() const;
@@ -46,21 +40,15 @@ class ClientState
 		bool latestRequestNeedsBody() const;
 
 		// Response management
-		void enqueueResponse(const ServerResponse& resp);
+		void enqueueResponse(const Response& resp);
 		bool responseQueueEmpty() const;
-		ServerResponse popNextResponse();
-		const ServerResponse& getRespObj() const;
+	
+		const Response& getRespObj() const;
 
 		// Ready-to-send flag
-		void setReadyToSend(bool value);
-		bool isReadyToSend() const;
-		
-		ParsedRequest& getLatestRequest();
-		void prepareNextRequestWithLeftover(const std::string& leftover);
-		void finalizeLatestRequestBody();
-		
-		ParsedRequest& getParsedRequest(size_t index);
 
+		ParsedRequest& getLatestRequest();
+		ParsedRequest& getParsedRequest(size_t index);
 		ParsedRequest& addParsedRequest();
 		
 		//requests
@@ -68,7 +56,7 @@ class ClientState
 		size_t getLatestRequestIndex() const;
     
 		//for gtests
-		ParsedRequest popFirstFinishedRequest();
+		ParsedRequest popFirstFinishedReq();
 };
 
 
