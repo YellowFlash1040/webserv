@@ -39,7 +39,7 @@ std::string ParsedRequest::bodyTypeToString(BodyType t)
 ParsedRequest::ParsedRequest()
 	: _tempBuffer(), _rlAndHeadersBuffer(), _body(), _chunkedBuffer(), _method(), _uri(), _httpVersion(),
 	_headers(), _bodyType(BodyType::NO_BODY), _headersDone(false), _terminatingZero(false), _bodyDone(false),
-	_needResp(true), _requestDone(false), _contentLength(0), _chunked(false) {}
+	_needResp(true), _requestDone(false), _contentLength(0) {}
 
 ParsedRequest::~ParsedRequest() = default;
 

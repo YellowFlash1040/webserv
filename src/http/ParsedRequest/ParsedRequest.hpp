@@ -48,7 +48,6 @@ class ParsedRequest
 
 		// Message framing
 		int  _contentLength;
-		bool _chunked;
 
 		// Helpers
 		static void removeCarriageReturns(std::string& str);

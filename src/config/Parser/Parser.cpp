@@ -214,7 +214,7 @@ void Parser::expectNotDirective(const std::string& tokenValue)
     if (directiveType == DirectiveType::UNKNOWN)
         return;
 
-    const char* separator;
+    const char* separator{};
     if (m_prevDirectiveType == DirectiveType::SIMPLE)
         separator = ";";
     else if (m_prevDirectiveType == DirectiveType::BLOCK)
