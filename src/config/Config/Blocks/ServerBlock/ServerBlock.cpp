@@ -14,22 +14,20 @@ void ServerBlock::applyTo(RequestContext& context) const
     applyIfSet(httpRedirection, context.redirection);
 }
 
-LocationBlock* ServerBlock::matchLocationBlock(const std::string& uri)
+const LocationBlock* ServerBlock::matchLocationBlock(
+    const std::string& uri) const
 {
-    LocationBlock* bestMatch = nullptr;
+    const LocationBlock* bestMatch = nullptr;
     std::size_t bestLength = 0;
 
-    for (LocationBlock& location : locations)
+    for (const LocationBlock& location : locations)
     {
         const std::string& path = location.path;
 
-        if (uri.compare(0, path.size(), path) == 0)
+        if (uri.compare(0, path.size(), path) == 0 && path.size() > bestLength)
         {
-            if (path.size() > bestLength)
-            {
-                bestLength = path.size();
-                bestMatch = &location;
-            }
+            bestLength = path.size();
+            bestMatch = &location;
         }
     }
 

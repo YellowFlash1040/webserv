@@ -11,9 +11,9 @@ void HttpBlock::applyTo(RequestContext& context) const
     applyIfSet(index, context.index_files);
 }
 
-ServerBlock& HttpBlock::matchServerBlock(const std::string& host)
+const ServerBlock& HttpBlock::matchServerBlock(const std::string& host) const
 {
-    for (ServerBlock& serverBlock : servers)
+    for (const ServerBlock& serverBlock : servers)
         if (serverBlock.serverName.value() == host)
             return serverBlock;
     return servers.value()[0];

@@ -34,7 +34,7 @@ Config::~Config() {}
 
 // ---------------------------ACCESSORS-----------------------------
 
-HttpBlock& Config::httpBlock()
+const HttpBlock& Config::httpBlock() const
 {
     return m_httpBlock;
 }
@@ -212,8 +212,8 @@ RequestContext Config::createRequestContext(const std::string& host,
     RequestContext requestContext;
 
     HttpBlock& httpBlock = m_httpBlock;
-    ServerBlock& serverBlock = httpBlock.matchServerBlock(host);
-    LocationBlock* locationBlock = serverBlock.matchLocationBlock(url);
+    const ServerBlock& serverBlock = httpBlock.matchServerBlock(host);
+    const LocationBlock* locationBlock = serverBlock.matchLocationBlock(url);
 
     httpBlock.applyTo(requestContext);
     serverBlock.applyTo(requestContext);

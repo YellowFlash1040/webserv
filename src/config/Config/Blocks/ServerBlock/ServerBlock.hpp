@@ -31,7 +31,7 @@ struct ServerBlock : public ConfigBlock
     Property<std::vector<std::string>> index;
     // Methods
     void applyTo(RequestContext& context) const override;
-    LocationBlock* matchLocationBlock(const std::string& uri);
+    const LocationBlock* matchLocationBlock(const std::string& uri) const;
 };
 
 #endif

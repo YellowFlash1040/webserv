@@ -38,7 +38,7 @@ class Config
     static Config fromFile(const std::string& filepath);
     std::vector<std::string> getAllEnpoints();
 
-    HttpBlock& httpBlock();
+    const HttpBlock& httpBlock() const;
     RequestContext createRequestContext(const std::string& host,
                                         const std::string& url);
 

@@ -21,7 +21,7 @@ struct HttpBlock : public ConfigBlock
     Property<std::vector<std::string>> index;
     // Methods
     void applyTo(RequestContext& context) const override;
-    ServerBlock& matchServerBlock(const std::string& host);
+    const ServerBlock& matchServerBlock(const std::string& host) const;
 };
 
 #endif
