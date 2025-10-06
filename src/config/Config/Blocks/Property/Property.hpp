@@ -18,8 +18,8 @@ class Property
     Property<T>& operator=(T&& other);
     // Copy/move constructors and assignment
     Property(const Property&) = default;
-    Property(Property&&) noexcept = default;
     Property& operator=(const Property&) = default;
+    Property(Property&&) noexcept = default;
     Property& operator=(Property&&) noexcept = default;
     ~Property() = default;
 
@@ -45,6 +45,15 @@ class Property
     auto end() { return m_value.end(); }
     auto begin() const { return m_value.begin(); }
     auto end() const { return m_value.end(); }
+
+    // Add comparison support
+    //  Compare with another Property
+    bool operator==(const Property<T>& other) const;
+    bool operator!=(const Property<T>& other) const;
+
+    // Compare with raw T
+    bool operator==(const T& other) const;
+    bool operator!=(const T& other) const;
 
   private:
     // Properties

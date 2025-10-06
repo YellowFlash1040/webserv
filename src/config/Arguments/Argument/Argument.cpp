@@ -92,3 +92,25 @@ ArgumentType Argument::getArgumentType(const Argument& arg)
     (void)arg;
     return (ArgumentType::Integer);
 }
+
+// --------------------------OPERATORS----------------------------
+
+Argument::operator std::string&()
+{
+    return m_value;
+}
+
+Argument::operator const std::string&() const
+{
+    return m_value;
+}
+
+bool Argument::operator==(const std::string& other) const
+{
+    return m_value == other;
+}
+
+bool Argument::operator!=(const std::string& other) const
+{
+    return m_value != other;
+}

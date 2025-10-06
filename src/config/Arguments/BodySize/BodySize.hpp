@@ -26,7 +26,11 @@ class BodySize
     static const std::string ALLOWED_LETTERS;
     // Accessors
     size_t value() const;
-    // Methods
+    // Operators
+    operator size_t&();
+    operator const size_t&() const;
+    bool operator==(const size_t& other) const;
+    bool operator!=(const size_t& other) const;
 
   protected:
     // Properties

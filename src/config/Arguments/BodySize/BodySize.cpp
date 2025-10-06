@@ -118,3 +118,25 @@ size_t BodySize::applyLetterMultiplier(size_t value, char letter)
 
     return (value * multiplier);
 }
+
+// --------------------------OPERATORS----------------------------
+
+BodySize::operator size_t&()
+{
+    return m_value;
+}
+
+BodySize::operator const size_t&() const
+{
+    return m_value;
+}
+
+bool BodySize::operator==(const size_t& other) const
+{
+    return m_value == other;
+}
+
+bool BodySize::operator!=(const size_t& other) const
+{
+    return m_value != other;
+}

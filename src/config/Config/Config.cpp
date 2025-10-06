@@ -145,10 +145,9 @@ LocationBlock Config::buildLocationBlock(
     }
 
     if (locationBlock.acceptedHttpMethods->empty())
-        HttpMethod::setDefaultHttpMethods(
-            locationBlock.acceptedHttpMethods.value());
+        HttpMethod::setDefaultHttpMethods(locationBlock.acceptedHttpMethods);
 
-    locationBlock.path = locationDirective->args()[0].value();
+    locationBlock.path = locationDirective->args()[0];
 
     return locationBlock;
 }
@@ -156,19 +155,19 @@ LocationBlock Config::buildLocationBlock(
 void Config::assign(Property<std::string>& property,
                     const std::vector<Argument>& args)
 {
-    property = args[0].value();
+    property = args[0];
 }
 
 void Config::assign(Property<bool>& property, const std::vector<Argument>& args)
 {
-    property = (args[0].value() == "on");
+    property = (args[0] == "on");
 }
 
 void Config::assign(Property<size_t>& property,
                     const std::vector<Argument>& args)
 {
-    // property = std::stoul(args[0].value());
-    property = BodySize(args[0].value()).value();
+    // property = std::stoul(args[0]);
+    property = BodySize(args[0]);
 }
 
 void Config::assign(Property<std::vector<ErrorPage>>& errorPages,
@@ -177,10 +176,9 @@ void Config::assign(Property<std::vector<ErrorPage>>& errorPages,
     std::vector<HttpStatusCode> statusCodes;
 
     for (size_t i = 0; i < args.size() - 1; ++i)
-        statusCodes.push_back(
-            static_cast<HttpStatusCode>(std::stoi(args[i].value())));
+        statusCodes.push_back(static_cast<HttpStatusCode>(std::stoi(args[i])));
 
-    std::string filePath = args.back().value();
+    std::string filePath = args.back();
 
     errorPages->emplace_back(statusCodes, filePath);
     errorPages.isSet() = true;
@@ -190,7 +188,7 @@ void Config::assign(Property<std::vector<HttpMethod>>& httpMethods,
                     const std::vector<Argument>& args)
 {
     for (Argument arg : args)
-        httpMethods->emplace_back(arg.value());
+        httpMethods->emplace_back(arg);
     httpMethods.isSet() = true;
 }
 
@@ -198,7 +196,7 @@ void Config::assign(Property<std::vector<std::string>>& property,
                     const std::vector<Argument>& args)
 {
     for (Argument arg : args)
-        property->emplace_back(arg.value());
+        property->emplace_back(arg);
     property.isSet() = true;
 }
 

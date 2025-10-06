@@ -40,6 +40,11 @@ class Argument
     size_t column() const;
     // Methods
     static ArgumentType getArgumentType(const Argument& arg);
+    // Operators
+    operator std::string&();
+    operator const std::string&() const;
+    bool operator==(const std::string& other) const;
+    bool operator!=(const std::string& other) const;
 
   private:
     // Properties

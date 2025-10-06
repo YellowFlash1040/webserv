@@ -112,3 +112,27 @@ const T& Property<T>::operator*() const
 {
     return m_value;
 }
+
+template <typename T>
+bool Property<T>::operator==(const Property<T>& other) const
+{
+    return m_value == other.m_value;
+}
+
+template <typename T>
+bool Property<T>::operator!=(const Property<T>& other) const
+{
+    return m_value != other.m_value;
+}
+
+template <typename T>
+bool Property<T>::operator==(const T& other) const
+{
+    return m_value == other;
+}
+
+template <typename T>
+bool Property<T>::operator!=(const T& other) const
+{
+    return m_value != other;
+}
