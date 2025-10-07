@@ -160,7 +160,9 @@ void Config::assign(Property<std::string>& property,
 
 void Config::assign(Property<bool>& property, const std::vector<Argument>& args)
 {
-    property = (args[0] == "on");
+    if (args[0] == "on")
+        property = true;
+    else if (args[0] == "of")
 }
 
 void Config::assign(Property<size_t>& property,
