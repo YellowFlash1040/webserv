@@ -8,7 +8,9 @@
 #include <sstream>
 #include "../ParsedRequest/ParsedRequest.hpp"
 #include "ClientState/ClientState.hpp"
-#include "../utilities/ParsedRequestUtils/ParsedRequestUtils.hpp"
+#include "../utils/ReqContextPrinter/ReqContextPrinter.hpp"
+#include "../utils/ParsedRequestUtils/ParsedRequestUtils.hpp"
+#include "../config/Config/Config.hpp"
 
 #define GREEN "\033[0;32m"
 #define YELLOW "\033[0;33m"
@@ -22,10 +24,16 @@
 class ConnectionManager
 {
 	private:
+		// TODO: make m_config const once Config methods are const-correct
+		Config& m_config;
+		
 		std::unordered_map<int, ClientState> m_clients;
 		
 	public:
-		ConnectionManager() = default;
+		ConnectionManager() = delete;
+		
+		// TODO: make m_config const once Config methods are const-correct
+		ConnectionManager(Config& config);
 		~ConnectionManager() = default;
 		ConnectionManager(const ConnectionManager&) = default;
 		ConnectionManager& operator=(const ConnectionManager&) = default;
@@ -39,7 +47,6 @@ class ConnectionManager
 		void removeClient(int clientId);
 		ClientState& getClientStateForTest(int clientId);
 		
-	
 		bool processData(int clientId, const std::string& tcpData);
 		size_t processReqs(int clientId, const std::string& tcpData);
 		void genRespsForReadyReqs(int clientId);

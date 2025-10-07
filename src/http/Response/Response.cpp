@@ -3,15 +3,8 @@
 #include <stdexcept>   // for invalid_argument
 
 
-Response::Response() 
-  : _statusCode(200), _statusText("OK"), _headers({{"Content-Type","text/html"},{"Connection","keep-alive"}}), _body("")
-{}
-
-Response::Response(const ParsedRequest& req)
-	: _statusCode(200),
-	  _statusText("OK"),
-	  _headers({{"Content-Type", "text/html"}, {"Connection", "keep-alive"}}),
-	  _body("<html><body>Requested URI: " + req.getUri() + "</body></html>")
+Response::Response(const ParsedRequest& req, const RequestContext& ctx)
+    : _req(req), _ctx(ctx), _statusCode(200), _statusText("OK"), _headers({{"Content-Type","text/html"},{"Connection","keep-alive"}}), _body("")
 {}
 
 void Response::reset()
@@ -92,22 +85,21 @@ std::string Response::codeToText(int code) const
 	}
 }
 	
-std::string Response::genResp(const ParsedRequest& req)
+std::string Response::genResp()
 {
     // Create a Response object from the request
     
-	if (!req.isRequestDone())
+	if (!_req.isRequestDone())
 		return ""; // nothing ready
 	
-	Response resp(req);
-
     // Hardcode response for testing
-    resp.setStatusCode(200);
-    resp.setStatusText("OK");
-    resp.addHeader("Content-Length", "13");
-    resp.addHeader("Content-Type", "text/plain");
-    resp.setBody("Hello, world!");
+	// Use _ctx internally if needed
+    setStatusCode(200);
+	setStatusText("OK");
+    addHeader("Content-Length", "13");
+    addHeader("Content-Type", "text/plain");
+    setBody("Hello, world!");
 
     // Serialize the response to a string
-    return resp.toString();
+    return toString();
 }

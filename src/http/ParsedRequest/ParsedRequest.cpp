@@ -35,9 +35,17 @@ std::string ParsedRequest::bodyTypeToString(BodyType t)
 	}
 }
 
+HttpMethodEnum stringToHttpMethod(const std::string& method)
+{
+    if (method == "GET") return HttpMethodEnum::GET;
+    if (method == "POST") return HttpMethodEnum::POST;
+    if (method == "DELETE") return HttpMethodEnum::DELETE;
+    return HttpMethodEnum::NONE;
+}
+
 // --- Canonical form ---
 ParsedRequest::ParsedRequest()
-	: _tempBuffer(), _rlAndHeadersBuffer(), _body(), _chunkedBuffer(), _method(), _uri(), _httpVersion(),
+	: _tempBuffer(), _rlAndHeadersBuffer(), _body(), _chunkedBuffer(), _method(), _methodEnum(), _uri(), _httpVersion(),
 	_headers(), _bodyType(BodyType::NO_BODY), _headersDone(false), _terminatingZero(false), _bodyDone(false),
 	_needResp(true), _requestDone(false), _contentLength(0) {}
 
@@ -169,9 +177,9 @@ void ParsedRequest::parseRequestLine(const std::string& firstLine)
 	if (_method.empty() || _uri.empty() || _httpVersion.empty())
 		throw std::runtime_error("Invalid request line");
 
-	if (_method != "GET" && _method != "POST" && _method != "PUT" &&
-		_method != "DELETE" && _method != "HEAD" && _method != "OPTIONS")
-		throw std::invalid_argument("Unsupported HTTP method: " + _method);
+	_methodEnum = stringToHttpMethod(_method);
+	if (_methodEnum == HttpMethodEnum::NONE)
+    	throw std::invalid_argument("Unsupported HTTP method: " + _method);
 
 	if (_httpVersion != "HTTP/1.0" && _httpVersion != "HTTP/1.1")
 		throw std::invalid_argument("Unsupported HTTP version: " + _httpVersion);
@@ -319,7 +327,7 @@ std::string ParsedRequest::decodeChunkedBody(size_t& bytesProcessed)
 		{
 			// terminating zero chunk, make sure final CRLF exists
 			std::cout << ORANGE << "[decodeChunkedBody]: " << RESET
-            	<< RED << "reached terminating zero chunk" << RESET "\n";
+				<< RED << "reached terminating zero chunk" << RESET "\n";
 
 			// make sure the final CRLF exists
 			size_t zeroChunkEnd = chunkDataStart + 2; // chunkDataStart points after the first \r\n
@@ -340,11 +348,11 @@ std::string ParsedRequest::decodeChunkedBody(size_t& bytesProcessed)
 				break;
 			}
 			else
-        	{
+			{
 				std::cout << ORANGE << "[decodeChunkedBody]: " << RESET
 					<< "waiting for final CRLF after zero chunk\n";
-                break; // wait for more data
-        	}
+				break; // wait for more data
+			}
 			break; // zero chunk ends the loop
 		}
 	}
@@ -443,16 +451,16 @@ void ParsedRequest::consumeTempBuffer(size_t n)
 {
 	std::cout << MINT << "[consumeTempBuffer]: " << RESET << "_tempbuffer before: |" << _tempBuffer << "|, size = " << _tempBuffer.size() << "\n";
 
-    if (n >= _tempBuffer.size())
-    {
-        _tempBuffer.clear();
-    }
-    else
-    {
-        _tempBuffer.erase(0, n);  // remove the first n bytes
-    }
+	if (n >= _tempBuffer.size())
+	{
+		_tempBuffer.clear();
+	}
+	else
+	{
+		_tempBuffer.erase(0, n);  // remove the first n bytes
+	}
 
-    std::cout << MINT << "[consumeTempBuffer]: " << RESET << "after consuming:  |" << _tempBuffer << "|, size = " << _tempBuffer.size() << "\n";
+	std::cout << MINT << "[consumeTempBuffer]: " << RESET << "after consuming:  |" << _tempBuffer << "|, size = " << _tempBuffer.size() << "\n";
 }
 
 void ParsedRequest::appendToBody(const std::string& data)
@@ -510,7 +518,7 @@ void ParsedRequest::appendBodyBytes(const std::string& data)
 		case BodyType::CHUNKED:
 		{
 			appendToChunkedBuffer(getTempBuffer());
-    		std::cout << GREEN << "[appendBodyBytes]: " << RESET
+			std::cout << GREEN << "[appendBodyBytes]: " << RESET
 				<< "appeneded chunkBuffer with data from tempBuffer. It is now |"
 				<< getChunkedBuffer() << "|\n";
 			setTempBuffer(""); // consumed for decoding
@@ -558,51 +566,61 @@ void ParsedRequest::appendBodyBytes(const std::string& data)
 
 void ParsedRequest::separateHeadersFromBody()
 {
-    std::cout << YELLOW << "DEBUG: separateHeadersFromBody: " << RESET << std::endl;
-    std::cout << "[separateHeadersFromBody] tempBuffer = |" << _tempBuffer << "|\n";
+	std::cout << YELLOW << "DEBUG: separateHeadersFromBody: " << RESET << std::endl;
+	std::cout << "[separateHeadersFromBody] tempBuffer = |" << _tempBuffer << "|\n";
 
-    size_t headerEnd = _tempBuffer.find("\r\n\r\n");
-    if (headerEnd == std::string::npos)
-    {
-        std::cout << "[separateHeadersFromBody] Headers incomplete (\\r\\n\\r\\n not found)\n";
-        return; // headers incomplete
-    }
+	size_t headerEnd = _tempBuffer.find("\r\n\r\n");
+	if (headerEnd == std::string::npos)
+	{
+		std::cout << "[separateHeadersFromBody] Headers incomplete (\\r\\n\\r\\n not found)\n";
+		return; // headers incomplete
+	}
 
-    std::string headerPart = _tempBuffer.substr(0, headerEnd + 4);
-    std::cout << "[separateHeadersFromBody] Header part = |" << headerPart << "|\n";
+	std::string headerPart = _tempBuffer.substr(0, headerEnd + 4);
+	std::cout << "[separateHeadersFromBody] Header part = |" << headerPart << "|\n";
 
-    try
-    {
-        parseRequestLineAndHeaders(headerPart);
-    }
-    catch (const std::exception& e)
-    {
-        std::cout << "[separateHeadersFromBody] Exception parsing headers: " << e.what() << "\n";
-        _bodyType = BodyType::ERROR;
-        _bodyDone = true;
-        _tempBuffer.clear();
-        throw;
-    }
-    catch (...)
-    {
-        std::cout << "[separateHeadersFromBody] Unknown exception parsing headers\n";
-        _bodyType = BodyType::ERROR;
-        _bodyDone = true;
-        _tempBuffer.clear();
-        throw;
-    }
+	try
+	{
+		parseRequestLineAndHeaders(headerPart);
+	}
+	catch (const std::exception& e)
+	{
+		std::cout << "[separateHeadersFromBody] Exception parsing headers: " << e.what() << "\n";
+		_bodyType = BodyType::ERROR;
+		_bodyDone = true;
+		_tempBuffer.clear();
+		throw;
+	}
+	catch (...)
+	{
+		std::cout << "[separateHeadersFromBody] Unknown exception parsing headers\n";
+		_bodyType = BodyType::ERROR;
+		_bodyDone = true;
+		_tempBuffer.clear();
+		throw;
+	}
 
-    if (_bodyType == BodyType::NO_BODY)
-    {
-        std::cout << "No body, marking body and request done\n";
-        _bodyDone = true;
-        _requestDone = true;
-    }
+	if (_bodyType == BodyType::NO_BODY)
+	{
+		std::cout << "No body, marking body and request done\n";
+		_bodyDone = true;
+		_requestDone = true;
+	}
 
-    // Keep leftover (after headers) in tempBuffer
-    _tempBuffer = _tempBuffer.substr(headerEnd + 4);
-    std::cout << "Temp buffer after headers removed = |" << _tempBuffer << "|\n";
+	// Keep leftover (after headers) in tempBuffer
+	_tempBuffer = _tempBuffer.substr(headerEnd + 4);
+	std::cout << "Temp buffer after headers removed = |" << _tempBuffer << "|\n";
 }
 
+const std::string ParsedRequest::getHost() const
+{
+	return getHeader("Host");
+}
 
-
+HttpMethodEnum ParsedRequest::stringToHttpMethod(const std::string& method) {
+    if (method == "GET") return HttpMethodEnum::GET;
+    if (method == "POST") return HttpMethodEnum::POST;
+    if (method == "PUT") return HttpMethodEnum::PUT;
+    if (method == "DELETE") return HttpMethodEnum::DELETE;
+    return HttpMethodEnum::NONE; // fallback
+}

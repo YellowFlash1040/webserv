@@ -3,7 +3,7 @@
 // --------------CONSTRUCTION AND DESTRUCTION--------------
 
 // Default constructor
-Server::Server(int port, Config config)
+Server::Server(int port, Config& config)
 	: m_connMgr(config)
 {
 	fillAddressInfo(port);

@@ -1,6 +1,9 @@
 #include "ConnectionManager.hpp"
 
-// Add a new client
+// TODO: make m_config const once Config methods are const-correct
+ConnectionManager::ConnectionManager(Config& config)
+: m_config(config) {}
+
 void ConnectionManager::addClient(int clientId)
 {
 	m_clients.emplace(clientId, ClientState());
@@ -11,12 +14,12 @@ bool ConnectionManager::clientSentClose(int clientId) const
 	auto it = m_clients.find(clientId);
 	if (it == m_clients.end())
 		return true;
-	
+
 	const ClientState& clientState = it->second;
 	if (clientState.getParsedRequestCount() == 0)
 		return false; // no requests yet
 		
-	const ParsedRequest& req = clientState.getReqObj(clientState.getParsedRequestCount() - 1);
+	const ParsedRequest& req = clientState.getRequest(clientId);
 	std::string connHeader = req.getHeader("Connection");
 	return (connHeader == "close");
 }
@@ -35,9 +38,9 @@ const ParsedRequest& ConnectionManager::getRequest(int clientId, size_t index) c
 		throw std::runtime_error("getRequest: clientId not found");
 
 	if (index == SIZE_MAX)
-		return it->second.getLatestReqObj(); // const getter
+		return it->second.getLatestRequest(); // const getter
 	
-	return it->second.getReqObj(index); // const getter
+	return it->second.getRequest(index); // const getter
 }
 
 ClientState& ConnectionManager::getClientStateForTest(int clientId)
@@ -67,7 +70,6 @@ size_t ConnectionManager::processReqs(int clientId, const std::string& data)
 
 	ClientState& clientState = it->second;
 	std::cout << "[processReqs]: start of the function, requests:\n";
-	printAllRequests(clientState);
 	
 	ParsedRequest& req = clientState.getLatestRequest();
 	
@@ -124,7 +126,6 @@ size_t ConnectionManager::processReqs(int clientId, const std::string& data)
 				std::cout << "[processReqs]: adding request" << "\n";
 				ParsedRequest& newReq = clientState.addParsedRequest();
 				newReq.setTempBuffer(forNextReq);
-				printAllRequests(clientState);
 				continue;
 				
 			}
@@ -144,30 +145,30 @@ size_t ConnectionManager::processReqs(int clientId, const std::string& data)
 
 void ConnectionManager::genRespsForReadyReqs(int clientId)
 {
-	auto it = m_clients.find(clientId);
-	if (it == m_clients.end())
-		return;
-	
-	ClientState& clientState = it->second;
-	
-	std::string allResponses;
-	
-	while (clientState.getParsedRequestCount() > 0) 
-	{
-		ParsedRequest &req = clientState.getParsedRequest(0);
+    auto it = m_clients.find(clientId);
+    if (it == m_clients.end())
+        return;
 
-		if (!req.isRequestDone() || !req.needsResponse())
-			break; // stop at first incomplete request
+    ClientState& clientState = it->second;
 
-		// Build a Response object from the request
-		Response resp(req);
-		std::string output = resp.genResp(clientState.getParsedRequest(0));
-		clientState.enqueueResponse(resp); // store in ClientState queue
+    while (clientState.getParsedRequestCount() > 0) 
+    {
+        ParsedRequest& req = clientState.getRequest(0);
+
+        if (!req.isRequestDone() || !req.needsResponse())
+            break; // stop at first incomplete request
 		
-		req.setResponseAdded();  // mark as done // mark request as handled
+		RequestContext ctx = m_config.createRequestContext(req.getHost(), req.getUri());
+        printReqContext(ctx);
 		
+		Response resp(req, ctx);
+		clientState.enqueueResponse(resp);
+
+        std::string output = resp.genResp();
+        
+        req.setResponseAdded();
 		//for production, comment out while testing:
-		// popFinishedReq(clientId);
+		popFinishedReq(clientId);
 
 	}
 }
@@ -183,7 +184,7 @@ std::string ConnectionManager::genResp(int clientId)
 	if (clientState.getParsedRequestCount() == 0)
 		return "";
 
-	ParsedRequest &req = clientState.getParsedRequest(0);
+	ParsedRequest &req = clientState.getRequest(0);
 
 	if (!req.isRequestDone())
 		return ""; // nothing ready

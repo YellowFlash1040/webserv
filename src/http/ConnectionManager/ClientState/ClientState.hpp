@@ -33,10 +33,15 @@ class ClientState
 		ClientState& operator=(ClientState&& other) noexcept = default;
 
 		size_t getParsedRequestCount() const;
-		const ParsedRequest& getReqObj(size_t index) const;
-		const ParsedRequest& getLatestReqObj() const;
-		ParsedRequest& getReqObj(size_t index);
-		ParsedRequest& getLatestReqObj();
+		
+		ParsedRequest& getRequest(size_t idx);
+		const ParsedRequest& getRequest(size_t idx) const;
+		ParsedRequest& getLatestRequest();
+		const ParsedRequest& getLatestRequest() const;
+		
+
+		size_t getLatestRequestIndex() const;
+		
 		bool latestRequestNeedsBody() const;
 
 		// Response management
@@ -47,14 +52,8 @@ class ClientState
 
 		// Ready-to-send flag
 
-		ParsedRequest& getLatestRequest();
-		ParsedRequest& getParsedRequest(size_t index);
 		ParsedRequest& addParsedRequest();
 		
-		//requests
-		ParsedRequest& getRequest(size_t idx);
-		size_t getLatestRequestIndex() const;
-    
 		//for gtests
 		ParsedRequest popFirstFinishedReq();
 };

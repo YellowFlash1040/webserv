@@ -4,26 +4,28 @@
 #include <string>
 #include <unordered_map>
 #include "../ParsedRequest/ParsedRequest.hpp"
+#include "../config/RequestContext/RequestContext.hpp"
 
 class Response
 {
 private:
+	const ParsedRequest& _req;
+    RequestContext _ctx;
+	
 	int _statusCode;
 	std::string _statusText;
 	std::unordered_map<std::string, std::string> _headers;
 	std::string _body;
 
 public:
-	// Constructor
-	Response();
-	Response(const ParsedRequest& req);
 
-	// Defaults for destructor/copy/move
-	~Response() = default;
-	Response(const Response&) = default;
-	Response& operator=(const Response&) = default;
-	Response(Response&&) noexcept = default;
-	Response& operator=(Response&&) noexcept = default;
+	Response() = delete;
+	Response(const ParsedRequest& req, const RequestContext& ctx); 
+   ~Response() = default;
+    Response(const Response&) = default;
+    Response& operator=(const Response&) = default;
+    Response(Response&&) noexcept = default;
+    Response& operator=(Response&&) noexcept = default;
 
 	// Reset
 	void reset();
@@ -46,7 +48,7 @@ public:
 
 	// Map HTTP status code to default text
 	std::string codeToText(int code) const;
-	std::string genResp(const ParsedRequest& req);
+	std::string genResp();
 	
 	
 };

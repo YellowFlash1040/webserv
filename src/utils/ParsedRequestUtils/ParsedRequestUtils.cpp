@@ -10,7 +10,7 @@ void printRequest(ClientState& clientState, size_t i)
 		return;
 	}
 
-	ParsedRequest& req = clientState.getParsedRequest(i);
+	ParsedRequest& req = clientState.getRequest(i);
 	std::cout << TEAL << "Request #" << i << RESET << "\n"
 			  << "Method = " << req.getMethod()
 			  << ", URI = " << req.getUri()

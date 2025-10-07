@@ -1,6 +1,7 @@
 #ifndef PARSEDREQUEST_HPP
 #define PARSEDREQUEST_HPP
 
+#include "../HttpMethod/HttpMethod.hpp"
 #include <string>
 #include <unordered_map>
 #include <iostream>
@@ -34,6 +35,7 @@ class ParsedRequest
 		std::string _chunkedBuffer;
 		std::string _contentLengthBuffer;
 		std::string _method;
+		HttpMethodEnum _methodEnum;
 		std::string _uri;
 		std::string _httpVersion;
 		std::unordered_map<std::string, std::string> _headers;
@@ -53,6 +55,7 @@ class ParsedRequest
 		static void removeCarriageReturns(std::string& str);
 		static void trimLeadingWhitespace(std::string& str);
 		static bool iequals(const std::string& a, const std::string& b);
+		static HttpMethodEnum stringToHttpMethod(const std::string& method);
 		
 	public:
 		ParsedRequest();
@@ -67,6 +70,7 @@ class ParsedRequest
 		BodyType getBodyType() const;
 		const std::string& getMethod() const;
 		const std::string& getUri() const;
+		const std::string getHost() const;
 		const std::string& getHttpVersion() const;
 		const std::string& getBody() const;
 		const std::string& getChunkedBuffer() const;

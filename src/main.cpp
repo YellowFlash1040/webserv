@@ -20,8 +20,6 @@ int main(void)
 
 	try
 	{
-		ConnectionManager connMgr;
-
 		// Pass a reference to Server
 		Config config = Config::fromFile(filepath); 
 		Server s(8081, config);

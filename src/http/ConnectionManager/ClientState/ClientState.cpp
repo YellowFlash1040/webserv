@@ -14,19 +14,6 @@ size_t ClientState::getParsedRequestCount() const
 	return _parsedRequests.size();
 }
 
-const ParsedRequest& ClientState::getReqObj(size_t index) const
-{
-	if (index >= _parsedRequests.size())
-		throw std::out_of_range("Requested ParsedRequest index out of range");
-	return _parsedRequests[index];
-}
-
-const ParsedRequest& ClientState::getLatestReqObj() const
-{
-	if (_parsedRequests.empty())
-		throw std::runtime_error("No requests available in ClientState");
-	return _parsedRequests.back();
-}
 
 bool ClientState::latestRequestNeedsBody() const
 {
@@ -55,6 +42,7 @@ const Response& ClientState::getRespObj() const
 	return _responseQueue.front();
 }
 
+//will always return a request
 ParsedRequest& ClientState::getLatestRequest()
 {
 	if (_parsedRequests.empty())
@@ -67,14 +55,11 @@ ParsedRequest& ClientState::getLatestRequest()
 	return _parsedRequests.back();
 }
 
-
-
-
-ParsedRequest& ClientState::getParsedRequest(size_t index)
+const ParsedRequest& ClientState::getLatestRequest() const
 {
-	if (index >= _parsedRequests.size())
-		throw std::out_of_range("ParsedRequest index out of range");
-	return _parsedRequests[index];
+	if (_parsedRequests.empty())
+		throw std::runtime_error("No requests available in ClientState");
+	return _parsedRequests.back();
 }
 
 ParsedRequest& ClientState::addParsedRequest()
@@ -90,6 +75,11 @@ ParsedRequest& ClientState::addParsedRequest()
 ParsedRequest& ClientState::getRequest(size_t idx)
 {
 	return _parsedRequests.at(idx);
+}
+
+const ParsedRequest& ClientState::getRequest(size_t idx) const
+{
+    return _parsedRequests.at(idx);
 }
 
 size_t ClientState::getLatestRequestIndex() const
