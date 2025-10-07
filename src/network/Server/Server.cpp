@@ -156,7 +156,7 @@ void Server::acceptNewClient(int listeningSocket)
     Socket::setNonBlockingAndCloexec(clientSocket);
     addSocketToEPoll(clientSocket, EPOLLIN);
 
-    m_clients.emplace(clientSocket, std::unique_ptr<Client>(new Client(clientSocket, clientAddr)));
+    m_clients.emplace(clientSocket, std::make_unique<Client>(clientSocket, clientAddr));
 
     //test for sending (remove it after implementing HTTP)
 
@@ -172,10 +172,14 @@ void Server::acceptNewClient(int listeningSocket)
 
 void Server::removeClient(int clientSocket)
 {
+    auto it = m_clients.find(clientSocket);
+    if (it == m_clients.end())
+        return;
+
     if (m_epfd != -1)
         epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr);
 
-    m_clients.erase(clientSocket);
+    m_clients.erase(it);
 
     std::cout << "Client removed: " << clientSocket << "\n";
 }
@@ -242,7 +246,6 @@ void Server::processClient(int clientSocket)
     else if (n == 0)
     {
         // processData(buf, clientSocket);
-
         removeClient(clientSocket);
     }
     else

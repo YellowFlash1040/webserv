@@ -113,13 +113,17 @@ CGIResponse CGI::execute(const std::string &scriptPath,
         close(pipe_out[1]);
 
         std::vector<char*> c_args;
-        if (execPath != scriptPath) {
+        if (execPath != scriptPath)
+        {
             // запускаем через интерпретатор
             c_args.push_back(const_cast<char*>(execPath.c_str()));
             c_args.push_back(const_cast<char*>(scriptPath.c_str()));
-        } else {
+        }
+        else
+        {
             c_args.push_back(const_cast<char*>(scriptPath.c_str()));
         }
+        
         for (auto &a : args)
             c_args.push_back(const_cast<char*>(a.c_str()));
         c_args.push_back(nullptr);
