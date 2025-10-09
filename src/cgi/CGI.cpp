@@ -151,12 +151,12 @@ std::string CGI::execute(const std::string &scriptPath,
         close(pipe_in[0]);
         close(pipe_out[1]);
 
-        ssize_t total = 0;
+        size_t total = 0;
         if (!input.empty())
         {
             while (total < input.size()) 
             {
-                ssize_t n = write(pipe_in[1], input.c_str() + total, input.size() - total);
+                size_t n = write(pipe_in[1], input.c_str() + total, input.size() - total);
                 if (n <= 0) throw std::runtime_error("write failed");
                 total += n;
             }

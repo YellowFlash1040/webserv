@@ -6,11 +6,6 @@
 #include <string>
 #include <vector>
 
-struct CGIResponse {
-    std::string headers;
-    std::string body;
-};
-
 class CGI
 {
 public:
