@@ -14,7 +14,7 @@ struct CGIResponse {
 class CGI
 {
 public:
-    static CGIResponse execute(const std::string &scriptPath,
+    static std::string execute(const std::string &scriptPath,
                     const std::vector<std::string> &args,
                     const std::vector<std::string> &env,
                     const std::string &input = "",

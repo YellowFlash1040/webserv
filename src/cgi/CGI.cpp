@@ -85,7 +85,7 @@ std::string validateScriptPath(const std::string &scriptPath, const std::string 
     throw std::runtime_error("CGI script is not executable and has no shebang: " + scriptPath);
 }
 
-CGIResponse CGI::execute(const std::string &scriptPath,
+std::string CGI::execute(const std::string &scriptPath,
                     const std::vector<std::string> &args,
                     const std::vector<std::string> &env,
                     const std::string &input,
@@ -94,8 +94,13 @@ CGIResponse CGI::execute(const std::string &scriptPath,
     std::string execPath = validateScriptPath(scriptPath, rootDir);
 
     int pipe_in[2], pipe_out[2];
+
     if (pipe(pipe_in) == -1 || pipe(pipe_out) == -1)
+    {
+        close(pipe_in[0]);
+        close(pipe_in[1]);
         throw std::runtime_error("Failed to create pipes");
+    }
 
     pid_t pid = fork();
     if (pid < 0)
@@ -103,9 +108,13 @@ CGIResponse CGI::execute(const std::string &scriptPath,
 
     if (pid == 0)
     {
-        dup2(pipe_in[0], STDIN_FILENO);
-        dup2(pipe_out[1], STDOUT_FILENO);
-        dup2(pipe_out[1], STDERR_FILENO);
+        if (dup2(pipe_in[0], STDIN_FILENO) == -1 ||
+            dup2(pipe_out[1], STDOUT_FILENO) == -1 ||
+            dup2(pipe_out[1], STDERR_FILENO) == -1)
+        {
+            perror("dup2 failed");
+            _exit(1);
+        }
 
         close(pipe_in[0]);
         close(pipe_in[1]);
@@ -142,30 +151,49 @@ CGIResponse CGI::execute(const std::string &scriptPath,
         close(pipe_in[0]);
         close(pipe_out[1]);
 
+        ssize_t total = 0;
         if (!input.empty())
-            write(pipe_in[1], input.c_str(), input.size());
+        {
+            while (total < input.size()) 
+            {
+                ssize_t n = write(pipe_in[1], input.c_str() + total, input.size() - total);
+                if (n <= 0) throw std::runtime_error("write failed");
+                total += n;
+            }
+
+        }
+
         close(pipe_in[1]);
 
-        std::string raw;
+        std::string cgi_output;
         char buffer[1024];
         ssize_t n;
-        while ((n = read(pipe_out[0], buffer, sizeof(buffer))) > 0)
-            raw.append(buffer, n);
+
+        while ((n = read(pipe_out[0], buffer, sizeof(buffer))) != 0)
+        {
+            if (n < 0)
+            {
+                if (errno == EINTR) continue;
+                throw std::runtime_error("read failed");
+            }
+            cgi_output.append(buffer, n);
+        }
         close(pipe_out[0]);
 
-        waitpid(pid, nullptr, 0);
+        int status;
+        waitpid(pid, &status, 0);
 
-        CGIResponse resp;
-        size_t pos = raw.find("\r\n\r\n");
-        if (pos != std::string::npos)
+        if (WIFEXITED(status))
         {
-            resp.headers = raw.substr(0, pos);
-            resp.body = raw.substr(pos + 4);
+            int code = WEXITSTATUS(status);
+            if (code != 0)
+                std::cerr << "CGI exited with code " << code << std::endl;
         }
-        else
+        else if (WIFSIGNALED(status))
         {
-            resp.body = raw;
+            std::cerr << "CGI killed by signal " << WTERMSIG(status) << std::endl;
         }
-        return resp;
+
+        return cgi_output;
     }
 }
