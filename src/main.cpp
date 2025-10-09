@@ -8,9 +8,11 @@ int main(void)
     {
         Config config = Config::fromFile(filepath);
 
-        RequestContext context = config.createRequestContext("server.com", "/");
+        RequestContext context
+            = config.createRequestContext("server.com", "/kapouet/file");
 
-        std::cout << "Well done :)" << "\n";
+        std::cout << "Well done :)"
+                  << "\n";
     }
     catch (const ConfigException& e)
     {

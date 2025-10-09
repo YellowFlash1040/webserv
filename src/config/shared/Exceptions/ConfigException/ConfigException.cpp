@@ -7,6 +7,15 @@ ConfigException::ConfigException(size_t line, size_t column)
     m_message = createLocationMessage(line, column);
 }
 
+ConfigException::ConfigException(size_t line, size_t column,
+                                 const std::string& message)
+  : m_line(line)
+  , m_column(column)
+{
+    m_message = createLocationMessage(line, column);
+    m_message += message;
+}
+
 const char* ConfigException::what() const noexcept
 {
     return m_message.c_str();

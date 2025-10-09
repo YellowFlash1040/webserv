@@ -128,6 +128,9 @@ LocationBlock Config::buildLocationBlock(
     LocationBlock locationBlock;
 
     auto locationDirective = dynamic_cast<BlockDirective*>(locationNode.get());
+
+    locationBlock.path = locationDirective->args()[0];
+
     for (const auto& directive : locationDirective->directives())
     {
         const std::string& name = directive->name();
@@ -145,9 +148,10 @@ LocationBlock Config::buildLocationBlock(
     }
 
     if (locationBlock.acceptedHttpMethods->empty())
-        HttpMethod::setDefaultHttpMethods(locationBlock.acceptedHttpMethods);
-
-    locationBlock.path = locationDirective->args()[0];
+    {
+        setDefaultHttpMethods(locationBlock.acceptedHttpMethods);
+        locationBlock.acceptedHttpMethods.isSet() = true;
+    }
 
     return locationBlock;
 }
@@ -155,21 +159,42 @@ LocationBlock Config::buildLocationBlock(
 void Config::assign(Property<std::string>& property,
                     const std::vector<Argument>& args)
 {
-    property = args[0];
+    try
+    {
+        property = args[0];
+    }
+    catch (const std::exception& ex)
+    {
+        const Argument& arg = args[0];
+        throw ConfigException(arg.line(), arg.column(), ex.what());
+    }
 }
 
 void Config::assign(Property<bool>& property, const std::vector<Argument>& args)
 {
-    if (args[0] == "on")
-        property = true;
-    else if (args[0] == "of")
+    try
+    {
+        property = Converter::toBool(args[0]);
+    }
+    catch (const std::exception& ex)
+    {
+        const Argument& arg = args[0];
+        throw ConfigException(arg.line(), arg.column(), ex.what());
+    }
 }
 
 void Config::assign(Property<size_t>& property,
                     const std::vector<Argument>& args)
 {
-    // property = std::stoul(args[0]);
-    property = BodySize(args[0]);
+    try
+    {
+        property = Converter::toBodySize(args[0]);
+    }
+    catch (const std::exception& ex)
+    {
+        const Argument& arg = args[0];
+        throw ConfigException(arg.line(), arg.column(), ex.what());
+    }
 }
 
 void Config::assign(Property<std::vector<ErrorPage>>& errorPages,
@@ -177,12 +202,21 @@ void Config::assign(Property<std::vector<ErrorPage>>& errorPages,
 {
     std::vector<HttpStatusCode> statusCodes;
 
-    for (size_t i = 0; i < args.size() - 1; ++i)
-        statusCodes.push_back(static_cast<HttpStatusCode>(std::stoi(args[i])));
+    size_t i = 0;
+    try
+    {
+        for (; i < args.size() - 1; ++i)
+            statusCodes.push_back(Converter::toHttpStatusCode(args[i]));
+    }
+    catch (const std::exception& ex)
+    {
+        const Argument& arg = args[i];
+        throw ConfigException(arg.line(), arg.column(), ex.what());
+    }
 
-    std::string filePath = args.back();
-
+    const std::string& filePath = args.back();
     errorPages->emplace_back(statusCodes, filePath);
+
     errorPages.isSet() = true;
 }
 
@@ -190,7 +224,17 @@ void Config::assign(Property<std::vector<HttpMethod>>& httpMethods,
                     const std::vector<Argument>& args)
 {
     for (Argument arg : args)
-        httpMethods->emplace_back(arg);
+    {
+        try
+        {
+            httpMethods->push_back(Converter::toHttpMethod(arg));
+        }
+        catch (const std::exception& ex)
+        {
+            throw ConfigException(arg.line(), arg.column(), ex.what());
+        }
+    }
+
     httpMethods.isSet() = true;
 }
 
@@ -198,7 +242,17 @@ void Config::assign(Property<std::vector<std::string>>& property,
                     const std::vector<Argument>& args)
 {
     for (Argument arg : args)
-        property->emplace_back(arg);
+    {
+        try
+        {
+            property->emplace_back(arg);
+        }
+        catch (const std::exception& ex)
+        {
+            throw ConfigException(arg.line(), arg.column(), ex.what());
+        }
+    }
+
     property.isSet() = true;
 }
 
@@ -220,4 +274,15 @@ RequestContext Config::createRequestContext(const std::string& host,
     locationBlock->applyTo(requestContext);
 
     return requestContext;
+}
+
+///----------------///
+///----------------///
+///----------------///
+
+void Config::setDefaultHttpMethods(std::vector<HttpMethod>& httpMethods)
+{
+    httpMethods.push_back(HttpMethod::GET);
+    httpMethods.push_back(HttpMethod::POST);
+    httpMethods.push_back(HttpMethod::DELETE);
 }

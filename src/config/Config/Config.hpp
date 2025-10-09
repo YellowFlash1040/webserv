@@ -19,6 +19,10 @@
 # include "ServerBlock.hpp"
 # include "LocationBlock.hpp"
 
+# include "Converter.hpp"
+
+# include "ConfigException.hpp"
+
 class Config
 {
     // Construction and destruction
@@ -33,12 +37,10 @@ class Config
     // Class specific features
   public:
     // Accessors
+    const HttpBlock& httpBlock() const;
     // Methods
-
     static Config fromFile(const std::string& filepath);
     std::vector<std::string> getAllEnpoints();
-
-    const HttpBlock& httpBlock() const;
     RequestContext createRequestContext(const std::string& host,
                                         const std::string& url);
 
@@ -47,12 +49,6 @@ class Config
     HttpBlock m_httpBlock;
 
     // Methods
-    std::vector<ADirective*> findAll(const std::string& directiveName,
-                                     BlockDirective* block);
-    void findAll(const std::string& directiveName, BlockDirective* block,
-                 std::vector<ADirective*>& result);
-
-    // Final Implementation
     static HttpBlock buildHttpBlock(
         const std::unique_ptr<ADirective>& httpNode);
     static ServerBlock buildServerBlock(
@@ -72,6 +68,8 @@ class Config
                        const std::vector<Argument>& args);
     static void assign(Property<std::vector<HttpMethod>>& property,
                        const std::vector<Argument>& args);
+
+    static void setDefaultHttpMethods(std::vector<HttpMethod>& httpMethods);
 };
 
 #endif

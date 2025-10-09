@@ -78,3 +78,14 @@ void Validator::checkArguments(const std::string& name,
     // for (Argument arg : args)
     //     if (arg.type() !=)
 }
+
+// Create a map <directive_name, args_validation_function>
+// Create a function for each directive
+// Create a class for each possible data type
+// Use appropriate string -> class conversions and see the results
+
+// map
+// function
+// class
+// convert
+// validate

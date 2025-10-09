@@ -15,11 +15,4 @@ void LocationBlock::applyTo(RequestContext& context) const
     applyIfSet(index, context.index_files);
     applyIfSet(uploadStore, context.upload_store);
     applyIfSet(cgiPass, context.cgi_pass);
-
-    if (!acceptedHttpMethods.isSet())
-    {
-        context.allowed_methods.emplace_back("GET");
-        context.allowed_methods.emplace_back("POST");
-        context.allowed_methods.emplace_back("DELETE");
-    }
 }
