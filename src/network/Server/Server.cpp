@@ -147,6 +147,7 @@ void Server::processClient(int clientId)
 		// Only remove client if last request indicates Connection: close
 		if (m_connMgr.clientSentClose(clientId))
 		{
+			printf ("CLOSE\n");
 			m_connMgr.removeClient(clientId);
 			close(clientId);
 		}

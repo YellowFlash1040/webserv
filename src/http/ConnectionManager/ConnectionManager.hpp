@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cstdint>
 #include <sstream>
+#include <filesystem>
 #include "../ParsedRequest/ParsedRequest.hpp"
 #include "ClientState/ClientState.hpp"
 #include "../utils/ReqContextPrinter/ReqContextPrinter.hpp"
@@ -54,6 +55,8 @@ class ConnectionManager
 		
 		//for gtests
 		ParsedRequest popFinishedReq(int clientId);
+		
+		bool isPathInsideRoot(const std::string& root, const std::string& resolved);
 	};
 
 #endif

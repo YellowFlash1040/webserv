@@ -11,16 +11,22 @@ void ConnectionManager::addClient(int clientId)
 
 bool ConnectionManager::clientSentClose(int clientId) const
 {
+	
 	auto it = m_clients.find(clientId);
 	if (it == m_clients.end())
 		return true;
 
 	const ClientState& clientState = it->second;
 	if (clientState.getParsedRequestCount() == 0)
-		return false; // no requests yet
+	{
 		
-	const ParsedRequest& req = clientState.getRequest(clientId);
+		return false; // no requests yet
+	}
+		
+	const ParsedRequest& req = clientState.getRequest(0);
+	
 	std::string connHeader = req.getHeader("Connection");
+	
 	return (connHeader == "close");
 }
 
@@ -69,7 +75,6 @@ size_t ConnectionManager::processReqs(int clientId, const std::string& data)
 		return false;
 
 	ClientState& clientState = it->second;
-	std::cout << "[processReqs]: start of the function, requests:\n";
 	
 	ParsedRequest& req = clientState.getLatestRequest();
 	
@@ -89,8 +94,9 @@ size_t ConnectionManager::processReqs(int clientId, const std::string& data)
 			req.separateHeadersFromBody();
 			if (req.isHeadersDone() == false)
 			{
-				break; // Need more data for headers, exit loop until next call;
 				std::cout << "[processReqs]: headers are not finished yet\n";
+				break; // Need more data for headers, exit loop until next call;
+				
 			}
 		}
 		
@@ -167,7 +173,7 @@ void ConnectionManager::genRespsForReadyReqs(int clientId)
         std::string output = resp.genResp();
         
         req.setResponseAdded();
-		//for production, comment out while testing:
+	
 		popFinishedReq(clientId);
 
 	}
@@ -205,3 +211,17 @@ ParsedRequest ConnectionManager::popFinishedReq(int clientId)
 	return it->second.popFirstFinishedReq();
 }
 
+bool ConnectionManager::isPathInsideRoot(const std::string& root, const std::string& resolved)
+{
+    try
+	{
+        std::filesystem::path rootPath = std::filesystem::canonical(root);
+        std::filesystem::path filePath = std::filesystem::weakly_canonical(std::filesystem::path(root) / resolved);
+
+        return std::mismatch(rootPath.begin(), rootPath.end(), filePath.begin()).first == rootPath.end();
+    }
+    catch (const std::filesystem::filesystem_error&)
+	{
+        return false;
+    }
+}

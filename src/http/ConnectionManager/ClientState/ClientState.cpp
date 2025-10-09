@@ -74,7 +74,12 @@ ParsedRequest& ClientState::addParsedRequest()
 //requests
 ParsedRequest& ClientState::getRequest(size_t idx)
 {
-	return _parsedRequests.at(idx);
+    if (idx >= _parsedRequests.size()) 
+	{
+        std::cerr << "Tried to access parsed request " << idx << " but size=" << _parsedRequests.size() << "\n";
+        throw std::out_of_range("getRequest index out of bounds");
+    }
+    return _parsedRequests[idx];
 }
 
 const ParsedRequest& ClientState::getRequest(size_t idx) const

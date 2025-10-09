@@ -168,25 +168,6 @@ void ParsedRequest::parseRequestLineAndHeaders(const std::string& headerPart)
 	parseHeaders(stream); // throws invalid_argument if broken
 
 }
-
-
-void ParsedRequest::parseRequestLine(const std::string& firstLine)
-{
-	std::istringstream reqLine(firstLine);
-	reqLine >> _method >> _uri >> _httpVersion;
-	if (_method.empty() || _uri.empty() || _httpVersion.empty())
-		throw std::runtime_error("Invalid request line");
-
-	_methodEnum = stringToHttpMethod(_method);
-	if (_methodEnum == HttpMethodEnum::NONE)
-    	throw std::invalid_argument("Unsupported HTTP method: " + _method);
-
-	if (_httpVersion != "HTTP/1.0" && _httpVersion != "HTTP/1.1")
-		throw std::invalid_argument("Unsupported HTTP version: " + _httpVersion);
-
-	if (_uri[0] != '/')
-		throw std::invalid_argument("Invalid request URI: " + _uri);
-}
 	
 void ParsedRequest::parseHeaders(std::istringstream& stream)
 {
@@ -623,4 +604,109 @@ HttpMethodEnum ParsedRequest::stringToHttpMethod(const std::string& method) {
     if (method == "PUT") return HttpMethodEnum::PUT;
     if (method == "DELETE") return HttpMethodEnum::DELETE;
     return HttpMethodEnum::NONE; // fallback
+}
+
+void ParsedRequest::parseRequestLine(const std::string& firstLine)
+{
+    std::istringstream reqLine(firstLine);
+    reqLine >> _method >> _uri >> _httpVersion;
+
+    if (_method.empty() || _uri.empty() || _httpVersion.empty())
+        throw std::runtime_error("Invalid request line");
+
+    _methodEnum = stringToHttpMethod(_method);
+    if (_methodEnum == HttpMethodEnum::NONE)
+        throw std::invalid_argument("Unsupported HTTP method: " + _method);
+
+    if (_httpVersion != "HTTP/1.0" && _httpVersion != "HTTP/1.1")
+        throw std::invalid_argument("Unsupported HTTP version: " + _httpVersion);
+
+    if (_uri[0] != '/')
+	{
+        throw std::invalid_argument("Invalid request URI: " + _uri);
+		//400 Bad Request
+	}
+    // --- Split URI into path + query ---
+    size_t qpos = _uri.find('?');
+    if (qpos != std::string::npos) {
+        _path = _uri.substr(0, qpos);
+        _query = _uri.substr(qpos + 1);
+    } else {
+        _path = _uri;
+        _query.clear();
+    }
+
+    // --- Normalize the path (not the full URI) ---
+    std::cout << GREEN << "old _path " << _path << "\n";
+    _path = normalizePath(_path);
+	std::cout << GREEN << "new _path " << _path << RESET << "\n";
+	std::cout << GREEN << "_query " << _query << RESET << "\n";
+	
+}
+
+std::string decodePercent(const std::string& s)
+{
+    std::string result;
+    for (size_t i = 0; i < s.size(); ++i)
+    {
+        if (s[i] == '%' && i + 2 < s.size())
+        {
+            char hex[3] = { s[i+1], s[i+2], 0 };
+            char decoded = static_cast<char>(std::strtol(hex, nullptr, 16));
+            result += decoded;
+            i += 2;
+        }
+        else
+        {
+            result += s[i];
+        }
+    }
+    return result;
+}
+
+std::string ParsedRequest::normalizePath(const std::string& uri)
+{
+    if (uri.empty() || uri[0] != '/')
+        throw std::invalid_argument("Invalid absolute URI");
+
+    std::vector<std::string> stack;
+    std::istringstream iss(uri);
+    std::string segment;
+
+    while (std::getline(iss, segment, '/'))
+    {
+        segment = decodePercent(segment); // decode percent-encoded characters
+
+        if (segment.empty() || segment == ".")
+            continue;
+
+        if (segment == "..")
+        {
+            if (stack.empty())
+            {
+                // Trying to go above root → reject request
+                throw std::runtime_error("Bad request: path escapes root");
+            }
+            stack.pop_back();
+        }
+        else
+        {
+            stack.push_back(segment);
+        }
+    }
+
+    std::ostringstream oss;
+    oss << "/";
+    for (size_t i = 0; i < stack.size(); ++i)
+    {
+        oss << stack[i];
+        if (i + 1 < stack.size())
+            oss << "/";
+    }
+
+    // Preserve trailing slash if original URI had it
+    if (uri.size() > 1 && uri.back() == '/' && !stack.empty())
+        oss << "/";
+
+    return oss.str();
 }

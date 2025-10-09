@@ -37,6 +37,8 @@ class ParsedRequest
 		std::string _method;
 		HttpMethodEnum _methodEnum;
 		std::string _uri;
+		std::string _path;   // path only, normalized and safe to use for filesystem mapping
+		std::string _query;  // optional query string (part after '?')
 		std::string _httpVersion;
 		std::unordered_map<std::string, std::string> _headers;
 		BodyType _bodyType;
@@ -126,6 +128,9 @@ class ParsedRequest
 		void appendBodyBytes(const std::string& data);
 		
 		static std::string bodyTypeToString(BodyType t);
+		std::string normalizePath(const std::string& uri);
+
+		
 };
 
 #endif
