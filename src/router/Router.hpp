@@ -4,6 +4,7 @@
 #define ROUTER_HPP
 
 #include "CGI.hpp"
+#include "CGIParser.hpp"
 #include <map>
 
 struct HttpRequest

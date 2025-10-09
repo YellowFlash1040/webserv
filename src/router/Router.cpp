@@ -39,8 +39,8 @@ HttpResponse Router::handleCgi(const HttpRequest &req)
 
     try
     {
-        CGIResponse cgiResp = CGI::execute(script, args, env, req.body, cgiRoot);
-        resp.headers = cgiResp.headers + "\r\n";
+        std::string rawOutput = CGI::execute(script, args, env, req.body, cgiRoot);
+        CGIResponse cgiResp = CGIParser::CGIResponseParser(rawOutput);
         resp.body = cgiResp.body;
     }
     catch (const std::exception &e)
