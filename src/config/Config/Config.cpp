@@ -156,6 +156,12 @@ LocationBlock Config::buildLocationBlock(
     return locationBlock;
 }
 
+/*
+    Maybe it makes sense to create somewhere in the code an
+    array of function pointers and choose which function to
+    apply
+*/
+
 void Config::assign(Property<std::string>& property,
                     const std::vector<Argument>& args)
 {

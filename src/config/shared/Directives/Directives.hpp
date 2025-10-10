@@ -38,19 +38,14 @@ constexpr const char* INDEX = "index";
 constexpr const char* UPLOAD_STORE = "upload_store";
 constexpr const char* CGI_PASS = "cgi_pass";
 
-extern const std::set<std::string> blockDirectives;
-extern const std::set<std::string> simpleDirectives;
-extern const std::map<std::string, std::set<std::string>>
-    directivesAllowedByContext;
-extern const std::map<std::string, std::string> requiredParentContext;
-
 bool isKnownDirective(const std::string& name);
 DirectiveType getDirectiveType(const std::string& name);
 bool isBlockDirective(const std::string& name);
 bool isSimpleDirective(const std::string& name);
 bool isAllowedInContext(const std::string& name, const std::string& context);
 std::set<std::string> getAllowedContextsFor(const std::string& name);
-bool hasRightAmountOfArguments(const std::string& name, size_t amount);
+// bool hasRightAmountOfArguments(const std::string& name, size_t amount);
+const std::vector<ArgSpec>& getArgSpecs(const std::string& name);
 
 } // namespace Directives
 

@@ -72,11 +72,42 @@ void Validator::checkIfAllowedDirective(const std::string& name,
 void Validator::checkArguments(const std::string& name,
                                const std::vector<Argument>& args)
 {
-    if (!Directives::hasRightAmountOfArguments(name, args.size()))
+    // if (!Directives::hasRightAmountOfArguments(name, args.size()))
+    // throw InvalidArgumentCountException(m_errorLine, m_errorColumn, name);
+
+    const std::vector<ArgSpec> argSpecs = Directives::getArgSpecs(name);
+
+    /*
+    error_page 400 403 404 clientError.html
+    */
+
+    if (args.size() > argSpecs.size())
         throw InvalidArgumentCountException(m_errorLine, m_errorColumn, name);
 
-    // for (Argument arg : args)
-    //     if (arg.type() !=)
+    size_t i = 0;
+    for (ArgSpec spec : directiveSpecs.argumentSpecs)
+    {
+        ArgumentType requiredType = spec.type;
+
+        size_t count = 0;
+        while (i < args.size())
+        {
+            try
+            {
+                convert(args[i]);
+                ++count;
+            }
+            catch (const std::exception&)
+            {
+                if (count < spec.minCount)
+                    throw std::logic_error("");
+                else if (count > spec.maxCount)
+                    throw std::logic_error("");
+                break;
+            }
+            ++i;
+        }
+    }
 }
 
 // Create a map <directive_name, args_validation_function>
