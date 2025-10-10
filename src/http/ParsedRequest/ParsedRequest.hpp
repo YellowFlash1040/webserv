@@ -36,8 +36,8 @@ class ParsedRequest
 		std::string _contentLengthBuffer;
 		std::string _method;
 		HttpMethodEnum _methodEnum;
-		std::string _uri;
-		std::string _path;   // path only, normalized and safe to use for filesystem mapping
+		std::string _rawUri;
+		std::string _uri;   // path only, normalized and safe to use for filesystem mapping
 		std::string _query;  // optional query string (part after '?')
 		std::string _httpVersion;
 		std::unordered_map<std::string, std::string> _headers;
@@ -54,10 +54,11 @@ class ParsedRequest
 		int  _contentLength;
 
 		// Helpers
-		static void removeCarriageReturns(std::string& str);
-		static void trimLeadingWhitespace(std::string& str);
-		static bool iequals(const std::string& a, const std::string& b);
+		//static void removeCarriageReturns(std::string& str);
+		//static void trimLeadingWhitespace(std::string& str);
+		//static bool iequals(const std::string& a, const std::string& b);
 		static HttpMethodEnum stringToHttpMethod(const std::string& method);
+		
 		
 	public:
 		ParsedRequest();
@@ -71,7 +72,7 @@ class ParsedRequest
 		const std::string getHeader(const std::string& name) const;
 		BodyType getBodyType() const;
 		const std::string& getMethod() const;
-		const std::string& getUri() const;
+		const std::string& getRawUri() const;
 		const std::string getHost() const;
 		const std::string& getHttpVersion() const;
 		const std::string& getBody() const;
@@ -129,7 +130,11 @@ class ParsedRequest
 		
 		static std::string bodyTypeToString(BodyType t);
 		std::string normalizePath(const std::string& uri);
-
+		
+		const std::string& getUri() const;
+		const std::string& getQuery() const;
+		std::string fullyDecodePercent(const std::string& rawUri);
+		std::string decodePercentOnce(const std::string& s);
 		
 };
 

@@ -9,7 +9,8 @@ void ConnectionManager::addClient(int clientId)
 	m_clients.emplace(clientId, ClientState());
 }
 
-bool ConnectionManager::clientSentClose(int clientId) const
+//I think this will be read in the response
+bool ConnectionManager::clientSentClose(int clientId) const 
 {
 	
 	auto it = m_clients.find(clientId);

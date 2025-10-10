@@ -106,7 +106,9 @@ std::cout << "[popFirstFinishedRequest]: _parsedRequests size = " << _parsedRequ
 		{
 			std::cout << RED << "[popFirstFinishedRequest]: Popping finished request #" << idx << RESET
 				<< ", Method = " << req.getMethod()
+				<< ", rawURI = " << req.getRawUri()
 				<< ", URI = " << req.getUri()
+				<< ", Query = " << req.getQuery()
 				<< ", HeadersDone = " << req.isHeadersDone()
 				<< ", BodyDone = " << req.isBodyDone()
 				<< ", RequestDone = " << req.isRequestDone()
@@ -123,3 +125,4 @@ std::cout << "[popFirstFinishedRequest]: _parsedRequests size = " << _parsedRequ
 	std::cout << "No finished request found in _parsedRequests\n";
 	throw std::runtime_error("No finished request found");
 }
+

@@ -1,12 +1,12 @@
 #include "ParsedRequest.hpp"
 
 // --- Helpers ---
-void ParsedRequest::removeCarriageReturns(std::string& str)
+static void removeCarriageReturns(std::string& str)
 {
 	str.erase(std::remove(str.begin(), str.end(), '\r'), str.end());
 }
 
-void ParsedRequest::trimLeadingWhitespace(std::string& str)
+static void trimLeadingWhitespace(std::string& str)
 {
 	str.erase(
 		str.begin(),
@@ -15,7 +15,7 @@ void ParsedRequest::trimLeadingWhitespace(std::string& str)
 	);
 }
 
-bool ParsedRequest::iequals(const std::string& a, const std::string& b)
+static bool iequals(const std::string& a, const std::string& b)
 {
 	if (a.size() != b.size()) return false;
 	for (size_t i = 0; i < a.size(); ++i)
@@ -24,23 +24,19 @@ bool ParsedRequest::iequals(const std::string& a, const std::string& b)
 	return true;
 }
 
-std::string ParsedRequest::bodyTypeToString(BodyType t)
-{
-	switch (t)
-	{
-		case BodyType::NO_BODY:    return "NO_BODY";
-		case BodyType::SIZED:   return "SIZED";
-		case BodyType::CHUNKED: return "CHUNKED";
-		default:                return "UNKNOWN";
-	}
-}
-
 HttpMethodEnum stringToHttpMethod(const std::string& method)
 {
     if (method == "GET") return HttpMethodEnum::GET;
     if (method == "POST") return HttpMethodEnum::POST;
     if (method == "DELETE") return HttpMethodEnum::DELETE;
     return HttpMethodEnum::NONE;
+}
+
+bool isHex(char c)
+{
+    return (c >= '0' && c <= '9') ||
+           (c >= 'A' && c <= 'F') ||
+           (c >= 'a' && c <= 'f');
 }
 
 // --- Canonical form ---
@@ -59,7 +55,7 @@ ParsedRequest& ParsedRequest::operator=(ParsedRequest&& other) noexcept = defaul
 
 // --- Getters ---
 const std::string& ParsedRequest::getMethod() const { return _method; }
-const std::string& ParsedRequest::getUri() const { return _uri; }
+const std::string& ParsedRequest::getRawUri() const { return _rawUri; }
 const std::string& ParsedRequest::getHttpVersion() const { return _httpVersion; }
 
 const std::string ParsedRequest::getHeader(const std::string& name) const
@@ -152,6 +148,17 @@ size_t ParsedRequest::extractContentLength() const
 	catch (const std::exception& e)
 	{
 		throw std::invalid_argument("Invalid Content-Length header: " + clIt->second);
+	}
+}
+
+std::string ParsedRequest::bodyTypeToString(BodyType t)
+{
+	switch (t)
+	{
+		case BodyType::NO_BODY:    return "NO_BODY";
+		case BodyType::SIZED:   return "SIZED";
+		case BodyType::CHUNKED: return "CHUNKED";
+		default:                return "UNKNOWN";
 	}
 }
 
@@ -609,9 +616,9 @@ HttpMethodEnum ParsedRequest::stringToHttpMethod(const std::string& method) {
 void ParsedRequest::parseRequestLine(const std::string& firstLine)
 {
     std::istringstream reqLine(firstLine);
-    reqLine >> _method >> _uri >> _httpVersion;
+    reqLine >> _method >> _rawUri >> _httpVersion;
 
-    if (_method.empty() || _uri.empty() || _httpVersion.empty())
+    if (_method.empty() || _rawUri.empty() || _httpVersion.empty())
         throw std::runtime_error("Invalid request line");
 
     _methodEnum = stringToHttpMethod(_method);
@@ -621,92 +628,122 @@ void ParsedRequest::parseRequestLine(const std::string& firstLine)
     if (_httpVersion != "HTTP/1.0" && _httpVersion != "HTTP/1.1")
         throw std::invalid_argument("Unsupported HTTP version: " + _httpVersion);
 
-    if (_uri[0] != '/')
+    if (_rawUri[0] != '/')
 	{
-        throw std::invalid_argument("Invalid request URI: " + _uri);
+        throw std::invalid_argument("Invalid request URI: " + _rawUri);
 		//400 Bad Request
 	}
     // --- Split URI into path + query ---
-    size_t qpos = _uri.find('?');
-    if (qpos != std::string::npos) {
-        _path = _uri.substr(0, qpos);
-        _query = _uri.substr(qpos + 1);
-    } else {
-        _path = _uri;
+    size_t qpos = _rawUri.find('?');
+    if (qpos != std::string::npos)
+	{
+        _uri = _rawUri.substr(0, qpos);
+        _query = _rawUri.substr(qpos + 1);
+    }
+	else
+	{
+        _uri = _rawUri;
         _query.clear();
     }
 
     // --- Normalize the path (not the full URI) ---
-    std::cout << GREEN << "old _path " << _path << "\n";
-    _path = normalizePath(_path);
-	std::cout << GREEN << "new _path " << _path << RESET << "\n";
-	std::cout << GREEN << "_query " << _query << RESET << "\n";
-	
+    _uri = normalizePath(_uri);
 }
 
-std::string decodePercent(const std::string& s)
+
+std::string ParsedRequest::fullyDecodePercent(const std::string& rawUri)
 {
-    std::string result;
+    std::string decoded = rawUri;
+    const int MAX_DECODE_PASSES = 4;
+    int passes = 0;
+
+    while (decoded.find('%') != std::string::npos && passes < MAX_DECODE_PASSES)
+    {
+        std::string once = decodePercentOnce(decoded);
+        if (once == decoded)
+            break;
+        decoded.swap(once);
+        ++passes;
+    }
+
+    if (decoded.find('%') != std::string::npos)
+        throw std::runtime_error("Bad request: invalid percent-encoding or too many nested encodings");
+
+    return decoded;
+}
+
+std::string ParsedRequest::decodePercentOnce(const std::string& s)
+{
+    std::string out;
+    out.reserve(s.size());
+
     for (size_t i = 0; i < s.size(); ++i)
     {
-        if (s[i] == '%' && i + 2 < s.size())
+        if (s[i] == '%' && i + 2 < s.size() && isHex(s[i + 1]) && isHex(s[i + 2]))
         {
-            char hex[3] = { s[i+1], s[i+2], 0 };
-            char decoded = static_cast<char>(std::strtol(hex, nullptr, 16));
-            result += decoded;
+            std::string hex = s.substr(i + 1, 2);
+            char decoded = static_cast<char>(std::strtol(hex.c_str(), NULL, 16));
+            out += decoded;
             i += 2;
         }
         else
         {
-            result += s[i];
+            out += s[i];
         }
     }
-    return result;
+    return out;
 }
 
-std::string ParsedRequest::normalizePath(const std::string& uri)
-{
-    if (uri.empty() || uri[0] != '/')
-        throw std::invalid_argument("Invalid absolute URI");
+std::string ParsedRequest::normalizePath(const std::string& rawUri) {
+    if (rawUri.empty() || rawUri[0] != '/')
+        throw std::invalid_argument("Invalid raw URI");
+
+    // Fully decode percent-encoded sequences first
+    std::string decoded = fullyDecodePercent(rawUri);
 
     std::vector<std::string> stack;
-    std::istringstream iss(uri);
+    std::istringstream iss(decoded);
     std::string segment;
 
     while (std::getline(iss, segment, '/'))
-    {
-        segment = decodePercent(segment); // decode percent-encoded characters
-
+	{
         if (segment.empty() || segment == ".")
             continue;
 
         if (segment == "..")
-        {
+		{
             if (stack.empty())
-            {
-                // Trying to go above root → reject request
                 throw std::runtime_error("Bad request: path escapes root");
-            }
             stack.pop_back();
-        }
-        else
-        {
+        } else {
             stack.push_back(segment);
         }
     }
 
+    // Rebuild normalized path
     std::ostringstream oss;
     oss << "/";
     for (size_t i = 0; i < stack.size(); ++i)
-    {
+	{
         oss << stack[i];
         if (i + 1 < stack.size())
             oss << "/";
     }
 
     // Preserve trailing slash if original URI had it
-    if (uri.size() > 1 && uri.back() == '/' && !stack.empty())
+    if (rawUri.size() > 1 && rawUri.back() == '/' && !stack.empty())
         oss << "/";
 
     return oss.str();
+}
+
+
+const std::string& ParsedRequest::getUri() const
+{
+	return _uri;
+}
+
+const std::string& ParsedRequest::getQuery() const
+{
+	return _query;
 }
