@@ -180,29 +180,6 @@ void ConnectionManager::genRespsForReadyReqs(int clientId)
 	}
 }
 
-std::string ConnectionManager::genResp(int clientId)
-{
-	auto it = m_clients.find(clientId);
-	if (it == m_clients.end())
-		return "";
-
-	ClientState &clientState = it->second;
-
-	if (clientState.getParsedRequestCount() == 0)
-		return "";
-
-	ParsedRequest &req = clientState.getRequest(0);
-
-	if (!req.isRequestDone())
-		return ""; // nothing ready
-
-	// Simple hardcoded response for testing
-	std::string response = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello, world!";
-
-	return response;
-}
-
-
 ParsedRequest ConnectionManager::popFinishedReq(int clientId)
 {
 	auto it = m_clients.find(clientId);

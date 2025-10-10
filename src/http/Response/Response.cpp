@@ -87,19 +87,36 @@ std::string Response::codeToText(int code) const
 	
 std::string Response::genResp()
 {
-    // Create a Response object from the request
-    
-	if (!_req.isRequestDone())
-		return ""; // nothing ready
-	
-    // Hardcode response for testing
-	// Use _ctx internally if needed
-    setStatusCode(200);
-	setStatusText("OK");
-    addHeader("Content-Length", "13");
-    addHeader("Content-Type", "text/plain");
-    setBody("Hello, world!");
+    if (!_req.isRequestDone())
+        return ""; // nothing ready
 
-    // Serialize the response to a string
+    // ----- REDIRECTION -----
+    if (_ctx.has_return) 
+    {
+        setStatusCode(static_cast<int>(HttpStatusCode::MovedPermanently));
+        setStatusText("Moved Permanently");
+        addHeader("Location", _ctx.redirection.url);
+        setBody("Redirection in progress");
+        return toString();
+    }
+
+    // ----- CGI SCRIPT -----
+    if (!_ctx.cgi_pass.empty()) 
+    {
+        setStatusCode(static_cast<int>(HttpStatusCode::Ok));
+        setStatusText("OK");
+        addHeader("Content-Length", "27"); // hardcoded body length
+        addHeader("Content-Type", "text/plain");
+        setBody("CGI script would be executed");
+        return toString();
+    }
+
+    // ----- STATIC FILE -----
+    setStatusCode(static_cast<int>(HttpStatusCode::Ok));
+    setStatusText("OK");
+    addHeader("Content-Length", "23"); // hardcoded body length
+    addHeader("Content-Type", "text/plain");
+    setBody("Static file would be served");
+
     return toString();
 }

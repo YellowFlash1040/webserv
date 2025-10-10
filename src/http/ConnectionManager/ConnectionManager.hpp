@@ -51,7 +51,6 @@ class ConnectionManager
 		bool processData(int clientId, const std::string& tcpData);
 		size_t processReqs(int clientId, const std::string& tcpData);
 		void genRespsForReadyReqs(int clientId);
-		std::string genResp(int clientId);
 		
 		//for gtests
 		ParsedRequest popFinishedReq(int clientId);
