@@ -7,6 +7,7 @@
 # include <vector>
 # include <memory>
 
+# include "ConfigException.hpp"
 # include "Directives.hpp"
 # include "Arguments.hpp"
 
@@ -14,14 +15,11 @@
 # include "Lexer.hpp"
 # include "Parser.hpp"
 # include "Validator.hpp"
+# include "Converter.hpp"
 
 # include "HttpBlock.hpp"
 # include "ServerBlock.hpp"
 # include "LocationBlock.hpp"
-
-# include "Converter.hpp"
-
-# include "ConfigException.hpp"
 
 class Config
 {
@@ -42,7 +40,7 @@ class Config
     static Config fromFile(const std::string& filepath);
     std::vector<std::string> getAllEnpoints();
     RequestContext createRequestContext(const std::string& host,
-                                        const std::string& url);
+                                        const std::string& uri);
 
   private:
     // Properties

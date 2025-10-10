@@ -19,6 +19,13 @@ enum class ArgumentType
     String           // 'hello'
 };
 
+struct ArgumentSpecs
+{
+    ArgumentType type;
+    size_t minCount;
+    size_t maxCount;
+};
+
 class Argument
 {
     // Construction and destruction

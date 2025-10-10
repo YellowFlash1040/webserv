@@ -35,8 +35,8 @@ TEST_F(ConfigTest, RequestContext_RootPath_Site1Local)
     EXPECT_EQ(requestContext.root, "/var/www/site1");
 
     ASSERT_EQ(requestContext.allowed_methods.size(), 2u);
-    EXPECT_EQ(requestContext.allowed_methods[0].value(), HttpMethodEnum::GET);
-    EXPECT_EQ(requestContext.allowed_methods[1].value(), HttpMethodEnum::POST);
+    EXPECT_EQ(requestContext.allowed_methods[0], HttpMethod::GET);
+    EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
 
     ASSERT_EQ(requestContext.index_files.size(), 1u);
     EXPECT_EQ(requestContext.index_files[0], "index.html");
@@ -73,8 +73,8 @@ TEST_F(ConfigTest, RequestContext_KapouetPath_Site1Local)
     EXPECT_EQ(requestContext.root, "/var/www/site1");
 
     ASSERT_EQ(requestContext.allowed_methods.size(), 2u);
-    EXPECT_EQ(requestContext.allowed_methods[0].value(), HttpMethodEnum::GET);
-    EXPECT_EQ(requestContext.allowed_methods[1].value(), HttpMethodEnum::POST);
+    EXPECT_EQ(requestContext.allowed_methods[0], HttpMethod::GET);
+    EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
 
     ASSERT_EQ(requestContext.index_files.size(), 1u);
     EXPECT_EQ(requestContext.index_files[0], "index.html");
@@ -112,9 +112,9 @@ TEST_F(ConfigTest, RequestContext_FileInsideKapouet_Site1Local)
     EXPECT_EQ(requestContext.root, "/tmp/www");
 
     ASSERT_EQ(requestContext.allowed_methods.size(), 3u);
-    EXPECT_EQ(requestContext.allowed_methods[0].value(), HttpMethodEnum::GET);
-    EXPECT_EQ(requestContext.allowed_methods[1].value(), HttpMethodEnum::POST);
-    EXPECT_EQ(requestContext.allowed_methods[2].value(), HttpMethodEnum::DELETE);
+    EXPECT_EQ(requestContext.allowed_methods[0], HttpMethod::GET);
+    EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
+    EXPECT_EQ(requestContext.allowed_methods[2], HttpMethod::DELETE);
 
     ASSERT_EQ(requestContext.index_files.size(), 2u);
     EXPECT_EQ(requestContext.index_files[0], "index.html");
@@ -152,9 +152,9 @@ TEST_F(ConfigTest, RequestContext_FileInsideList_Site1Local)
     EXPECT_EQ(requestContext.root, "/var/www/site1");
 
     ASSERT_EQ(requestContext.allowed_methods.size(), 3u);
-    EXPECT_EQ(requestContext.allowed_methods[0].value(), HttpMethodEnum::GET);
-    EXPECT_EQ(requestContext.allowed_methods[1].value(), HttpMethodEnum::POST);
-    EXPECT_EQ(requestContext.allowed_methods[2].value(), HttpMethodEnum::DELETE);
+    EXPECT_EQ(requestContext.allowed_methods[0], HttpMethod::GET);
+    EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
+    EXPECT_EQ(requestContext.allowed_methods[2], HttpMethod::DELETE);
 
     EXPECT_TRUE(requestContext.index_files.empty());
 
@@ -190,9 +190,9 @@ TEST_F(ConfigTest, RequestContext_Oldpage_Site1Local)
     EXPECT_EQ(requestContext.root, "/var/www/site1");
 
     ASSERT_EQ(requestContext.allowed_methods.size(), 3u);
-    EXPECT_EQ(requestContext.allowed_methods[0].value(), HttpMethodEnum::GET);
-    EXPECT_EQ(requestContext.allowed_methods[1].value(), HttpMethodEnum::POST);
-    EXPECT_EQ(requestContext.allowed_methods[2].value(), HttpMethodEnum::DELETE);
+    EXPECT_EQ(requestContext.allowed_methods[0], HttpMethod::GET);
+    EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
+    EXPECT_EQ(requestContext.allowed_methods[2], HttpMethod::DELETE);
 
     EXPECT_TRUE(requestContext.index_files.empty());
 
@@ -228,9 +228,9 @@ TEST_F(ConfigTest, RequestContext_RootPath_Site2Local)
     EXPECT_EQ(requestContext.root, "/var/www/site2");
 
     ASSERT_EQ(requestContext.allowed_methods.size(), 3u);
-    EXPECT_EQ(requestContext.allowed_methods[0].value(), HttpMethodEnum::GET);
-    EXPECT_EQ(requestContext.allowed_methods[1].value(), HttpMethodEnum::POST);
-    EXPECT_EQ(requestContext.allowed_methods[2].value(), HttpMethodEnum::DELETE);
+    EXPECT_EQ(requestContext.allowed_methods[0], HttpMethod::GET);
+    EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
+    EXPECT_EQ(requestContext.allowed_methods[2], HttpMethod::DELETE);
 
     ASSERT_EQ(requestContext.index_files.size(), 1u);
     EXPECT_EQ(requestContext.index_files[0], "index.html");
@@ -267,9 +267,9 @@ TEST_F(ConfigTest, RequestContext_RandomPage_Site2Local)
     EXPECT_EQ(requestContext.root, "/var/www/site2");
 
     ASSERT_EQ(requestContext.allowed_methods.size(), 3u);
-    EXPECT_EQ(requestContext.allowed_methods[0].value(), HttpMethodEnum::GET);
-    EXPECT_EQ(requestContext.allowed_methods[1].value(), HttpMethodEnum::POST);
-    EXPECT_EQ(requestContext.allowed_methods[2].value(), HttpMethodEnum::DELETE);
+    EXPECT_EQ(requestContext.allowed_methods[0], HttpMethod::GET);
+    EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
+    EXPECT_EQ(requestContext.allowed_methods[2], HttpMethod::DELETE);
 
     ASSERT_EQ(requestContext.index_files.size(), 1u);
     EXPECT_EQ(requestContext.index_files[0], "index.html");

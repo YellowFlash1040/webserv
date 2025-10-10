@@ -14,7 +14,7 @@ HttpMethod toHttpMethod(const std::string& value)
 
     auto it = httpMethods.find(value);
     if (it == httpMethods.end())
-        throw std::invalid_argument("Unknow HttpMethod");
+        throw std::invalid_argument("unknown HttpMethod '" + value + "'");
     return it->second;
 }
 
@@ -27,7 +27,7 @@ bool toBool(const std::string& value)
 
     auto it = switchStates.find(value);
     if (it == switchStates.end())
-        throw std::invalid_argument("Unknow switch state");
+        throw std::invalid_argument("unknown switch state '" + value + "'");
     return it->second;
 }
 

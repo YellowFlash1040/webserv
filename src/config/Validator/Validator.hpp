@@ -27,8 +27,6 @@ class Validator
     // Methods
     static void validate(const std::unique_ptr<ADirective>& node);
     void validate();
-    void validateNode(const std::unique_ptr<ADirective>& node,
-                      const std::string& parentContext);
 
   private:
     // Properties
@@ -36,10 +34,10 @@ class Validator
     size_t m_errorLine = static_cast<size_t>(-1);
     size_t m_errorColumn = static_cast<size_t>(-1);
     // Methods
+    void validateNode(const std::unique_ptr<ADirective>& node,
+                      const std::string& parentContext);
     void validateChildren(const BlockDirective& block,
                           const std::string& parentContext);
-    void checkParentConstraint(const std::string& name,
-                               const std::string& parentContext);
     void checkIfAllowedDirective(const std::string& name,
                                  const std::string& context);
     void checkArguments(const std::string& name,

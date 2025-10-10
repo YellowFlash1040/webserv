@@ -24,18 +24,21 @@ void Validator::validate()
 
     const BlockDirective* block
         = dynamic_cast<const BlockDirective*>(m_rootNode.get());
-    if (!block)
+    if (!block || block->name() != "global")
         throw std::logic_error(
             "The root node has to be a block directive 'global'");
-
-    if (block->name() != "global")
-        throw std::logic_error(
-            "The root node has to be a block directive 'global'");
-
-    validateChildren(*block, name);
 
     if (block->directives().size() > 1)
         throw std::logic_error("duplicate 'http' directive");
+
+    validateChildren(*block, name);
+}
+
+void Validator::validateChildren(const BlockDirective& block,
+                                 const std::string& parentContext)
+{
+    for (const auto& directive : block.directives())
+        validateNode(directive, parentContext);
 }
 
 void Validator::validateNode(const std::unique_ptr<ADirective>& node,
@@ -54,13 +57,6 @@ void Validator::validateNode(const std::unique_ptr<ADirective>& node,
         validateChildren(*block, name);
 }
 
-void Validator::validateChildren(const BlockDirective& block,
-                                 const std::string& parentContext)
-{
-    for (const auto& directive : block.directives())
-        validateNode(directive, parentContext);
-}
-
 void Validator::checkIfAllowedDirective(const std::string& name,
                                         const std::string& context)
 {
@@ -75,39 +71,42 @@ void Validator::checkArguments(const std::string& name,
     // if (!Directives::hasRightAmountOfArguments(name, args.size()))
     // throw InvalidArgumentCountException(m_errorLine, m_errorColumn, name);
 
-    const std::vector<ArgSpec> argSpecs = Directives::getArgSpecs(name);
+    const std::vector<ArgumentSpecs> argSpecs = Directives::getArgSpecs(name);
+    (void)argSpecs;
+    (void)args;
 
     /*
     error_page 400 403 404 clientError.html
     */
 
-    if (args.size() > argSpecs.size())
-        throw InvalidArgumentCountException(m_errorLine, m_errorColumn, name);
+    // if (args.size() > argSpecs.size())
+    //     throw InvalidArgumentCountException(m_errorLine, m_errorColumn,
+    //     name);
 
-    size_t i = 0;
-    for (ArgSpec spec : directiveSpecs.argumentSpecs)
-    {
-        ArgumentType requiredType = spec.type;
+    // size_t i = 0;
+    // for (ArgumentSpecs argSpec : argSpecs)
+    // {
+    //     ArgumentType requiredType = argSpec.type;
 
-        size_t count = 0;
-        while (i < args.size())
-        {
-            try
-            {
-                convert(args[i]);
-                ++count;
-            }
-            catch (const std::exception&)
-            {
-                if (count < spec.minCount)
-                    throw std::logic_error("");
-                else if (count > spec.maxCount)
-                    throw std::logic_error("");
-                break;
-            }
-            ++i;
-        }
-    }
+    //     size_t count = 0;
+    //     while (i < args.size())
+    //     {
+    //         try
+    //         {
+    //             convert(args[i]);
+    //             ++count;
+    //         }
+    //         catch (const std::exception&)
+    //         {
+    //             if (count < argSpec.minCount)
+    //                 throw std::logic_error("");
+    //             else if (count > argSpec.maxCount)
+    //                 throw std::logic_error("");
+    //             break;
+    //         }
+    //         ++i;
+    //     }
+    // }
 }
 
 // Create a map <directive_name, args_validation_function>

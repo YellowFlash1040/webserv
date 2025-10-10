@@ -5,53 +5,29 @@
 namespace Directives
 {
 
-constexpr size_t UNLIMITED = static_cast<size_t>(-1);
-
-enum ArgCountType
-{
-    FixedCount,
-    Between,
-    AtLeast,
-    Any
-};
-
-struct ArgSpec
-{
-    ArgumentType type;
-    size_t minCount;
-    size_t maxCount;
-}
-
-struct DirectiveSpec
-{
-    DirectiveType type; // "simple" or "block"
-    std::set<std::string> allowedIn;
-    std::vector<ArgSpec> argumentSpecs;
-};
-
 const std::map<std::string, DirectiveSpec> directives = {
     {HTTP, {
-        DirectiveType::BLOCK,
+        Type::BLOCK,
         {GLOBAL_CONTEXT},
         {}
     }},
     {SERVER, {
-        DirectiveType::BLOCK,
+        Type::BLOCK,
         {HTTP},
         {}
     }},
     {SERVER_NAME, {
-        DirectiveType::SIMPLE,
+        Type::SIMPLE,
         {SERVER},
         {{ArgumentType::URL, 1, UNLIMITED}}
     }},
     {LISTEN, {
-        DirectiveType::SIMPLE,
+        Type::SIMPLE,
         {SERVER},
         {{ArgumentType::NetworkEndpoint, 1, 1}}
     }},
     {ERROR_PAGE, {
-        DirectiveType::SIMPLE,
+        Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
         {
             {ArgumentType::StatusCode, 1, UNLIMITED},
@@ -59,22 +35,22 @@ const std::map<std::string, DirectiveSpec> directives = {
         }
     }},
     {CLIENT_MAX_BODY_SIZE, {
-        DirectiveType::SIMPLE,
+        Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
         {{ArgumentType::DataSize, 1, 1}}
     }},
     {LOCATION, {
-        DirectiveType::BLOCK,
+        Type::BLOCK,
         {SERVER},
         {{ArgumentType::URL, 1, 1}}
     }},
     {ACCEPTED_METHODS, {
-        DirectiveType::SIMPLE,
+        Type::SIMPLE,
         {LOCATION},
         {{ArgumentType::HttpMethod, 1, 4}}
     }},
     {RETURN, {
-        DirectiveType::SIMPLE,
+        Type::SIMPLE,
         {SERVER, LOCATION},
         {
             {ArgumentType::StatusCode, 1, 1},
@@ -82,32 +58,32 @@ const std::map<std::string, DirectiveSpec> directives = {
         }
     }},
     {ROOT, {
-        DirectiveType::SIMPLE,
+        Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
         {{ArgumentType::FilePath, 1, 1}}
     }},
     {ALIAS, {
-        DirectiveType::SIMPLE,
+        Type::SIMPLE,
         {LOCATION},
         {{ArgumentType::FilePath, 1, 1}}
     }},
     {AUTOINDEX, {
-        DirectiveType::SIMPLE,
+        Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
         {{ArgumentType::OnOff, 1, 1}}
     }},
     {INDEX, {
-        DirectiveType::SIMPLE,
+        Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
         {{ArgumentType::FilePath, 1, UNLIMITED}}
     }},
     {UPLOAD_STORE, {
-        DirectiveType::SIMPLE,
+        Type::SIMPLE,
         {LOCATION},
         {{ArgumentType::FilePath, 1, 1}}
     }},
     {CGI_PASS, {
-        DirectiveType::SIMPLE,
+        Type::SIMPLE,
         {LOCATION},
         {{ArgumentType::FilePath, 1, 1}}
     }}
@@ -118,13 +94,13 @@ bool isKnownDirective(const std::string& name)
     return directives.count(name) > 0;
 }
 
-DirectiveType getDirectiveType(const std::string& name)
+Type getDirectiveType(const std::string& name)
 {
     if (isSimpleDirective(name))
-        return DirectiveType::SIMPLE;
+        return Type::SIMPLE;
     if (isBlockDirective(name))
-        return DirectiveType::BLOCK;
-    return DirectiveType::UNKNOWN;
+        return Type::BLOCK;
+    return Type::UNKNOWN;
 }
 
 bool isBlockDirective(const std::string& name)
@@ -134,7 +110,7 @@ bool isBlockDirective(const std::string& name)
         return false;
 
     DirectiveSpec specs = it->second;
-    if (specs.type != DirectiveType::BLOCK)
+    if (specs.type != Type::BLOCK)
         return false;
 
     return true; 
@@ -147,7 +123,7 @@ bool isSimpleDirective(const std::string& name)
         return false;
 
     DirectiveSpec specs = it->second;
-    if (specs.type != DirectiveType::SIMPLE)
+    if (specs.type != Type::SIMPLE)
         return false;
 
     return true;
@@ -166,24 +142,23 @@ bool isAllowedInContext(const std::string& name, const std::string& context)
     return true;
 }
 
-std::set<std::string> getAllowedContextsFor(const std::string& name)
-{
-    auto it = directives.find(name);
-    if (it == directives.end()) // if we didn't find such a directive (which cannot happen)
-        return {}; // Then it's not allowed anywhere
-
-    DirectiveSpec specs = it->second;
-    return specs.allowedIn;
-}
-
-const std::vector<ArgSpec>& getArgSpecs(const std::string& name)
+const std::set<std::string>& getAllowedContextsFor(const std::string& name)
 {
     auto it = directives.find(name);
     if (it == directives.end())
-        return {};
+        throw std::logic_error("Unknow directive '" + name + "'");
+
+    const DirectiveSpec& specs = it->second;
+    return specs.allowedIn;
+}
+
+const std::vector<ArgumentSpecs>& getArgSpecs(const std::string& name)
+{
+    auto it = directives.find(name);
+    if (it == directives.end())
+        throw std::logic_error("Unknow directive '" + name + "'");
 
     const DirectiveSpec& directiveSpecs = it->second;
-
     return directiveSpecs.argSpecs;
 }
 

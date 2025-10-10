@@ -61,6 +61,22 @@ std::vector<std::string> Config::getAllEnpoints()
     return endpoints;
 }
 
+RequestContext Config::createRequestContext(const std::string& host,
+                                            const std::string& uri)
+{
+    RequestContext requestContext;
+
+    HttpBlock& httpBlock = m_httpBlock;
+    const ServerBlock& serverBlock = httpBlock.matchServerBlock(host);
+    const LocationBlock* locationBlock = serverBlock.matchLocationBlock(uri);
+
+    httpBlock.applyTo(requestContext);
+    serverBlock.applyTo(requestContext);
+    locationBlock->applyTo(requestContext);
+
+    return requestContext;
+}
+
 ///----------------------------///
 ///----------------------------///
 ///----------------------------///
@@ -162,6 +178,10 @@ LocationBlock Config::buildLocationBlock(
     apply
 */
 
+///----------------///
+///----------------///
+///----------------///
+
 void Config::assign(Property<std::string>& property,
                     const std::vector<Argument>& args)
 {
@@ -208,16 +228,17 @@ void Config::assign(Property<std::vector<ErrorPage>>& errorPages,
 {
     std::vector<HttpStatusCode> statusCodes;
 
-    size_t i = 0;
-    try
+    for (size_t i = 0; i < args.size() - 1; ++i)
     {
-        for (; i < args.size() - 1; ++i)
+        try
+        {
             statusCodes.push_back(Converter::toHttpStatusCode(args[i]));
-    }
-    catch (const std::exception& ex)
-    {
-        const Argument& arg = args[i];
-        throw ConfigException(arg.line(), arg.column(), ex.what());
+        }
+        catch (const std::exception& ex)
+        {
+            const Argument& arg = args[i];
+            throw ConfigException(arg.line(), arg.column(), ex.what());
+        }
     }
 
     const std::string& filePath = args.back();
@@ -261,30 +282,6 @@ void Config::assign(Property<std::vector<std::string>>& property,
 
     property.isSet() = true;
 }
-
-///----------------///
-///----------------///
-///----------------///
-
-RequestContext Config::createRequestContext(const std::string& host,
-                                            const std::string& url)
-{
-    RequestContext requestContext;
-
-    HttpBlock& httpBlock = m_httpBlock;
-    const ServerBlock& serverBlock = httpBlock.matchServerBlock(host);
-    const LocationBlock* locationBlock = serverBlock.matchLocationBlock(url);
-
-    httpBlock.applyTo(requestContext);
-    serverBlock.applyTo(requestContext);
-    locationBlock->applyTo(requestContext);
-
-    return requestContext;
-}
-
-///----------------///
-///----------------///
-///----------------///
 
 void Config::setDefaultHttpMethods(std::vector<HttpMethod>& httpMethods)
 {

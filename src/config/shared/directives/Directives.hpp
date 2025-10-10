@@ -6,17 +6,11 @@
 # include <set>
 # include <map>
 # include <string>
+# include <stdexcept>
 
 # include "ADirective.hpp"
 # include "BlockDirective.hpp"
 # include "SimpleDirective.hpp"
-
-enum class DirectiveType
-{
-    UNKNOWN,
-    SIMPLE,
-    BLOCK
-};
 
 namespace Directives
 {
@@ -38,14 +32,30 @@ constexpr const char* INDEX = "index";
 constexpr const char* UPLOAD_STORE = "upload_store";
 constexpr const char* CGI_PASS = "cgi_pass";
 
+constexpr size_t UNLIMITED = static_cast<size_t>(-1);
+
+enum class Type
+{
+    UNKNOWN,
+    SIMPLE,
+    BLOCK
+};
+
+struct DirectiveSpec
+{
+    Type type;
+    std::set<std::string> allowedIn;
+    std::vector<ArgumentSpecs> argSpecs;
+};
+
 bool isKnownDirective(const std::string& name);
-DirectiveType getDirectiveType(const std::string& name);
+Type getDirectiveType(const std::string& name);
 bool isBlockDirective(const std::string& name);
 bool isSimpleDirective(const std::string& name);
 bool isAllowedInContext(const std::string& name, const std::string& context);
-std::set<std::string> getAllowedContextsFor(const std::string& name);
+const std::set<std::string>& getAllowedContextsFor(const std::string& name);
 // bool hasRightAmountOfArguments(const std::string& name, size_t amount);
-const std::vector<ArgSpec>& getArgSpecs(const std::string& name);
+const std::vector<ArgumentSpecs>& getArgSpecs(const std::string& name);
 
 } // namespace Directives
 

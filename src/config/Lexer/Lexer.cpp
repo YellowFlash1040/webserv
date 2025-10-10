@@ -5,7 +5,7 @@
 Lexer::Lexer(const std::string& source)
   : m_input(source)
 {
-    m_value.reserve(20);
+    m_value.reserve(DEFAULT_STRING_LENGTH);
 }
 
 Lexer::Lexer(const Lexer& other)
@@ -37,7 +37,7 @@ std::vector<Token> Lexer::tokenize(const std::string& input)
 
 std::vector<Token> Lexer::tokenize()
 {
-    for (; m_pos < m_input.length(); ++m_pos)
+    for (m_pos = 0; m_pos < m_input.length(); ++m_pos)
     {
         char c = m_input[m_pos];
 
@@ -61,7 +61,7 @@ void Lexer::addToken(TokenType type)
 {
     size_t column = calculateColumn();
     m_tokens.emplace_back(type, std::move(m_value), m_line, column);
-    m_value.reserve(20);
+    m_value.reserve(DEFAULT_STRING_LENGTH);
     m_value.clear();
 }
 
@@ -96,7 +96,7 @@ void Lexer::parseQuotedString()
     while (!(++m_pos == m_input.length() || m_input[m_pos] == quote_char))
         m_value.push_back(m_input[m_pos]);
 
-    if (m_pos >= m_input.length())
+    if (m_pos == m_input.length())
         throw std::logic_error("No end of quote");
     else
         m_value.push_back(m_input[m_pos]);
@@ -106,7 +106,7 @@ void Lexer::skipComment()
 {
     while (!(m_pos == m_input.length() || m_input[m_pos] == '\n'))
         ++m_pos;
-    --m_pos;
+    --m_pos; // because if it's '\n', I want to process it in the main loop
 }
 
 void Lexer::processSpace(int c)
@@ -128,16 +128,16 @@ void Lexer::processDelimiter(int c)
 
 void Lexer::processValue()
 {
-    if (!m_value.empty())
+    if (m_value.empty())
+        return;
+
+    if (!m_foundDirective)
     {
-        if (!m_foundDirective)
-        {
-            addToken(TokenType::DIRECTIVE);
-            m_foundDirective = true;
-        }
-        else
-            addToken(TokenType::VALUE);
+        addToken(TokenType::DIRECTIVE);
+        m_foundDirective = true;
     }
+    else
+        addToken(TokenType::VALUE);
 }
 
 void Lexer::addSingleCharToken(char c)

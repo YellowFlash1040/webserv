@@ -37,15 +37,15 @@ class Parser
   private:
     // Properties
     std::vector<Token>& m_tokens;
-    size_t m_errorLine = -1;
-    size_t m_errorColumn = -1;
-    DirectiveType m_prevDirectiveType;
+    size_t m_errorLine = static_cast<size_t>(-1);
+    size_t m_errorColumn = static_cast<size_t>(-1);
+    Directives::Type m_prevDirectiveType;
     // Methods
     Token advance();
-    Token& peek();
+    const Token& peek();
     std::unique_ptr<ADirective> parseDirective();
     std::unique_ptr<ADirective> createDirectiveBasedOnType(
-        DirectiveType directiveType, std::string& directiveName,
+        Directives::Type directiveType, std::string& directiveName,
         std::vector<Argument>& args);
     std::unique_ptr<ADirective> parseBlockDirective(
         std::string& directiveName, std::vector<Argument>& args);
@@ -56,7 +56,7 @@ class Parser
     std::unique_ptr<SimpleDirective> createSimpleDirective(
         std::string& name, std::vector<Argument>& args);
     std::string expectDirectiveToken(const Token& token);
-    DirectiveType expectKnownDirective(const std::string& directiveName);
+    Directives::Type expectKnownDirective(const std::string& directiveName);
     void consumeArguments(std::vector<Argument>& args);
     void expectNotDirective(const std::string& tokenValue);
 };
