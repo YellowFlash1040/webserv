@@ -5,11 +5,12 @@
 
 #include <utility>
 #include <vector>
-#include <memory>
-
-#include "Directives.hpp"
+// #include <memory>
+#include <functional>
 
 #include "ConfigExceptions.hpp"
+#include "Directives.hpp"
+#include "Converter.hpp"
 
 class Validator
 {
@@ -42,6 +43,21 @@ class Validator
                                  const std::string& context);
     void checkArguments(const std::string& name,
                         const std::vector<Argument>& args);
+    static void validateArgument(ArgumentType type, const std::string& value);
+
+    static void validateUrl(const std::string& s);
+    static void validateInteger(const std::string& s);
+    static void validateStatusCode(const std::string& s);
+    static void validateDataSize(const std::string& s);
+    static void validateOnOff(const std::string& s);
+    static void validateFilePath(const std::string& s);
+    static void validateNetworkEndpoint(const std::string& s);
+    static void validateHttpMethod(const std::string& s);
+    static void validateString(const std::string& s);
+    // Accessors
+    static const std::map<ArgumentType,
+                          std::function<void(const std::string&)>>&
+    validators();
 };
 
 #endif

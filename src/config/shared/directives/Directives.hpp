@@ -7,6 +7,7 @@
 # include <map>
 # include <string>
 # include <stdexcept>
+# include <limits>
 
 # include "ADirective.hpp"
 # include "BlockDirective.hpp"
@@ -32,13 +33,20 @@ constexpr const char* INDEX = "index";
 constexpr const char* UPLOAD_STORE = "upload_store";
 constexpr const char* CGI_PASS = "cgi_pass";
 
-constexpr size_t UNLIMITED = static_cast<size_t>(-1);
+constexpr size_t UNLIMITED = std::numeric_limits<size_t>::max();
 
 enum class Type
 {
     UNKNOWN,
     SIMPLE,
     BLOCK
+};
+
+struct ArgumentSpecs
+{
+    ArgumentType type;
+    size_t minCount;
+    size_t maxCount;
 };
 
 struct DirectiveSpec
