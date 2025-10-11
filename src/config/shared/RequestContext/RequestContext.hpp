@@ -13,7 +13,6 @@
 
 struct RequestContext
 {
-    std::string server_name{};                 // host
     size_t client_max_body_size{};             // in bytes
     std::vector<ErrorPage> error_pages{};      // {status_code -> file path}
     std::string root{};                        // filesystem root

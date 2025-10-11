@@ -16,7 +16,8 @@ enum class ArgumentType
     FilePath,        // /var/www/images
     NetworkEndpoint, // IP + port
     HttpMethod,      // GET, POST, DELETE
-    String           // 'hello'
+    String,          // 'hello'
+    URI
 };
 
 class Argument

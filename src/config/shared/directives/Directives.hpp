@@ -44,7 +44,7 @@ enum class Type
 
 struct ArgumentSpecs
 {
-    ArgumentType type;
+    std::vector<ArgumentType> possibleTypes;
     size_t minCount;
     size_t maxCount;
 };

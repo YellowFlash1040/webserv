@@ -65,73 +65,14 @@ void Validator::checkIfAllowedDirective(const std::string& name,
                                         context);
 }
 
-// void Validator::checkArguments(const std::string& name,
-//                                const std::vector<Argument>& args)
-// {
-// if (!Directives::hasRightAmountOfArguments(name, args.size()))
-// throw InvalidArgumentCountException(m_errorLine, m_errorColumn, name);
-
-// const std::vector<Directives::ArgumentSpecs> argSpecs
-//     = Directives::getArgSpecs(name);
-// (void)argSpecs;
-// (void)args;
-
-/*
-error_page 400 403 404 clientError.html
-*/
-
-// if (args.size() > argSpecs.size())
-//     throw InvalidArgumentCountException(m_errorLine, m_errorColumn,
-//     name);
-
-// size_t i = 0;
-// for (ArgumentSpecs argSpec : argSpecs)
-// {
-//     ArgumentType requiredType = argSpec.type;
-
-//     size_t count = 0;
-//     while (i < args.size())
-//     {
-//         try
-//         {
-//             convert(args[i]);
-//             ++count;
-//         }
-//         catch (const std::exception&)
-//         {
-//             if (count < argSpec.minCount)
-//                 throw std::logic_error("");
-//             else if (count > argSpec.maxCount)
-//                 throw std::logic_error("");
-//             break;
-//         }
-//         ++i;
-//     }
-// }
-// }
-
-// Create a map <directive_name, args_validation_function>
-// Create a function for each directive
-// Create a class for each possible data type
-// Use appropriate string -> class conversions and see the results
-
-// map
-// function
-// class
-// convert
-// validate
-
 void Validator::checkArguments(const std::string& name,
                                const std::vector<Argument>& args)
 {
     const std::vector<Directives::ArgumentSpecs> argSpecs
         = Directives::getArgSpecs(name);
 
-    /*
-    error_page 400 403 404 clientError.html
-    */
-
     size_t i = 0;
+    size_t lastThrowIndex = 0;
     for (const Directives::ArgumentSpecs& argSpec : argSpecs)
     {
         size_t count = 0;
@@ -139,40 +80,71 @@ void Validator::checkArguments(const std::string& name,
         {
             try
             {
-                validateArgument(argSpec.type, args[i]);
+                validateArgument(argSpec.possibleTypes, args[i]);
                 ++count;
+                ++i;
             }
             catch (const std::exception&)
             {
-                if (count < argSpec.minCount)
-                    throw std::logic_error("not enough arguments");
-                else if (count > argSpec.maxCount)
-                    throw std::logic_error("too many arguments");
+                if (lastThrowIndex
+                    == i) // if it throws twice on the same index, it means that
+                          // the argument is invalid
+                    throw ValidatorException(args[i].line(), args[i].column(),
+                                             "invalid argument '"
+                                                 + args[i].value() + "'");
+                else // otherwise it means that it has to be a new group of
+                     // arguments
+                    lastThrowIndex = i;
+
                 break;
             }
-            ++i;
         }
+
+        if (count < argSpec.minCount) // so we want to check if we have found
+                                      // enough arguments for current type
+            throw ValidatorException(m_errorLine, m_errorColumn,
+                                     "not enough arguments '" + name + "'");
+        if (count > argSpec.maxCount) // but not too much
+            throw ValidatorException(m_errorLine, m_errorColumn,
+                                     "too many arguments '" + name + "'");
     }
 
     if (i < args.size())
-        throw std::logic_error("extra arguments after parsing");
+        throw ValidatorException(args[i].line(), args[i].column(),
+                                 "extra arguments '" + name + "'");
 }
 
-void Validator::validateArgument(ArgumentType requiredType,
+void Validator::validateArgument(const std::vector<ArgumentType>& possibleTypes,
                                  const std::string& value)
 {
-    auto it = validators().find(requiredType);
-    if (it == validators().end())
-        throw std::logic_error("Unknown argument type");
+    for (ArgumentType type : possibleTypes)
+    {
+        auto it = validators().find(type);
+        if (it == validators().end())
+            throw std::logic_error("No validator found");
 
-    const auto& validateValue = it->second;
-    validateValue(value);
+        try
+        {
+            const auto& validateValue = it->second;
+            validateValue(value); // if this succeeds, we're done
+            return;
+        }
+        catch (const std::exception& ex)
+        {
+            // argument failed validation for this type, try next type
+            continue;
+        }
+    }
+
+    throw std::invalid_argument("Argument '" + value
+                                + "' does not match any allowed type");
 }
 
 ///----------------///
 ///----------------///
 ///----------------///
 
+// clang-format off
 const std::map<ArgumentType, std::function<void(const std::string&)>>&
 Validator::validators()
 {
@@ -187,9 +159,11 @@ Validator::validators()
             {ArgumentType::NetworkEndpoint, validateNetworkEndpoint},
             {ArgumentType::HttpMethod, validateHttpMethod},
             {ArgumentType::String, validateString},
+            {ArgumentType::URI, validateUri}
         };
     return map;
 }
+// clang-format on
 
 void Validator::validateStatusCode(const std::string& s)
 {
@@ -200,7 +174,7 @@ void Validator::validateStatusCode(const std::string& s)
 
 void Validator::validateUrl(const std::string& s)
 {
-    if (s.empty() || s[0] != '/')
+    if (s.empty() || s.find('.') == std::string::npos)
         throw std::invalid_argument("Invalid URL: " + s);
 }
 
@@ -242,3 +216,22 @@ void Validator::validateString(const std::string& s)
     if (s.empty())
         throw std::invalid_argument("Argument cannot be empty");
 }
+
+void Validator::validateUri(const std::string& s)
+{
+    if (s.empty() || s[0] != '/')
+        throw std::invalid_argument("Invalid URI: " + s);
+}
+
+//-------------------------THOUGHTS-------------------------------
+
+// Create a map <directive_name, args_validation_function>
+// Create a function for each directive
+// Create a class for each possible data type
+// Use appropriate string -> class conversions and see the results
+
+// map
+// function
+// class
+// convert
+// validate

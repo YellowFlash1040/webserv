@@ -21,7 +21,7 @@ struct ServerBlock : public ConfigBlock
     // Properties
     Property<std::vector<LocationBlock>> locations;
     Property<std::string> listen;
-    Property<std::string> serverName;
+    Property<std::vector<std::string>> serverName;
     Property<std::string> root;
     Property<std::string> alias;
     Property<std::vector<ErrorPage>> errorPages;

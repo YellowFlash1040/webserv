@@ -4,7 +4,6 @@
 
 void ServerBlock::applyTo(RequestContext& context) const
 {
-    applyIfSet(serverName, context.server_name);
     applyIfSet(clientMaxBodySize, context.client_max_body_size);
     applyIfSet(errorPages, context.error_pages);
     applyIfSet(root, context.root);

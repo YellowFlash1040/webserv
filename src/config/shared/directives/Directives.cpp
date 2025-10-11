@@ -19,73 +19,73 @@ const std::map<std::string, DirectiveSpec> directives = {
     {SERVER_NAME, {
         Type::SIMPLE,
         {SERVER},
-        {{ArgumentType::URL, 1, UNLIMITED}}
+        {{{ArgumentType::URL}, 1, UNLIMITED}}
     }},
     {LISTEN, {
         Type::SIMPLE,
         {SERVER},
-        {{ArgumentType::NetworkEndpoint, 1, 1}}
+        {{{ArgumentType::NetworkEndpoint}, 1, 1}}
     }},
     {ERROR_PAGE, {
         Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
         {
-            {ArgumentType::StatusCode, 1, UNLIMITED},
-            {ArgumentType::URL, 1, 1}
+            {{ArgumentType::StatusCode}, 1, UNLIMITED},
+            {{ArgumentType::URL}, 1, 1}
         }
     }},
     {CLIENT_MAX_BODY_SIZE, {
         Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
-        {{ArgumentType::DataSize, 1, 1}}
+        {{{ArgumentType::DataSize}, 1, 1}}
     }},
     {LOCATION, {
         Type::BLOCK,
         {SERVER},
-        {{ArgumentType::URL, 1, 1}}
+        {{{ArgumentType::URI}, 1, 1}}
     }},
     {ACCEPTED_METHODS, {
         Type::SIMPLE,
         {LOCATION},
-        {{ArgumentType::HttpMethod, 1, 4}}
+        {{{ArgumentType::HttpMethod}, 1, 4}}
     }},
     {RETURN, {
         Type::SIMPLE,
         {SERVER, LOCATION},
         {
-            {ArgumentType::StatusCode, 1, 1},
-            {ArgumentType::URL, 1, 1}
+            {{ArgumentType::StatusCode}, 1, 1},
+            {{ArgumentType::URL, ArgumentType::URI}, 1, 1},
         }
     }},
     {ROOT, {
         Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
-        {{ArgumentType::FilePath, 1, 1}}
+        {{{ArgumentType::FilePath}, 1, 1}}
     }},
     {ALIAS, {
         Type::SIMPLE,
         {LOCATION},
-        {{ArgumentType::FilePath, 1, 1}}
+        {{{ArgumentType::FilePath}, 1, 1}}
     }},
     {AUTOINDEX, {
         Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
-        {{ArgumentType::OnOff, 1, 1}}
+        {{{ArgumentType::OnOff}, 1, 1}}
     }},
     {INDEX, {
         Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
-        {{ArgumentType::FilePath, 1, UNLIMITED}}
+        {{{ArgumentType::FilePath}, 1, UNLIMITED}}
     }},
     {UPLOAD_STORE, {
         Type::SIMPLE,
         {LOCATION},
-        {{ArgumentType::FilePath, 1, 1}}
+        {{{ArgumentType::FilePath}, 1, 1}}
     }},
     {CGI_PASS, {
         Type::SIMPLE,
         {LOCATION},
-        {{ArgumentType::FilePath, 1, 1}}
+        {{{ArgumentType::FilePath}, 1, 1}}
     }}
 };
 
@@ -163,21 +163,5 @@ const std::vector<ArgumentSpecs>& getArgSpecs(const std::string& name)
 }
 
 // clang-format on
-
-// void validateDirectiveArgs(const std::string& name,
-//                            const std::vector<Argument>& args)
-// {
-//     const DirectiveSpec& spec = directives.at(name);
-//     std::vector<ArgumentType> argTypes = spec.argTypes;
-
-//     if (!hasRightAmountOfArguments(name, args.size()))
-//         throw InvalidArgumentCountException("error message");
-
-//     for (size_t i = 0; i < args.size(); ++i)
-//     {
-//         if (args[i].type() != pattern[i])
-//             throw std::logic_error("error message");
-//     }
-// }
 
 } // namespace Directives

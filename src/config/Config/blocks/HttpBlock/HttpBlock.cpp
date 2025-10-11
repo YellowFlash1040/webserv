@@ -14,7 +14,10 @@ void HttpBlock::applyTo(RequestContext& context) const
 const ServerBlock& HttpBlock::matchServerBlock(const std::string& host) const
 {
     for (const ServerBlock& serverBlock : servers)
-        if (serverBlock.serverName == host)
-            return serverBlock;
+    {
+        for (const std::string& serverName : serverBlock.serverName)
+            if (serverName == host)
+                return serverBlock;
+    }
     return servers->front();
 }
