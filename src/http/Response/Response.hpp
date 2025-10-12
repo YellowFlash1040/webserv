@@ -3,8 +3,12 @@
 
 #include <string>
 #include <unordered_map>
+#include <chrono>
+#include <iomanip>
+#include <fstream>
 #include "../ParsedRequest/ParsedRequest.hpp"
 #include "../config/RequestContext/RequestContext.hpp"
+#include "../Cgi/CgiRequest/CgiRequest.hpp"
 
 class Response
 {
@@ -40,6 +44,7 @@ public:
 	// Setters
 	void setStatusCode(int code);
 	void setStatusText(const std::string& text);
+	void setDefaultHeaders();
 	void addHeader(const std::string& key, const std::string& value);
 	void setBody(const std::string& body);
 
@@ -50,7 +55,14 @@ public:
 	std::string codeToText(int code) const;
 	std::string genResp();
 	
+	CgiRequest createCgiRequest();
 	
-};
+	bool isMethodAllowed(HttpMethodEnum method, const std::vector<HttpMethod>& allowed_methods);
+	std::string allowedMethodsToString(const std::vector<HttpMethod>& allowed_methods);
+	std::string getErrorPageFilePath(
+    	HttpStatusCode status, const std::vector<ErrorPage>& errorPages);
+	void setErrorPageBody(HttpStatusCode code, const std::vector<ErrorPage>& errorPages);
+
+	};
 
 #endif

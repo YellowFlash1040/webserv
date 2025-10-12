@@ -54,7 +54,16 @@ ParsedRequest::ParsedRequest(ParsedRequest&& other) noexcept = default;
 ParsedRequest& ParsedRequest::operator=(ParsedRequest&& other) noexcept = default;
 
 // --- Getters ---
-const std::string& ParsedRequest::getMethod() const { return _method; }
+const std::string& ParsedRequest::getMethod() const
+{
+	return _method;
+}
+
+HttpMethodEnum ParsedRequest::getMethodEnum() const
+{
+	return _methodEnum;
+}
+
 const std::string& ParsedRequest::getRawUri() const { return _rawUri; }
 const std::string& ParsedRequest::getHttpVersion() const { return _httpVersion; }
 
@@ -746,4 +755,9 @@ const std::string& ParsedRequest::getUri() const
 const std::string& ParsedRequest::getQuery() const
 {
 	return _query;
+}
+
+bool ParsedRequest::hasHeader(const std::string& name) const
+{
+    return _headers.find(name) != _headers.end();
 }

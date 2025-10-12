@@ -74,17 +74,17 @@ ParsedRequest& ClientState::addParsedRequest()
 //requests
 ParsedRequest& ClientState::getRequest(size_t idx)
 {
-    if (idx >= _parsedRequests.size()) 
+	if (idx >= _parsedRequests.size()) 
 	{
-        std::cerr << "Tried to access parsed request " << idx << " but size=" << _parsedRequests.size() << "\n";
-        throw std::out_of_range("getRequest index out of bounds");
-    }
-    return _parsedRequests[idx];
+		std::cerr << "Tried to access parsed request " << idx << " but size=" << _parsedRequests.size() << "\n";
+		throw std::out_of_range("getRequest index out of bounds");
+	}
+	return _parsedRequests[idx];
 }
 
 const ParsedRequest& ClientState::getRequest(size_t idx) const
 {
-    return _parsedRequests.at(idx);
+	return _parsedRequests.at(idx);
 }
 
 size_t ClientState::getLatestRequestIndex() const
@@ -92,7 +92,22 @@ size_t ClientState::getLatestRequestIndex() const
 	return _parsedRequests.empty() ? 0 : _parsedRequests.size() - 1;
 }
 
-//For gtests 
+bool ClientState::hasPendingResponses() const
+{
+	return !_responseQueue.empty();
+}
+
+Response ClientState::popNextResponse()
+{
+	if (_responseQueue.empty())
+		throw std::runtime_error("No pending responses to pop");
+
+	Response resp = std::move(_responseQueue.front());
+    _responseQueue.pop();
+	return resp;
+}
+
+//for gtest
 ParsedRequest ClientState::popFirstFinishedReq()
 {
 	std::cout << YELLOW << "DEBUG: popFirstFinishedRequest(for GTESTS):" << RESET << std::endl;
@@ -125,4 +140,3 @@ std::cout << "[popFirstFinishedRequest]: _parsedRequests size = " << _parsedRequ
 	std::cout << "No finished request found in _parsedRequests\n";
 	throw std::runtime_error("No finished request found");
 }
-

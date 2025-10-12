@@ -12,6 +12,7 @@ void ServerBlock::applyTo(RequestContext& context) const
     applyIfSet(autoindex, context.autoindex_enabled);
     applyIfSet(index, context.index_files);
     applyIfSet(httpRedirection, context.redirection);
+
 }
 
 LocationBlock* ServerBlock::matchLocationBlock(const std::string& uri)

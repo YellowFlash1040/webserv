@@ -169,25 +169,25 @@ void ConnectionManager::genRespsForReadyReqs(int clientId)
         printReqContext(ctx);
 		
 		Response resp(req, ctx);
+		
+		std::string output = resp.genResp();
 		clientState.enqueueResponse(resp);
 
-        std::string output = resp.genResp();
-        
         req.setResponseAdded();
 	
-		popFinishedReq(clientId);
+		// popFinishedReq(clientId);
 
 	}
 }
 
-ParsedRequest ConnectionManager::popFinishedReq(int clientId)
-{
-	auto it = m_clients.find(clientId);
-	if (it == m_clients.end())
-		throw std::runtime_error("Client not found");
+// ParsedRequest ConnectionManager::popFinishedReq(int clientId)
+// {
+// 	auto it = m_clients.find(clientId);
+// 	if (it == m_clients.end())
+// 		throw std::runtime_error("Client not found");
 
-	return it->second.popFirstFinishedReq();
-}
+// 	return it->second.popFirstFinishedReq();
+// }
 
 bool ConnectionManager::isPathInsideRoot(const std::string& root, const std::string& resolved)
 {
@@ -202,4 +202,29 @@ bool ConnectionManager::isPathInsideRoot(const std::string& root, const std::str
 	{
         return false;
     }
+}
+
+std::string ConnectionManager::getNextResponseString(int clientId)
+{
+    auto it = m_clients.find(clientId);
+    if (it == m_clients.end())
+        return "";
+
+    ClientState& clientState = it->second;
+
+    if (clientState.hasPendingResponses())
+    {
+        const Response& resp = clientState.popNextResponse();
+        return resp.toString();
+    }
+
+    return "";
+}
+
+bool ConnectionManager::hasPendingResponses(int clientId) const
+{
+    std::unordered_map<int, ClientState>::const_iterator it = m_clients.find(clientId);
+    if (it == m_clients.end())
+        return false;
+    return it->second.hasPendingResponses();
 }

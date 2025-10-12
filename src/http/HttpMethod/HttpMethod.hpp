@@ -36,7 +36,8 @@ class HttpMethod
     // Methods
     static bool isValid(const std::string& value);
     static void setDefaultHttpMethods(std::vector<HttpMethod>& httpMethods);
-
+    
+    
   private:
     HttpMethodEnum m_value;
 

@@ -138,11 +138,17 @@ void Server::processClient(int clientId)
 
 		std::cout << GREEN << "DEBUG[SERVER]:" << RESET << " any request processed? " << anyRequestDone << "\n";
 		
+		//Send all ready responses
+		std::string respStr;
 		
-		// //Send all ready responses
-		// 	const Response& resp = clientState.popNextResponse();
-		// 	std::string respStr = resp.toString();
-		// 	write(clientId, respStr.c_str(), respStr.size());
+	if (anyRequestDone)
+	{
+		while (m_connMgr.hasPendingResponses(clientId))
+		{
+		   std::string respStr = m_connMgr.getNextResponseString(clientId);
+		   write(clientId, respStr.c_str(), respStr.size());
+		}
+	}
 
 		// Only remove client if last request indicates Connection: close
 		if (m_connMgr.clientSentClose(clientId))

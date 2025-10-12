@@ -8,7 +8,8 @@
 #include <stdexcept>
 #include <queue>
 #include "../ParsedRequest/ParsedRequest.hpp"
-#include "../Response/Response.hpp"
+#include "../../Response/Response.hpp"
+#include "../../HttpMethod/HttpMethod.hpp"
 
 #define GREEN "\033[0;32m"
 #define YELLOW "\033[0;33m"
@@ -50,12 +51,16 @@ class ClientState
 	
 		const Response& getRespObj() const;
 
-		// Ready-to-send flag
+		
 
 		ParsedRequest& addParsedRequest();
 		
 		//for gtests
 		ParsedRequest popFirstFinishedReq();
+		
+		bool hasPendingResponses() const;
+        Response popNextResponse();
+
 		
 		
 		

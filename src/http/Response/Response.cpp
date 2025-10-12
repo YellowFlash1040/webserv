@@ -4,8 +4,28 @@
 
 
 Response::Response(const ParsedRequest& req, const RequestContext& ctx)
-    : _req(req), _ctx(ctx), _statusCode(200), _statusText("OK"), _headers({{"Content-Type","text/html"},{"Connection","keep-alive"}}), _body("")
-{}
+	: _req(req), _ctx(ctx), _statusCode(200), _statusText("OK"), _body("")
+{
+	setDefaultHeaders();
+}
+
+std::string getCurrentHttpDate()
+{
+
+	// Get current time as system_clock time_point
+	auto now = std::chrono::system_clock::now();
+
+	// Convert to time_t (seconds since epoch)
+	std::time_t t = std::chrono::system_clock::to_time_t(now);
+
+	// Convert to GMT/UTC time
+	std::tm gmt = *std::gmtime(&t);
+
+	// Format according to RFC 7231: "Day, DD Mon YYYY HH:MM:SS GMT"
+	std::ostringstream oss;
+	oss << std::put_time(&gmt, "%a, %d %b %Y %H:%M:%S GMT");
+	return oss.str();
+}
 
 void Response::reset()
 {
@@ -32,8 +52,16 @@ void Response::setStatusCode(int code)
 	_statusText = codeToText(code);
 }
 
-void Response::setStatusText(const std::string& text) { _statusText = text; }
-void Response::addHeader(const std::string& key, const std::string& value) { _headers[key] = value; }
+void Response::setStatusText(const std::string& text)
+{
+	_statusText = text;
+}
+
+void Response::addHeader(const std::string& key, const std::string& value)
+{
+	_headers[key] = value;
+}
+
 void Response::setBody(const std::string& body)
 {
 	_body = body;
@@ -87,36 +115,163 @@ std::string Response::codeToText(int code) const
 	
 std::string Response::genResp()
 {
-    if (!_req.isRequestDone())
-        return ""; // nothing ready
+	if (!_req.isRequestDone())
+		return ""; // nothing ready
+	
+	// ----- REDIRECTION -----
+	if (_ctx.has_return) 
+	{
+		setStatusCode(static_cast<int>(HttpStatusCode::MovedPermanently));
+		setStatusText("Moved Permanently");
+		addHeader("Location", _ctx.redirection.url);
+		setBody("Redirection in progress\n");
+		return toString();
+	}
+	
+	if (!isMethodAllowed(_req.getMethodEnum(), _ctx.allowed_methods))
+	{
+    	setStatusCode(static_cast<int>(HttpStatusCode::MethodNotAllowed));
+    	setStatusText("Method Not Allowed");
+		addHeader("Allow", allowedMethodsToString(_ctx.allowed_methods));
+    	setErrorPageBody(HttpStatusCode::MethodNotAllowed, _ctx.error_pages);
+		return toString();
+	}
 
-    // ----- REDIRECTION -----
-    if (_ctx.has_return) 
+	// ----- CGI SCRIPT -----
+	if (!_ctx.cgi_pass.empty()) 
+	{
+		CgiRequest cgiReq = createCgiRequest();
+		// TO DO: pass cgiReq to Pavel's CGI handler
+		
+		// For now here is a placeholder response:
+		setStatusCode(static_cast<int>(HttpStatusCode::Ok));
+		setStatusText("OK");
+		addHeader("Transfer-Encoding", "chunked"); // hardcoded body length
+		addHeader("Content-Type", "?");
+		setBody("CGI script would be executed\n");
+		return toString();
+	}
+
+	// ----- STATIC FILE -----
+	setStatusCode(static_cast<int>(HttpStatusCode::Ok));
+	setStatusText("OK");
+	std::string body = "Static file would be served\n";
+	setBody(body);
+	addHeader("Content-Length", std::to_string(body.size()));
+	addHeader("Content-Type", "text/plain");
+	return toString();
+}
+
+  void Response::setDefaultHeaders()
+{
+	addHeader("Date", getCurrentHttpDate());
+	addHeader("Server", "APT-Server/1.0");
+	addHeader("Connection", "keep-alive");
+}
+
+CgiRequest Response::createCgiRequest()
+{
+    CgiRequest cgiReq;
+
+    // Script path is the CGI executable
+    cgiReq.scriptPath = _ctx.cgi_pass;
+
+    // HTTP method
+    cgiReq.method = _req.getMethodEnum(); // or req.method if you have a string already
+
+    // Query string (from URL)
+    cgiReq.queryString = _req.getQuery(); // implement/get it from ParsedRequest
+
+    // POST body
+    cgiReq.body = _req.getBody();
+
+    // Fill headers
+	const std::string hdrs[] =
+	{
+		"Content-Type",
+		"Content-Length",
+		"Authorization",
+		"Cookie",
+		"User-Agent",
+		"Accept"
+	};
+	
+	
+    for (const std::string& h : hdrs)
     {
-        setStatusCode(static_cast<int>(HttpStatusCode::MovedPermanently));
-        setStatusText("Moved Permanently");
-        addHeader("Location", _ctx.redirection.url);
-        setBody("Redirection in progress");
-        return toString();
+        std::string value = _req.getHeader(h);
+        if (!value.empty())
+            cgiReq.headers[h] = value;
+    }
+    return cgiReq;
+}
+
+bool Response::isMethodAllowed(HttpMethodEnum method, const std::vector<HttpMethod>& allowed_methods)
+{
+    for (std::vector<HttpMethod>::const_iterator it = allowed_methods.begin(); it != allowed_methods.end(); ++it)
+    {
+        if (it->value() == method)
+            return true;
+    }
+    return false;
+}
+
+std::string Response::allowedMethodsToString(const std::vector<HttpMethod>& allowed_methods)
+{
+    std::ostringstream oss;
+    for (size_t i = 0; i < allowed_methods.size(); ++i)
+    {
+        oss << allowed_methods[i].toString();
+        if (i + 1 < allowed_methods.size())
+            oss << ", ";
+    }
+    return oss.str();
+}
+
+std::string Response::getErrorPageFilePath(
+    HttpStatusCode status, const std::vector<ErrorPage>& errorPages)
+{
+    for (std::vector<ErrorPage>::const_iterator it = errorPages.begin();
+		it != errorPages.end(); ++it)
+		{
+			if (std::find(it->statusCodes.begin(), it->statusCodes.end(), status) != it->statusCodes.end())
+			{
+				return it->filePath;
+			}
+    	}
+    return "";
+}
+
+void Response::setErrorPageBody(HttpStatusCode code, const std::vector<ErrorPage>& errorPages)
+{
+    std::string errorBodyPath = getErrorPageFilePath(code, errorPages);
+    std::string htmlBody;
+
+    if (!errorBodyPath.empty())
+    {
+        std::ifstream file(errorBodyPath);
+        if (file)
+        {
+            std::ostringstream ss;
+            ss << file.rdbuf();
+            htmlBody = ss.str();
+        }
     }
 
-    // ----- CGI SCRIPT -----
-    if (!_ctx.cgi_pass.empty()) 
+    // Fallback if file not found or no custom error page
+    if (htmlBody.empty())
     {
-        setStatusCode(static_cast<int>(HttpStatusCode::Ok));
-        setStatusText("OK");
-        addHeader("Content-Length", "27"); // hardcoded body length
-        addHeader("Content-Type", "text/plain");
-        setBody("CGI script would be executed");
-        return toString();
+        htmlBody =
+            "<html>\n"
+            "<head><title>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</title></head>\n"
+            "<body>\n"
+            "<center><h1>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</h1></center>\n"
+            "<hr><center>APT-Server/1.0</center>\n"
+            "</body>\n"
+            "</html>\n";
     }
 
-    // ----- STATIC FILE -----
-    setStatusCode(static_cast<int>(HttpStatusCode::Ok));
-    setStatusText("OK");
-    addHeader("Content-Length", "23"); // hardcoded body length
-    addHeader("Content-Type", "text/plain");
-    setBody("Static file would be served");
-
-    return toString();
+    setBody(htmlBody);
+    addHeader("Content-Type", "text/html");
+    addHeader("Content-Length", std::to_string(_body.size()));
 }

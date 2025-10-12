@@ -3,7 +3,7 @@
 
 void printReqContext(const RequestContext& ctx)
 {
-    std::cout << "---- RequestContext ----\n";
+    std::cout << TEAL << "---- RequestContext ----" << RESET << "\n";
     std::cout << "server_name: " << ctx.server_name << "\n";
     std::cout << "client_max_body_size: " << ctx.client_max_body_size << "\n";
 

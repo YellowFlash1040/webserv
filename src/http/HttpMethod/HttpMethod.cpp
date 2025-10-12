@@ -73,3 +73,4 @@ void HttpMethod::setDefaultHttpMethods(std::vector<HttpMethod>& httpMethods)
     httpMethods.emplace_back("POST");
     httpMethods.emplace_back("DELETE");
 }
+

@@ -56,6 +56,9 @@ class ConnectionManager
 		ParsedRequest popFinishedReq(int clientId);
 		
 		bool isPathInsideRoot(const std::string& root, const std::string& resolved);
+		std::string getNextResponseString(int clientId);
+		bool hasPendingResponses(int clientId) const;
+	
 	};
 
 #endif

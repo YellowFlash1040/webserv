@@ -2,6 +2,7 @@
 #define PARSEDREQUEST_HPP
 
 #include "../HttpMethod/HttpMethod.hpp"
+#include "../HttpMethod/HttpMethod.hpp"
 #include <string>
 #include <unordered_map>
 #include <iostream>
@@ -72,6 +73,7 @@ class ParsedRequest
 		const std::string getHeader(const std::string& name) const;
 		BodyType getBodyType() const;
 		const std::string& getMethod() const;
+		HttpMethodEnum getMethodEnum() const;
 		const std::string& getRawUri() const;
 		const std::string getHost() const;
 		const std::string& getHttpVersion() const;
@@ -136,6 +138,7 @@ class ParsedRequest
 		std::string fullyDecodePercent(const std::string& rawUri);
 		std::string decodePercentOnce(const std::string& s);
 		
-};
+		bool hasHeader(const std::string& name) const;
+};		
 
 #endif
