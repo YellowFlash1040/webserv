@@ -42,7 +42,7 @@ enum class Type
     BLOCK
 };
 
-struct ArgumentSpecs
+struct ArgumentSpec
 {
     std::vector<ArgumentType> possibleTypes;
     size_t minCount;
@@ -53,7 +53,7 @@ struct DirectiveSpec
 {
     Type type;
     std::set<std::string> allowedIn;
-    std::vector<ArgumentSpecs> argSpecs;
+    std::vector<ArgumentSpec> argSpecs;
 };
 
 bool isKnownDirective(const std::string& name);
@@ -63,7 +63,7 @@ bool isSimpleDirective(const std::string& name);
 bool isAllowedInContext(const std::string& name, const std::string& context);
 const std::set<std::string>& getAllowedContextsFor(const std::string& name);
 // bool hasRightAmountOfArguments(const std::string& name, size_t amount);
-const std::vector<ArgumentSpecs>& getArgSpecs(const std::string& name);
+const std::vector<ArgumentSpec>& getArgSpecs(const std::string& name);
 
 } // namespace Directives
 

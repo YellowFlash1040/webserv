@@ -51,11 +51,11 @@ const std::vector<std::unique_ptr<ADirective>>& BlockDirective::directives()
     return m_directives;
 }
 
-void BlockDirective::setDirectives(
-    std::vector<std::unique_ptr<ADirective>>&& directives)
-{
-    m_directives = std::move(directives);
-}
+// void BlockDirective::setDirectives(
+//     std::vector<std::unique_ptr<ADirective>>&& directives)
+// {
+//     m_directives = std::move(directives);
+// }
 
 // ---------------------------METHODS-----------------------------
 

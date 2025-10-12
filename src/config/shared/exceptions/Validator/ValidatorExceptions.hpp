@@ -6,5 +6,8 @@
 # include "ValidatorException.hpp"
 # include "DirectiveContextException.hpp"
 # include "InvalidArgumentCountException.hpp"
+# include "InvalidArgumentException.hpp"
+# include "NotEnoughArgumentsException.hpp"
+# include "TooManyArgumentsException.hpp"
 
 #endif

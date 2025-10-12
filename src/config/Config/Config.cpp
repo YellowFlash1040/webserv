@@ -6,11 +6,11 @@
 
 Config::Config(std::unique_ptr<ADirective> ast)
 {
-    auto rootNode = dynamic_cast<BlockDirective*>(ast.get());
-    if (!rootNode)
+    auto mainNode = dynamic_cast<BlockDirective*>(ast.get());
+    if (!mainNode)
         throw std::invalid_argument("AST root node is not a block directive");
 
-    m_httpBlock = buildHttpBlock(rootNode->directives()[0]);
+    m_httpBlock = buildHttpBlock(mainNode->directives()[0]);
 }
 
 // Move constructor

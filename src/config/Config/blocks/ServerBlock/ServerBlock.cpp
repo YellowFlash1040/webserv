@@ -32,3 +32,20 @@ const LocationBlock* ServerBlock::matchLocationBlock(
 
     return bestMatch; // nullptr means "no matching location"
 }
+
+// /list/file.png
+// /list/
+
+// GET server.com/books
+
+// GET server.com/list/
+
+// GET server.com/list
+
+// /var/www/files/list
+
+// POST server.com/cgi-bin/pdf_splitter.php
+// FILE attched
+
+// POST server.com/upload/users/new
+// File attached

@@ -121,16 +121,15 @@ TEST_F(ValidatorTest, ValidatesArgumentCount)
     auto server = createServerBlock();
 
     // server_name with too many arguments
-    auto serverName = createSimpleDirective(
-        "server_name", {"example.com", "www.example.com", "extra.example.com"});
-    server->addDirective(std::move(serverName));
+    auto listen = createSimpleDirective("listen", {"8080", "9090", "8181"});
+    server->addDirective(std::move(listen));
     http->addDirective(std::move(server));
     global->addDirective(std::move(http));
 
     std::unique_ptr<ADirective>& rootNode
         = reinterpret_cast<std::unique_ptr<ADirective>&>(global);
 
-    EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentCountException);
+    EXPECT_THROW(Validator::validate(rootNode), TooManyArgumentsException);
 }
 
 TEST_F(ValidatorTest, ThrowsOnMissingRequiredArguments)
@@ -148,7 +147,7 @@ TEST_F(ValidatorTest, ThrowsOnMissingRequiredArguments)
     std::unique_ptr<ADirective>& rootNode
         = reinterpret_cast<std::unique_ptr<ADirective>&>(global);
 
-    EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentCountException);
+    EXPECT_THROW(Validator::validate(rootNode), NotEnoughArgumentsException);
 }
 
 TEST_F(ValidatorTest, ServerBlockInsideGlobalBlock)

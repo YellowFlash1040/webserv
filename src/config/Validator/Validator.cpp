@@ -49,7 +49,7 @@ void Validator::validateNode(const std::unique_ptr<ADirective>& node,
     m_errorColumn = node->column();
 
     checkIfAllowedDirective(name, parentContext);
-    checkArguments(name, node->args());
+    validateArguments(name, node->args());
 
     const BlockDirective* block
         = dynamic_cast<const BlockDirective*>(node.get());
@@ -65,53 +65,70 @@ void Validator::checkIfAllowedDirective(const std::string& name,
                                         context);
 }
 
-void Validator::checkArguments(const std::string& name,
-                               const std::vector<Argument>& args)
+void Validator::validateArguments(const std::string& name,
+                                  const std::vector<Argument>& args)
 {
-    const std::vector<Directives::ArgumentSpecs> argSpecs
+    const std::vector<Directives::ArgumentSpec>& argSpecs
         = Directives::getArgSpecs(name);
 
     size_t i = 0;
     size_t lastThrowIndex = 0;
-    for (const Directives::ArgumentSpecs& argSpec : argSpecs)
+    for (const Directives::ArgumentSpec& spec : argSpecs)
     {
         size_t count = 0;
-        while (i < args.size())
+        bool hasThrown = false;
+        while (i < args.size() && !hasThrown)
         {
             try
             {
-                validateArgument(argSpec.possibleTypes, args[i]);
+                validateArgument(spec.possibleTypes, args[i]);
                 ++count;
                 ++i;
             }
             catch (const std::exception&)
             {
-                if (lastThrowIndex
-                    == i) // if it throws twice on the same index, it means that
-                          // the argument is invalid
-                    throw ValidatorException(args[i].line(), args[i].column(),
-                                             "invalid argument '"
-                                                 + args[i].value() + "'");
-                else // otherwise it means that it has to be a new group of
-                     // arguments
-                    lastThrowIndex = i;
-
-                break;
+                if (lastThrowIndex == i)
+                    // if it throws twice on the same index, it
+                    // means that the argument is invalid
+                    throw InvalidArgumentException(args[i]);
+                lastThrowIndex = i;
+                hasThrown = true;
             }
         }
 
-        if (count < argSpec.minCount) // so we want to check if we have found
-                                      // enough arguments for current type
-            throw ValidatorException(m_errorLine, m_errorColumn,
-                                     "not enough arguments '" + name + "'");
-        if (count > argSpec.maxCount) // but not too much
-            throw ValidatorException(m_errorLine, m_errorColumn,
-                                     "too many arguments '" + name + "'");
+        checkArgumentCount(name, spec, count);
     }
 
     if (i < args.size())
-        throw ValidatorException(args[i].line(), args[i].column(),
-                                 "extra arguments '" + name + "'");
+        throw InvalidArgumentException(args[i]);
+}
+
+void Validator::validateArgumentGroup(const std::string& name,
+                                      const std::vector<Argument>& args,
+                                      const Directives::ArgumentSpec& spec,
+                                      size_t& i, size_t& lastThrowIndex)
+{
+    size_t count = 0;
+    bool hasThrown = false;
+    while (i < args.size() && !hasThrown)
+    {
+        try
+        {
+            validateArgument(spec.possibleTypes, args[i]);
+            ++count;
+            ++i;
+        }
+        catch (const std::exception&)
+        {
+            if (lastThrowIndex == i) // if it throws twice on the same index, it
+                                     // means that the argument is invalid
+                throw InvalidArgumentException(args[i]);
+            lastThrowIndex = i;
+            hasThrown = true;
+        }
+    }
+
+    checkArgumentCount(name, spec, count);
 }
 
 void Validator::validateArgument(const std::vector<ArgumentType>& possibleTypes,
@@ -138,6 +155,17 @@ void Validator::validateArgument(const std::vector<ArgumentType>& possibleTypes,
 
     throw std::invalid_argument("Argument '" + value
                                 + "' does not match any allowed type");
+}
+
+void Validator::checkArgumentCount(const std::string& name,
+                                   const Directives::ArgumentSpec& spec,
+                                   std::size_t count) const
+{
+    if (count < spec.minCount)
+        throw NotEnoughArgumentsException(m_errorLine, m_errorColumn, name);
+
+    if (count > spec.maxCount)
+        throw TooManyArgumentsException(m_errorLine, m_errorColumn, name);
 }
 
 ///----------------///

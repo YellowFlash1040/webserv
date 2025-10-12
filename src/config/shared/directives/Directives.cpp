@@ -152,7 +152,7 @@ const std::set<std::string>& getAllowedContextsFor(const std::string& name)
     return specs.allowedIn;
 }
 
-const std::vector<ArgumentSpecs>& getArgSpecs(const std::string& name)
+const std::vector<ArgumentSpec>& getArgSpecs(const std::string& name)
 {
     auto it = directives.find(name);
     if (it == directives.end())

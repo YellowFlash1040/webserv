@@ -41,10 +41,17 @@ class Validator
                           const std::string& parentContext);
     void checkIfAllowedDirective(const std::string& name,
                                  const std::string& context);
-    void checkArguments(const std::string& name,
-                        const std::vector<Argument>& args);
+    void validateArguments(const std::string& name,
+                           const std::vector<Argument>& args);
+    void validateArgumentGroup(const std::string& name,
+                               const std::vector<Argument>& args,
+                               const Directives::ArgumentSpec& spec, size_t& i,
+                               size_t& lastThrowIndex);
     static void validateArgument(const std::vector<ArgumentType>& possibleTypes,
                                  const std::string& value);
+    void checkArgumentCount(const std::string& name,
+                            const Directives::ArgumentSpec& spec,
+                            std::size_t count) const;
 
     static void validateUrl(const std::string& s);
     static void validateInteger(const std::string& s);
