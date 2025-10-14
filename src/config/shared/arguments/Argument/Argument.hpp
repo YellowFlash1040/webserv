@@ -17,7 +17,8 @@ enum class ArgumentType
     NetworkEndpoint, // IP + port
     HttpMethod,      // GET, POST, DELETE
     String,          // 'hello'
-    URI
+    URI,
+    Port
 };
 
 class Argument

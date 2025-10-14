@@ -32,13 +32,6 @@ Config& Config::operator=(Config&& other) noexcept
 // Destructor
 Config::~Config() {}
 
-// ---------------------------ACCESSORS-----------------------------
-
-const HttpBlock& Config::httpBlock() const
-{
-    return m_httpBlock;
-}
-
 // ---------------------------METHODS-----------------------------
 
 Config Config::fromFile(const std::string& filepath)

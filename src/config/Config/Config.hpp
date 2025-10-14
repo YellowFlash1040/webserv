@@ -34,8 +34,6 @@ class Config
 
     // Class specific features
   public:
-    // Accessors
-    const HttpBlock& httpBlock() const;
     // Methods
     static Config fromFile(const std::string& filepath);
     std::vector<std::string> getAllEnpoints();

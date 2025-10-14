@@ -9,22 +9,30 @@ const std::map<std::string, DirectiveSpec> directives = {
     {HTTP, {
         Type::BLOCK,
         {GLOBAL_CONTEXT},
-        {}
+        {},
+        {},
+        false
     }},
     {SERVER, {
         Type::BLOCK,
         {HTTP},
-        {}
+        {},
+        {},
+        false
     }},
     {SERVER_NAME, {
         Type::SIMPLE,
         {SERVER},
-        {{{ArgumentType::URL}, 1, UNLIMITED}}
+        {{{ArgumentType::URL}, 1, UNLIMITED}},
+        {},
+        false
     }},
     {LISTEN, {
         Type::SIMPLE,
         {SERVER},
-        {{{ArgumentType::NetworkEndpoint}, 1, 1}}
+        {{{ArgumentType::NetworkEndpoint}, 1, 1}},
+        {},
+        true
     }},
     {ERROR_PAGE, {
         Type::SIMPLE,
@@ -32,22 +40,30 @@ const std::map<std::string, DirectiveSpec> directives = {
         {
             {{ArgumentType::StatusCode}, 1, UNLIMITED},
             {{ArgumentType::URL}, 1, 1}
-        }
+        },
+        {},
+        true
     }},
     {CLIENT_MAX_BODY_SIZE, {
         Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
-        {{{ArgumentType::DataSize}, 1, 1}}
+        {{{ArgumentType::DataSize}, 1, 1}},
+        {},
+        false
     }},
     {LOCATION, {
         Type::BLOCK,
         {SERVER},
-        {{{ArgumentType::URI}, 1, 1}}
+        {{{ArgumentType::URI}, 1, 1}},
+        {},
+        true
     }},
     {ACCEPTED_METHODS, {
         Type::SIMPLE,
         {LOCATION},
-        {{{ArgumentType::HttpMethod}, 1, 4}}
+        {{{ArgumentType::HttpMethod}, 1, 4}},
+        {},
+        false
     }},
     {RETURN, {
         Type::SIMPLE,
@@ -55,37 +71,51 @@ const std::map<std::string, DirectiveSpec> directives = {
         {
             {{ArgumentType::StatusCode}, 1, 1},
             {{ArgumentType::URL, ArgumentType::URI}, 1, 1},
-        }
+        },
+        {},
+        false
     }},
     {ROOT, {
         Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
-        {{{ArgumentType::FilePath}, 1, 1}}
+        {{{ArgumentType::FilePath}, 1, 1}},
+        {ALIAS},
+        false
     }},
     {ALIAS, {
         Type::SIMPLE,
         {LOCATION},
-        {{{ArgumentType::FilePath}, 1, 1}}
+        {{{ArgumentType::FilePath}, 1, 1}},
+        {ROOT},
+        false
     }},
     {AUTOINDEX, {
         Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
-        {{{ArgumentType::OnOff}, 1, 1}}
+        {{{ArgumentType::OnOff}, 1, 1}},
+        {},
+        false
     }},
     {INDEX, {
         Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
-        {{{ArgumentType::FilePath}, 1, UNLIMITED}}
+        {{{ArgumentType::FilePath}, 1, UNLIMITED}},
+        {},
+        false
     }},
     {UPLOAD_STORE, {
         Type::SIMPLE,
         {LOCATION},
-        {{{ArgumentType::FilePath}, 1, 1}}
+        {{{ArgumentType::FilePath}, 1, 1}},
+        {},
+        false
     }},
     {CGI_PASS, {
         Type::SIMPLE,
         {LOCATION},
-        {{{ArgumentType::FilePath}, 1, 1}}
+        {{{ArgumentType::FilePath}, 1, 1}},
+        {},
+        false
     }}
 };
 
@@ -146,7 +176,7 @@ const std::set<std::string>& getAllowedContextsFor(const std::string& name)
 {
     auto it = directives.find(name);
     if (it == directives.end())
-        throw std::logic_error("Unknow directive '" + name + "'");
+        throw std::logic_error("Unknown directive '" + name + "'");
 
     const DirectiveSpec& specs = it->second;
     return specs.allowedIn;
@@ -156,10 +186,30 @@ const std::vector<ArgumentSpec>& getArgSpecs(const std::string& name)
 {
     auto it = directives.find(name);
     if (it == directives.end())
-        throw std::logic_error("Unknow directive '" + name + "'");
+        throw std::logic_error("Unknown directive '" + name + "'");
 
     const DirectiveSpec& directiveSpecs = it->second;
     return directiveSpecs.argSpecs;
+}
+
+bool allowsDuplicates(const std::string& name)
+{
+    auto it = directives.find(name);
+    if (it == directives.end())
+        throw std::logic_error("Unknown directive '" + name + "'");
+
+    const DirectiveSpec& specs = it->second;
+    return specs.allowsDuplicates;
+}
+
+const std::vector<std::string>& getConflictingDirectives(const std::string& name)
+{
+    auto it = directives.find(name);
+    if (it == directives.end())
+        throw std::logic_error("Unknown directive '" + name + "'");
+
+    const DirectiveSpec& specs = it->second;
+    return specs.conflictingDirectives;
 }
 
 // clang-format on
