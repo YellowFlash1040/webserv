@@ -14,7 +14,7 @@ struct CGIResponse
 class CGIParser
 {
 public:
-    static CGIResponse CGIResponseParser(const std::string &output);
+    static CGIResponse CGIResponseParser(const std::string& output);
 };
 
 #endif

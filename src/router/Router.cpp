@@ -17,12 +17,12 @@ std::string getCgiRootFromCwd()
     return cwd + "/www/cgi-bin";
 }
 
-bool Router::isCgiRequest(const std::string &uri)
+bool Router::isCgiRequest(const std::string& uri)
 {
     return uri.rfind("/cgi-bin/", 0) == 0;
 }
 
-HttpResponse Router::handleCgi(const HttpRequest &req)
+HttpResponse Router::handleCgi(const HttpRequest& req)
 {
     // TEST ONLY
     std::string cgiRoot = getCgiRootFromCwd();
@@ -53,7 +53,7 @@ HttpResponse Router::handleCgi(const HttpRequest &req)
     return resp;
 }
 
-HttpResponse Router::handleStaticFile(const HttpRequest &req)
+HttpResponse Router::handleStaticFile(const HttpRequest& req)
 {
     HttpResponse resp;
     resp.headers = "Content-Type: text/plain\r\n\r\n";
@@ -61,7 +61,7 @@ HttpResponse Router::handleStaticFile(const HttpRequest &req)
     return resp;
 }
 
-HttpResponse Router::route(const HttpRequest &req)
+HttpResponse Router::route(const HttpRequest& req)
 {
     if (isCgiRequest(req.uri))
         return handleCgi(req);

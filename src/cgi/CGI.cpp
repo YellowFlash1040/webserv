@@ -11,13 +11,13 @@
 #include <cstring>
 #include <stdexcept>
 
-std::string cleanShebang(const std::string &line)
+std::string cleanShebang(const std::string& line)
 {
     if (line.size() < 3 || line[0] != '#' || line[1] != '!')
         return "";
 
-    size_t start = 2; // после #!
-    // пропускаем пробелы в начале пути
+    size_t start = 2;
+
     while (start < line.size() && std::isspace(line[start]))
         start++;
 
@@ -31,7 +31,7 @@ std::string cleanShebang(const std::string &line)
     return line.substr(start, end - start);
 }
 
-std::string getShebangInterpreter(const std::string &path)
+std::string getShebangInterpreter(const std::string& path)
 {
     std::ifstream f(path);
     if (!f.is_open())
@@ -44,7 +44,6 @@ std::string getShebangInterpreter(const std::string &path)
     if (interpreter.empty() || interpreter[0] != '/')
         throw std::runtime_error("Invalid or missing shebang in script: " + path);
 
-    // Проверяем существование интерпретатора
     struct stat st;
     if (stat(interpreter.c_str(), &st) == -1 || !(st.st_mode & S_IXUSR))
         throw std::runtime_error("Interpreter in shebang not found or not executable: " + interpreter);
@@ -53,7 +52,7 @@ std::string getShebangInterpreter(const std::string &path)
 }
 
 // Проверка пути + shebang
-std::string validateScriptPath(const std::string &scriptPath, const std::string &rootDir)
+std::string validateScriptPath(const std::string& scriptPath, const std::string& rootDir)
 {
     struct stat st;
     if (stat(scriptPath.c_str(), &st) == -1)
@@ -85,11 +84,11 @@ std::string validateScriptPath(const std::string &scriptPath, const std::string 
     throw std::runtime_error("CGI script is not executable and has no shebang: " + scriptPath);
 }
 
-std::string CGI::execute(const std::string &scriptPath,
-                    const std::vector<std::string> &args,
-                    const std::vector<std::string> &env,
-                    const std::string &input,
-                    const std::string &rootDir)
+std::string CGI::execute(const std::string& scriptPath,
+                    const std::vector<std::string>& args,
+                    const std::vector<std::string>& env,
+                    const std::string& input,
+                    const std::string& rootDir)
 {
     std::string execPath = validateScriptPath(scriptPath, rootDir);
 

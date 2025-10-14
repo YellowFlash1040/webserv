@@ -1,6 +1,6 @@
 #include "CGIParser.hpp"
 
-CGIResponse CGIParser::CGIResponseParser(const std::string &output)
+CGIResponse CGIParser::CGIResponseParser(const std::string& output)
 {
     CGIResponse res;
 

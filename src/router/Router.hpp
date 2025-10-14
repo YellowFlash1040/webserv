@@ -24,12 +24,12 @@ struct HttpResponse
 class Router
 {
 public:
-    HttpResponse route(const HttpRequest &req);
+    HttpResponse route(const HttpRequest& req);
 
 private:
-    bool isCgiRequest(const std::string &uri);
-    HttpResponse handleCgi(const HttpRequest &req);
-    HttpResponse handleStaticFile(const HttpRequest &req);
+    bool isCgiRequest(const std::string& uri);
+    HttpResponse handleCgi(const HttpRequest& req);
+    HttpResponse handleStaticFile(const HttpRequest& req);
 };
 
 #endif
