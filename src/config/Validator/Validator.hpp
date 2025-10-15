@@ -59,6 +59,7 @@ class Validator
     static void validateDataSize(const std::string& s);
     static void validateOnOff(const std::string& s);
     static void validateFilePath(const std::string& s);
+    static void validateFolderPath(const std::string& s);
     static void validateNetworkEndpoint(const std::string& s);
     static void validateHttpMethod(const std::string& s);
     static void validateString(const std::string& s);

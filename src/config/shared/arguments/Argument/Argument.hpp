@@ -13,7 +13,8 @@ enum class ArgumentType
     StatusCode,      // 200, 301, 404, 500
     DataSize,        // 20M
     OnOff,           // 'on' or 'off'
-    FilePath,        // /var/www/images
+    FilePath,        // index.html
+    FolderPath,      // /var/www/images
     NetworkEndpoint, // IP + port
     HttpMethod,      // GET, POST, DELETE
     String,          // 'hello'

@@ -152,7 +152,7 @@ LocationBlock Config::buildLocationBlock(
             assign(locationBlock.autoindex, args);
         else if (name == Directives::INDEX)
             assign(locationBlock.index, args);
-        else if (name == Directives::ACCEPTED_METHODS)
+        else if (name == Directives::LIMIT_EXCEPT)
             assign(locationBlock.acceptedHttpMethods, args);
     }
 

@@ -58,7 +58,7 @@ const std::map<std::string, DirectiveSpec> directives = {
         {},
         true
     }},
-    {ACCEPTED_METHODS, {
+    {LIMIT_EXCEPT, {
         Type::SIMPLE,
         {LOCATION},
         {{{ArgumentType::HttpMethod}, 1, 4}},
@@ -78,14 +78,14 @@ const std::map<std::string, DirectiveSpec> directives = {
     {ROOT, {
         Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
-        {{{ArgumentType::FilePath}, 1, 1}},
+        {{{ArgumentType::FolderPath}, 1, 1}},
         {ALIAS},
         false
     }},
     {ALIAS, {
         Type::SIMPLE,
         {LOCATION},
-        {{{ArgumentType::FilePath}, 1, 1}},
+        {{{ArgumentType::FolderPath}, 1, 1}},
         {ROOT},
         false
     }},
@@ -106,7 +106,7 @@ const std::map<std::string, DirectiveSpec> directives = {
     {UPLOAD_STORE, {
         Type::SIMPLE,
         {LOCATION},
-        {{{ArgumentType::FilePath}, 1, 1}},
+        {{{ArgumentType::FolderPath}, 1, 1}},
         {},
         false
     }},

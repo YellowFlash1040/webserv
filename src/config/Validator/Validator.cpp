@@ -184,6 +184,7 @@ Validator::validators()
             {ArgumentType::DataSize, validateDataSize},
             {ArgumentType::OnOff, validateOnOff},
             {ArgumentType::FilePath, validateFilePath},
+            {ArgumentType::FolderPath, validateFolderPath},
             {ArgumentType::NetworkEndpoint, validateNetworkEndpoint},
             {ArgumentType::HttpMethod, validateHttpMethod},
             {ArgumentType::String, validateString},
@@ -216,6 +217,16 @@ void Validator::validateFilePath(const std::string& s)
 {
     if (s.empty())
         throw std::invalid_argument("File path cannot be empty");
+    // if (s.find('.') == std::string::npos)
+    //     throw std::invalid_argument("File has to have an extension");
+}
+
+void Validator::validateFolderPath(const std::string& s)
+{
+    if (s.empty())
+        throw std::invalid_argument("File path cannot be empty");
+    if (s[0] != '/')
+        throw std::invalid_argument("Folder path has to start from a '/'");
 }
 
 void Validator::validateInteger(const std::string& s)
