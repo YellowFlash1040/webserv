@@ -25,7 +25,7 @@ class Config
 {
     // Construction and destruction
   public:
-    explicit Config(std::unique_ptr<ADirective> rootNode);
+    explicit Config(std::unique_ptr<Directive> rootNode);
     Config(const Config& other) = delete;
     Config& operator=(const Config& other) = delete;
     Config(Config&& other) noexcept;
@@ -45,12 +45,11 @@ class Config
     HttpBlock m_httpBlock;
 
     // Methods
-    static HttpBlock buildHttpBlock(
-        const std::unique_ptr<ADirective>& httpNode);
+    static HttpBlock buildHttpBlock(const std::unique_ptr<Directive>& httpNode);
     static ServerBlock buildServerBlock(
-        const std::unique_ptr<ADirective>& serverNode);
+        const std::unique_ptr<Directive>& serverNode);
     static LocationBlock buildLocationBlock(
-        const std::unique_ptr<ADirective>& locationNode);
+        const std::unique_ptr<Directive>& locationNode);
 
     static void assign(Property<std::string>& property,
                        const std::vector<Argument>& args);

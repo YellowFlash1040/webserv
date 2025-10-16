@@ -12,6 +12,8 @@
 class DirectiveContextException : public ValidatorException
 {
   public:
+    DirectiveContextException(const std::unique_ptr<Directive>& directive,
+                              const std::string& context);
     DirectiveContextException(size_t line, size_t column,
                               const std::string& name,
                               const std::string& context);

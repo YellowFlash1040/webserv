@@ -1,78 +1,70 @@
 #include "Validator.hpp"
 
-// -----------------------CONSTRUCTION AND DESTRUCTION-------------------------
-
-// Default constructor
-Validator::Validator(const std::unique_ptr<ADirective>& rootNode)
-  : m_rootNode(rootNode)
-{
-}
-
-// Destructor
-Validator::~Validator() {}
-
 // ---------------------------METHODS-----------------------------
 
-void Validator::validate(const std::unique_ptr<ADirective>& rootNode)
+void Validator::validate(const std::unique_ptr<Directive>& rootNode)
 {
-    Validator(rootNode).validate();
-}
-
-void Validator::validate()
-{
-    const std::string& name = m_rootNode->name();
-
     const BlockDirective* block
-        = dynamic_cast<const BlockDirective*>(m_rootNode.get());
-    if (!block || block->name() != "global")
+        = dynamic_cast<const BlockDirective*>(rootNode.get());
+    const std::string& name = rootNode->name();
+    if (!block || name != "global")
         throw std::logic_error(
             "The root node has to be a block directive 'global'");
 
-    if (block->directives().size() > 1)
-        throw std::logic_error("duplicate 'http' directive");
-
-    validateChildren(*block, name);
+    validateChildren(block);
 }
 
-void Validator::validateChildren(const BlockDirective& block,
-                                 const std::string& parentContext)
+void Validator::validateChildren(const BlockDirective* block)
 {
-    for (const auto& directive : block.directives())
-        validateNode(directive, parentContext);
+    std::set<std::string> seenDirectives;
+
+    for (const auto& directive : block->directives())
+    {
+        makeDuplicateCheck(seenDirectives, directive);
+        validateDirective(directive, block->name());
+    }
 }
 
-void Validator::validateNode(const std::unique_ptr<ADirective>& node,
-                             const std::string& parentContext)
+void Validator::makeDuplicateCheck(std::set<std::string>& seenDirectives,
+                                   const std::unique_ptr<Directive>& directive)
 {
-    const std::string& name = node->name();
-    m_errorLine = node->line();
-    m_errorColumn = node->column();
+    const std::string& name = directive->name();
+    bool inserted = seenDirectives.insert(name).second;
+    bool allowsDuplicates = Directives::allowsDuplicates(name);
 
-    checkIfAllowedDirective(name, parentContext);
-    validateArguments(name, node->args());
+    if (!inserted && !allowsDuplicates)
+        throw DuplicateDirectiveException(directive->line(),
+                                          directive->column(), name);
+}
+
+void Validator::validateDirective(const std::unique_ptr<Directive>& directive,
+                                  const std::string& parentContext)
+{
+    checkIfAllowedDirective(directive, parentContext);
+    validateArguments(directive->name(), directive->args());
 
     const BlockDirective* block
-        = dynamic_cast<const BlockDirective*>(node.get());
+        = dynamic_cast<const BlockDirective*>(directive.get());
     if (block)
-        validateChildren(*block, name);
+        validateChildren(block);
 }
 
-void Validator::checkIfAllowedDirective(const std::string& name,
-                                        const std::string& context)
+void Validator::checkIfAllowedDirective(
+    const std::unique_ptr<Directive>& directive, const std::string& context)
 {
-    if (!Directives::isAllowedInContext(name, context))
-        throw DirectiveContextException(m_errorLine, m_errorColumn, name,
-                                        context);
+    if (!Directives::isAllowedInContext(directive->name(), context))
+        throw DirectiveContextException(directive, context);
 }
 
 void Validator::validateArguments(const std::string& name,
                                   const std::vector<Argument>& args)
 {
+    makeDuplicateCheck(args);
+
     const std::vector<Directives::ArgumentSpec>& argSpecs
         = Directives::getArgSpecs(name);
 
     size_t i = 0;
-    size_t lastThrowIndex = 0;
     for (const Directives::ArgumentSpec& spec : argSpecs)
     {
         size_t count = 0;
@@ -83,52 +75,47 @@ void Validator::validateArguments(const std::string& name,
             {
                 validateArgument(spec.possibleTypes, args[i]);
                 ++count;
+                if (count > spec.maxCount)
+                    throw ExtraArgumentException(args[i]);
                 ++i;
             }
             catch (const std::exception&)
             {
-                if (lastThrowIndex == i)
-                    // if it throws twice on the same index, it
-                    // means that the argument is invalid
+                if (spec.minCount > 0
+                    && count < spec.minCount) // if argument is not optional,
+                                              // and we haven't found enough yet
                     throw InvalidArgumentException(args[i]);
-                lastThrowIndex = i;
                 hasThrown = true;
             }
         }
-
-        checkArgumentCount(name, spec, count);
     }
 
     if (i < args.size())
         throw InvalidArgumentException(args[i]);
 }
 
-void Validator::validateArgumentGroup(const std::string& name,
-                                      const std::vector<Argument>& args,
-                                      const Directives::ArgumentSpec& spec,
-                                      size_t& i, size_t& lastThrowIndex)
-{
-    size_t count = 0;
-    bool hasThrown = false;
-    while (i < args.size() && !hasThrown)
-    {
-        try
-        {
-            validateArgument(spec.possibleTypes, args[i]);
-            ++count;
-            ++i;
-        }
-        catch (const std::exception&)
-        {
-            if (lastThrowIndex == i) // if it throws twice on the same index, it
-                                     // means that the argument is invalid
-                throw InvalidArgumentException(args[i]);
-            lastThrowIndex = i;
-            hasThrown = true;
-        }
-    }
+/*
+Technically it's possible to tell if there is an argument missing, or if it's
+invalid, by trying to convert it to the next type. So in other words: if
+argument failed to convert into group_1 types, but it succeded to convert into
+one of the group_2 types, then it means - argument is missing. Otherwise - it's
+invalid.
 
-    checkArgumentCount(name, spec, count);
+But for now I decided to treat both situations as "Invalid argument"
+*/
+
+void Validator::makeDuplicateCheck(const std::vector<Argument>& args)
+{
+    std::set<std::string> seenArguments;
+
+    for (const Argument& arg : args)
+    {
+        // insert() returns {iterator, bool}
+        bool inserted = seenArguments.insert(arg.value()).second;
+
+        if (!inserted)
+            throw DuplicateArgumentException(arg);
+    }
 }
 
 void Validator::validateArgument(const std::vector<ArgumentType>& possibleTypes,
@@ -157,17 +144,6 @@ void Validator::validateArgument(const std::vector<ArgumentType>& possibleTypes,
                                 + "' does not match any allowed type");
 }
 
-void Validator::checkArgumentCount(const std::string& name,
-                                   const Directives::ArgumentSpec& spec,
-                                   std::size_t count) const
-{
-    if (count < spec.minCount)
-        throw NotEnoughArgumentsException(m_errorLine, m_errorColumn, name);
-
-    if (count > spec.maxCount)
-        throw TooManyArgumentsException(m_errorLine, m_errorColumn, name);
-}
-
 ///----------------///
 ///----------------///
 ///----------------///
@@ -178,17 +154,23 @@ Validator::validators()
 {
     static const std::map<ArgumentType, std::function<void(const std::string&)>>
         map = {
-            {ArgumentType::URL, validateUrl},
             {ArgumentType::Integer, validateInteger},
+            {ArgumentType::String, validateString},
+            {ArgumentType::URL, validateUrl},
             {ArgumentType::StatusCode, validateStatusCode},
             {ArgumentType::DataSize, validateDataSize},
             {ArgumentType::OnOff, validateOnOff},
-            {ArgumentType::FilePath, validateFilePath},
             {ArgumentType::FolderPath, validateFolderPath},
+            {ArgumentType::FilePath, validateFilePath},
             {ArgumentType::NetworkEndpoint, validateNetworkEndpoint},
+            {ArgumentType::Ip, validateIp},
+            {ArgumentType::Port, validatePort},
             {ArgumentType::HttpMethod, validateHttpMethod},
-            {ArgumentType::String, validateString},
-            {ArgumentType::URI, validateUri}
+            {ArgumentType::URI, validateUri},
+            {ArgumentType::Name, validateName},
+            {ArgumentType::File, validateFile},
+            {ArgumentType::FileExtension, validateFileExtension},
+            {ArgumentType::BinaryPath, validateBinaryPath}
         };
     return map;
 }
@@ -216,7 +198,7 @@ void Validator::validateOnOff(const std::string& s)
 void Validator::validateFilePath(const std::string& s)
 {
     if (s.empty())
-        throw std::invalid_argument("File path cannot be empty");
+        throw std::invalid_argument("Argument cannot be empty");
     // if (s.find('.') == std::string::npos)
     //     throw std::invalid_argument("File has to have an extension");
 }
@@ -224,7 +206,7 @@ void Validator::validateFilePath(const std::string& s)
 void Validator::validateFolderPath(const std::string& s)
 {
     if (s.empty())
-        throw std::invalid_argument("File path cannot be empty");
+        throw std::invalid_argument("Argument cannot be empty");
     if (s[0] != '/')
         throw std::invalid_argument("Folder path has to start from a '/'");
 }
@@ -259,7 +241,75 @@ void Validator::validateString(const std::string& s)
 void Validator::validateUri(const std::string& s)
 {
     if (s.empty() || s[0] != '/')
-        throw std::invalid_argument("Invalid URI: " + s);
+        throw std::invalid_argument("Invalid URI: '" + s + "'");
+}
+
+void Validator::validateName(const std::string& s)
+{
+    if (s.empty())
+        throw std::invalid_argument("Argument cannot be empty");
+
+    if (s.find_first_of("/\\") != std::string::npos)
+        throw std::invalid_argument(
+            "Name cannot contain '/' or '\\'. Invalid name: '" + s + "'");
+
+    for (char c : s)
+    {
+        if (!(std::isalnum(c) || c == '.'))
+            throw std::invalid_argument("Name can only contain alphanumeric "
+                                        "characters and dots. Invalid name: '"
+                                        + s + "'");
+    }
+}
+
+void Validator::validateFile(const std::string& s)
+{
+    if (s.empty())
+        throw std::invalid_argument("Argument cannot be empty");
+
+    if (s.find(".") == std::string::npos)
+        throw std::invalid_argument("File has to have an extension");
+
+    if (s.find_first_of("/\\") != std::string::npos)
+        throw std::invalid_argument(
+            "File cannot contain '/' or '\\'. Invalid file: '" + s + "'");
+
+    for (char c : s)
+    {
+        if (!(std::isalnum(c) || c == '.'))
+            throw std::invalid_argument("File can only contain alphanumeric "
+                                        "characters and dots. Invalid file: '"
+                                        + s + "'");
+    }
+}
+
+void Validator::validateIp(const std::string& s)
+{
+    (void)s;
+    return;
+}
+
+void Validator::validatePort(const std::string& s)
+{
+    int number = std::stoi(s);
+    if (number < 0 || number > 65535)
+        throw std::invalid_argument(
+            "Valid port has to be an integer value between 0 and 65535");
+}
+
+void Validator::validateFileExtension(const std::string& s)
+{
+    if (s[0] != '.')
+        throw std::invalid_argument("file extension has to start with a '.'");
+}
+
+void Validator::validateBinaryPath(const std::string& s)
+{
+    static std::string allowedBinariesFolder = "/usr/bin/";
+
+    if (s.compare(0, allowedBinariesFolder.size(), allowedBinariesFolder) != 0)
+        throw std::invalid_argument("binaries outside " + allowedBinariesFolder
+                                    + " are not allowed");
 }
 
 //-------------------------THOUGHTS-------------------------------
@@ -268,9 +318,3 @@ void Validator::validateUri(const std::string& s)
 // Create a function for each directive
 // Create a class for each possible data type
 // Use appropriate string -> class conversions and see the results
-
-// map
-// function
-// class
-// convert
-// validate

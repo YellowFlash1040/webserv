@@ -8,18 +8,23 @@
 
 enum class ArgumentType
 {
+    Integer,         // 42
+    String,          // "some text"
     URL,             // https://profile.intra.42.fr
-    Integer,         // 8080
-    StatusCode,      // 200, 301, 404, 500
-    DataSize,        // 20M
+    StatusCode,      // 100, 200, 301, 404, 500
+    DataSize,        // 1k, 20M, 6g
     OnOff,           // 'on' or 'off'
-    FilePath,        // index.html
     FolderPath,      // /var/www/images
-    NetworkEndpoint, // IP + port
+    FilePath,        // /var/www/images/image.jpg
+    NetworkEndpoint, // 127.0.0.1:443
+    Ip,              // 127.0.0.1
+    Port,            // 8080
     HttpMethod,      // GET, POST, DELETE
-    String,          // 'hello'
-    URI,
-    Port
+    URI,             // /profile
+    Name,            // example.com
+    File,            // index.html
+    FileExtension,   // .php
+    BinaryPath       // /usr/bin/php-cgi
 };
 
 class Argument

@@ -9,9 +9,8 @@
 # include <stdexcept>
 # include <limits>
 
-# include "ADirective.hpp"
+# include "Directive.hpp"
 # include "BlockDirective.hpp"
-# include "SimpleDirective.hpp"
 
 namespace Directives
 {
@@ -61,7 +60,7 @@ struct DirectiveSpec
 bool isKnownDirective(const std::string& name);
 Type getDirectiveType(const std::string& name);
 bool isBlockDirective(const std::string& name);
-bool isSimpleDirective(const std::string& name);
+bool isDirective(const std::string& name);
 bool isAllowedInContext(const std::string& name, const std::string& context);
 const std::set<std::string>& getAllowedContextsFor(const std::string& name);
 // bool hasRightAmountOfArguments(const std::string& name, size_t amount);

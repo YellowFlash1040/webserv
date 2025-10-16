@@ -18,19 +18,19 @@ const std::map<std::string, DirectiveSpec> directives = {
         {HTTP},
         {},
         {},
-        false
+        true
     }},
     {SERVER_NAME, {
         Type::SIMPLE,
         {SERVER},
-        {{{ArgumentType::URL}, 1, UNLIMITED}},
+        {{{ArgumentType::Name}, 1, UNLIMITED}},
         {},
         false
     }},
     {LISTEN, {
         Type::SIMPLE,
         {SERVER},
-        {{{ArgumentType::NetworkEndpoint}, 1, 1}},
+        {{{ArgumentType::NetworkEndpoint, ArgumentType::Port, ArgumentType::Ip}, 1, 1}},
         {},
         true
     }},
@@ -39,7 +39,7 @@ const std::map<std::string, DirectiveSpec> directives = {
         {HTTP, SERVER, LOCATION},
         {
             {{ArgumentType::StatusCode}, 1, UNLIMITED},
-            {{ArgumentType::URL}, 1, 1}
+            {{ArgumentType::FilePath}, 1, 1}
         },
         {},
         true
@@ -61,7 +61,7 @@ const std::map<std::string, DirectiveSpec> directives = {
     {LIMIT_EXCEPT, {
         Type::SIMPLE,
         {LOCATION},
-        {{{ArgumentType::HttpMethod}, 1, 4}},
+        {{{ArgumentType::HttpMethod}, 1, UNLIMITED}},
         {},
         false
     }},
@@ -70,7 +70,7 @@ const std::map<std::string, DirectiveSpec> directives = {
         {SERVER, LOCATION},
         {
             {{ArgumentType::StatusCode}, 1, 1},
-            {{ArgumentType::URL, ArgumentType::URI}, 1, 1},
+            {{ArgumentType::URL, ArgumentType::String}, 0, 1},
         },
         {},
         false
@@ -99,13 +99,13 @@ const std::map<std::string, DirectiveSpec> directives = {
     {INDEX, {
         Type::SIMPLE,
         {HTTP, SERVER, LOCATION},
-        {{{ArgumentType::FilePath}, 1, UNLIMITED}},
+        {{{ArgumentType::File}, 1, UNLIMITED}},
         {},
         false
     }},
     {UPLOAD_STORE, {
         Type::SIMPLE,
-        {LOCATION},
+        {SERVER, LOCATION},
         {{{ArgumentType::FolderPath}, 1, 1}},
         {},
         false
@@ -113,7 +113,10 @@ const std::map<std::string, DirectiveSpec> directives = {
     {CGI_PASS, {
         Type::SIMPLE,
         {LOCATION},
-        {{{ArgumentType::FilePath}, 1, 1}},
+        {
+            {{ArgumentType::FileExtension}, 1, 1},
+            {{ArgumentType::BinaryPath}, 1, 1}
+        },
         {},
         false
     }}
@@ -126,7 +129,7 @@ bool isKnownDirective(const std::string& name)
 
 Type getDirectiveType(const std::string& name)
 {
-    if (isSimpleDirective(name))
+    if (isDirective(name))
         return Type::SIMPLE;
     if (isBlockDirective(name))
         return Type::BLOCK;
@@ -146,7 +149,7 @@ bool isBlockDirective(const std::string& name)
     return true; 
 }
 
-bool isSimpleDirective(const std::string& name)
+bool isDirective(const std::string& name)
 {
     auto it = directives.find(name);
     if (it == directives.end())

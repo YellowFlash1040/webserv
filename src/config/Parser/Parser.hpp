@@ -31,8 +31,8 @@ class Parser
     // Class specific features
   public:
     // Methods
-    static std::unique_ptr<ADirective> parse(std::vector<Token>& tokens);
-    std::unique_ptr<ADirective> parse();
+    static std::unique_ptr<Directive> parse(std::vector<Token>& tokens);
+    std::unique_ptr<Directive> parse();
 
   private:
     // Properties
@@ -42,12 +42,12 @@ class Parser
     // Methods
     Token advance();
     const Token& peek();
-    std::unique_ptr<ADirective> parseDirective();
-    std::unique_ptr<ADirective> createDirective(Directives::Type type,
-                                                std::string& name,
-                                                std::vector<Argument>& args);
+    std::unique_ptr<Directive> parseDirective();
+    std::unique_ptr<Directive> createDirective(Directives::Type type,
+                                               std::string& name,
+                                               std::vector<Argument>& args);
     void parseAndFillBlockDirective(
-        const std::unique_ptr<ADirective>& directive);
+        const std::unique_ptr<Directive>& directive);
     void consumeArguments(std::vector<Argument>& args);
     std::string expectDirectiveToken(const Token& token);
     Directives::Type expectKnownDirective(const Token& token);

@@ -9,5 +9,8 @@
 # include "InvalidArgumentException.hpp"
 # include "NotEnoughArgumentsException.hpp"
 # include "TooManyArgumentsException.hpp"
+# include "DuplicateDirectiveException.hpp"
+# include "DuplicateArgumentException.hpp"
+# include "ExtraArgumentException.hpp"
 
 #endif

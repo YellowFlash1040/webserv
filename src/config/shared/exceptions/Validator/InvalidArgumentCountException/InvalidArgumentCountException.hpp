@@ -11,8 +11,8 @@
 class InvalidArgumentCountException : public ValidatorException
 {
   public:
-    explicit InvalidArgumentCountException(size_t line, size_t column,
-                                           const std::string& directiveName);
+    InvalidArgumentCountException(size_t line, size_t column,
+                                  const std::string& directiveName);
 
     const char* what() const noexcept override;
 };

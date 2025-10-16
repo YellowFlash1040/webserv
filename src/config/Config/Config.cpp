@@ -4,7 +4,7 @@
 
 // Default constructor
 
-Config::Config(std::unique_ptr<ADirective> ast)
+Config::Config(std::unique_ptr<Directive> ast)
 {
     auto mainNode = dynamic_cast<BlockDirective*>(ast.get());
     if (!mainNode)
@@ -38,7 +38,7 @@ Config Config::fromFile(const std::string& filepath)
 {
     std::string content = FileReader::readFile(filepath);
     std::vector<Token> tokens = Lexer::tokenize(content);
-    std::unique_ptr<ADirective> ast = Parser::parse(tokens);
+    std::unique_ptr<Directive> ast = Parser::parse(tokens);
     Validator::validate(ast);
 
     return Config(std::move(ast));
@@ -74,7 +74,7 @@ RequestContext Config::createRequestContext(const std::string& host,
 ///----------------------------///
 ///----------------------------///
 
-HttpBlock Config::buildHttpBlock(const std::unique_ptr<ADirective>& httpNode)
+HttpBlock Config::buildHttpBlock(const std::unique_ptr<Directive>& httpNode)
 {
     HttpBlock httpBlock;
 
@@ -98,7 +98,7 @@ HttpBlock Config::buildHttpBlock(const std::unique_ptr<ADirective>& httpNode)
 }
 
 ServerBlock Config::buildServerBlock(
-    const std::unique_ptr<ADirective>& serverNode)
+    const std::unique_ptr<Directive>& serverNode)
 {
     ServerBlock serverBlock;
 
@@ -132,7 +132,7 @@ ServerBlock Config::buildServerBlock(
 }
 
 LocationBlock Config::buildLocationBlock(
-    const std::unique_ptr<ADirective>& locationNode)
+    const std::unique_ptr<Directive>& locationNode)
 {
     LocationBlock locationBlock;
 

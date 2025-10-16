@@ -16,7 +16,7 @@ TEST(ParserTest, ParseOnlyEndToken)
     EXPECT_TRUE(global->directives().empty());
 }
 
-TEST(ParserTest, SingleSimpleDirective_ParsesCorrectly)
+TEST(ParserTest, SingleDirective_ParsesCorrectly)
 {
     std::vector<Token> tokens = {
         {TokenType::DIRECTIVE, "server_name"},
@@ -119,28 +119,28 @@ TEST(ParserTest, ParsesServerBlockWithMultipleDirectivesAndNestedLocation)
     ASSERT_EQ(children.size(), 5u);
 
     // listen 8080;
-    auto* listen = dynamic_cast<SimpleDirective*>(children[0].get());
+    auto* listen = dynamic_cast<Directive*>(children[0].get());
     ASSERT_NE(listen, nullptr);
     EXPECT_EQ(listen->name(), "listen");
     ASSERT_EQ(listen->args().size(), 1u);
     EXPECT_EQ(listen->args()[0].value(), "8080");
 
     // server_name www.example.org;
-    auto* serverName = dynamic_cast<SimpleDirective*>(children[1].get());
+    auto* serverName = dynamic_cast<Directive*>(children[1].get());
     ASSERT_NE(serverName, nullptr);
     EXPECT_EQ(serverName->name(), "server_name");
     ASSERT_EQ(serverName->args().size(), 1u);
     EXPECT_EQ(serverName->args()[0].value(), "www.example.org");
 
     // root /home/youruser/current_folder/html;
-    auto* root = dynamic_cast<SimpleDirective*>(children[2].get());
+    auto* root = dynamic_cast<Directive*>(children[2].get());
     ASSERT_NE(root, nullptr);
     EXPECT_EQ(root->name(), "root");
     ASSERT_EQ(root->args().size(), 1u);
     EXPECT_EQ(root->args()[0].value(), "/home/youruser/current_folder/html");
 
     // index index.html;
-    auto* index = dynamic_cast<SimpleDirective*>(children[3].get());
+    auto* index = dynamic_cast<Directive*>(children[3].get());
     ASSERT_NE(index, nullptr);
     EXPECT_EQ(index->name(), "index");
     ASSERT_EQ(index->args().size(), 1u);
@@ -156,7 +156,7 @@ TEST(ParserTest, ParsesServerBlockWithMultipleDirectivesAndNestedLocation)
     auto& locChildren = locationBlock->directives();
     ASSERT_EQ(locChildren.size(), 1u);
 
-    auto* autoindex = dynamic_cast<SimpleDirective*>(locChildren[0].get());
+    auto* autoindex = dynamic_cast<Directive*>(locChildren[0].get());
     ASSERT_NE(autoindex, nullptr);
     EXPECT_EQ(autoindex->name(), "autoindex");
     ASSERT_EQ(autoindex->args().size(), 1u);
@@ -194,7 +194,7 @@ TEST(ParserTest, ParseWithoutEndToken)
 }
 
 // Test cases for valid parsing scenarios
-TEST(ParserTest, ParseSimpleDirective)
+TEST(ParserTest, ParseDirective)
 {
     // Test: "listen 8080;"
     std::vector<Token> tokens = {
@@ -213,11 +213,11 @@ TEST(ParserTest, ParseSimpleDirective)
 
     const auto& directives = global->directives();
 
-    auto* simpleDirective = dynamic_cast<SimpleDirective*>(directives[0].get());
-    ASSERT_NE(simpleDirective, nullptr);
-    EXPECT_EQ(simpleDirective->name(), "listen");
-    ASSERT_EQ(simpleDirective->args().size(), 1u);
-    EXPECT_EQ(simpleDirective->args()[0].value(), "8080");
+    auto* directive = dynamic_cast<Directive*>(directives[0].get());
+    ASSERT_NE(directive, nullptr);
+    EXPECT_EQ(directive->name(), "listen");
+    ASSERT_EQ(directive->args().size(), 1u);
+    EXPECT_EQ(directive->args()[0].value(), "8080");
 }
 
 TEST(ParserTest, ParseDirectiveWithMultipleValues)
@@ -241,15 +241,15 @@ TEST(ParserTest, ParseDirectiveWithMultipleValues)
 
     const auto& directives = global->directives();
 
-    auto* simpleDirective = dynamic_cast<SimpleDirective*>(directives[0].get());
-    ASSERT_NE(simpleDirective, nullptr);
-    EXPECT_EQ(simpleDirective->name(), "server_name");
-    ASSERT_EQ(simpleDirective->args().size(), 2u);
-    EXPECT_EQ(simpleDirective->args()[0].value(), "example.com");
-    EXPECT_EQ(simpleDirective->args()[1].value(), "www.example.com");
+    auto* directive = dynamic_cast<Directive*>(directives[0].get());
+    ASSERT_NE(directive, nullptr);
+    EXPECT_EQ(directive->name(), "server_name");
+    ASSERT_EQ(directive->args().size(), 2u);
+    EXPECT_EQ(directive->args()[0].value(), "example.com");
+    EXPECT_EQ(directive->args()[1].value(), "www.example.com");
 }
 
-TEST(ParserTest, ParseMultipleSimpleDirectives)
+TEST(ParserTest, ParseMultipleDirectives)
 {
     // Test multiple directives
     std::vector<Token> tokens = {
@@ -272,13 +272,13 @@ TEST(ParserTest, ParseMultipleSimpleDirectives)
 
     const auto& directives = global->directives();
 
-    auto* listen = dynamic_cast<SimpleDirective*>(directives[0].get());
+    auto* listen = dynamic_cast<Directive*>(directives[0].get());
     ASSERT_NE(listen, nullptr);
     EXPECT_EQ(listen->name(), "listen");
     ASSERT_EQ(listen->args().size(), 1u);
     EXPECT_EQ(listen->args()[0].value(), "8080");
 
-    auto* root = dynamic_cast<SimpleDirective*>(directives[1].get());
+    auto* root = dynamic_cast<Directive*>(directives[1].get());
     ASSERT_NE(root, nullptr);
     EXPECT_EQ(root->name(), "root");
     ASSERT_EQ(root->args().size(), 1u);
@@ -315,7 +315,7 @@ TEST(ParserTest, ParseBlockDirective)
     auto& serverChildren = server->directives();
     ASSERT_EQ(serverChildren.size(), 1u);
 
-    auto* listen = dynamic_cast<SimpleDirective*>(serverChildren[0].get());
+    auto* listen = dynamic_cast<Directive*>(serverChildren[0].get());
     ASSERT_NE(listen, nullptr);
     EXPECT_EQ(listen->name(), "listen");
     ASSERT_EQ(listen->args().size(), 1u);
@@ -359,7 +359,7 @@ TEST(ParserTest, ParseNestedBlockDirectives)
     auto& serverChildren = server->directives();
     ASSERT_EQ(serverChildren.size(), 2u);
 
-    auto* listen = dynamic_cast<SimpleDirective*>(serverChildren[0].get());
+    auto* listen = dynamic_cast<Directive*>(serverChildren[0].get());
     ASSERT_NE(listen, nullptr);
     EXPECT_EQ(listen->name(), "listen");
     ASSERT_EQ(listen->args().size(), 1u);
@@ -374,7 +374,7 @@ TEST(ParserTest, ParseNestedBlockDirectives)
     auto& locationChildren = location->directives();
     ASSERT_EQ(locationChildren.size(), 1u);
 
-    auto* autoindex = dynamic_cast<SimpleDirective*>(locationChildren[0].get());
+    auto* autoindex = dynamic_cast<Directive*>(locationChildren[0].get());
     ASSERT_NE(autoindex, nullptr);
     EXPECT_EQ(autoindex->name(), "autoindex");
     ASSERT_EQ(autoindex->args().size(), 1u);
@@ -427,25 +427,25 @@ TEST(ParserTest, ParseComplexConfiguration)
     auto& serverChildren = server->directives();
     ASSERT_EQ(serverChildren.size(), 5u);
 
-    auto* listen = dynamic_cast<SimpleDirective*>(serverChildren[0].get());
+    auto* listen = dynamic_cast<Directive*>(serverChildren[0].get());
     ASSERT_NE(listen, nullptr);
     EXPECT_EQ(listen->name(), "listen");
     ASSERT_EQ(listen->args().size(), 1u);
     EXPECT_EQ(listen->args()[0].value(), "8080");
 
-    auto* serverName = dynamic_cast<SimpleDirective*>(serverChildren[1].get());
+    auto* serverName = dynamic_cast<Directive*>(serverChildren[1].get());
     ASSERT_NE(serverName, nullptr);
     EXPECT_EQ(serverName->name(), "server_name");
     ASSERT_EQ(serverName->args().size(), 1u);
     EXPECT_EQ(serverName->args()[0].value(), "www.example.org");
 
-    auto* root = dynamic_cast<SimpleDirective*>(serverChildren[2].get());
+    auto* root = dynamic_cast<Directive*>(serverChildren[2].get());
     ASSERT_NE(root, nullptr);
     EXPECT_EQ(root->name(), "root");
     ASSERT_EQ(root->args().size(), 1u);
     EXPECT_EQ(root->args()[0].value(), "/home/youruser/current_folder/html");
 
-    auto* index = dynamic_cast<SimpleDirective*>(serverChildren[3].get());
+    auto* index = dynamic_cast<Directive*>(serverChildren[3].get());
     ASSERT_NE(index, nullptr);
     EXPECT_EQ(index->name(), "index");
     ASSERT_EQ(index->args().size(), 1u);
@@ -460,7 +460,7 @@ TEST(ParserTest, ParseComplexConfiguration)
     auto& locationChildren = location->directives();
     ASSERT_EQ(locationChildren.size(), 1u);
 
-    auto* autoindex = dynamic_cast<SimpleDirective*>(locationChildren[0].get());
+    auto* autoindex = dynamic_cast<Directive*>(locationChildren[0].get());
     ASSERT_NE(autoindex, nullptr);
     EXPECT_EQ(autoindex->name(), "autoindex");
     ASSERT_EQ(autoindex->args().size(), 1u);
@@ -654,7 +654,7 @@ TEST(ParserTest, ParseDeeplyNestedBlocks)
     auto& location2Children = location2->directives();
     ASSERT_EQ(location2Children.size(), 1u);
 
-    auto* uploadStore = dynamic_cast<SimpleDirective*>(location2Children[0].get());
+    auto* uploadStore = dynamic_cast<Directive*>(location2Children[0].get());
     ASSERT_NE(uploadStore, nullptr);
     EXPECT_EQ(uploadStore->name(), "upload_store");
     ASSERT_EQ(uploadStore->args().size(), 1u);
@@ -681,7 +681,7 @@ TEST(ParserTest, ParseDirectiveWithPathValue)
 
     const auto& directives = global->directives();
 
-    auto* root = dynamic_cast<SimpleDirective*>(directives[0].get());
+    auto* root = dynamic_cast<Directive*>(directives[0].get());
     ASSERT_NE(root, nullptr);
     EXPECT_EQ(root->name(), "root");
     ASSERT_EQ(root->args().size(), 1u);
@@ -708,7 +708,7 @@ TEST(ParserTest, ParseDirectiveWithNumericValue)
 
     const auto& directives = global->directives();
 
-    auto* root = dynamic_cast<SimpleDirective*>(directives[0].get());
+    auto* root = dynamic_cast<Directive*>(directives[0].get());
     ASSERT_NE(root, nullptr);
     EXPECT_EQ(root->name(), "return");
     ASSERT_EQ(root->args().size(), 2u);
@@ -740,7 +740,7 @@ std::to_string(i)); tokens.emplace_back(TokenType::SEMICOLON, ";");
 
     for (size_t i = 0; i < 100; ++i)
     {
-        auto* directive = dynamic_cast<SimpleDirective*>(result[i].get());
+        auto* directive = dynamic_cast<Directive*>(result[i].get());
         ASSERT_NE(directive, nullptr);
         EXPECT_EQ(directive->name(), "directive" + std::to_string(i));
         ASSERT_EQ(directive->args().size(), 1u);
@@ -781,8 +781,7 @@ class ParserErrorTest : public ::testing::Test
 };
 
 // Test missing semicolon for simple directives
-TEST_F(ParserErrorTest,
-       SimpleDirective_MissingSemicolon_ThrowsWithCorrectLocation)
+TEST_F(ParserErrorTest, Directive_MissingSemicolon_ThrowsWithCorrectLocation)
 {
     std::vector<Token> tokens = {{TokenType::DIRECTIVE, "server_name", 1, 1},
                                  {TokenType::VALUE, "example.com", 1, 13},
@@ -806,7 +805,7 @@ TEST_F(ParserErrorTest,
     }
 }
 
-TEST_F(ParserErrorTest, SimpleDirective_listen_MissingSemicolon)
+TEST_F(ParserErrorTest, Directive_listen_MissingSemicolon)
 {
     std::vector<Token> tokens = {{TokenType::DIRECTIVE, "listen", 2, 5},
                                  {TokenType::VALUE, "0.0.0.0:8080", 2, 12},
@@ -829,7 +828,7 @@ TEST_F(ParserErrorTest, SimpleDirective_listen_MissingSemicolon)
     }
 }
 
-TEST_F(ParserErrorTest, SimpleDirective_root_MissingSemicolon)
+TEST_F(ParserErrorTest, Directive_root_MissingSemicolon)
 {
     std::vector<Token> tokens = {{TokenType::DIRECTIVE, "root", 3, 10},
                                  {TokenType::VALUE, "/var/www", 3, 15},
@@ -1019,7 +1018,7 @@ TEST_F(ParserErrorTest, NestedBlocks_location_MissingCloseBrace)
 }
 
 // Test simple directive with wrong terminator (brace instead of semicolon)
-TEST_F(ParserErrorTest, SimpleDirective_WrongTerminator_BraceInsteadOfSemicolon)
+TEST_F(ParserErrorTest, Directive_WrongTerminator_BraceInsteadOfSemicolon)
 {
     std::vector<Token> tokens
         = {{TokenType::DIRECTIVE, "server_name", 1, 1},
@@ -1125,7 +1124,7 @@ TEST_F(ParserErrorTest, EmptyTokenList_ThrowsAppropriateError)
 }
 
 // Test all simple directive types with missing semicolons
-TEST_F(ParserErrorTest, AllSimpleDirectives_MissingSemicolons)
+TEST_F(ParserErrorTest, AllDirectives_MissingSemicolons)
 {
     struct TestCase
     {

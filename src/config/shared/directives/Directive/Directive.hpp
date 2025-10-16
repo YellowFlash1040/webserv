@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef ADIRECTIVE_HPP
-# define ADIRECTIVE_HPP
+#ifndef DIRECTIVE_HPP
+# define DIRECTIVE_HPP
 
 # include <utility>
 # include <string>
@@ -9,20 +9,18 @@
 
 # include "Argument.hpp"
 
-class ADirective
+class Directive
 {
     // ----------------------------
     // Construction and destruction
     // ----------------------------
   public:
-    ADirective(const ADirective& other);
-    ADirective& operator=(const ADirective& other);
-    ADirective(ADirective&& other) noexcept;
-    ADirective& operator=(ADirective&& other) noexcept;
-    virtual ~ADirective();
-
-  protected:
-    ADirective();
+    Directive();
+    Directive(const Directive& other);
+    Directive& operator=(const Directive& other);
+    Directive(Directive&& other) noexcept;
+    Directive& operator=(Directive&& other) noexcept;
+    virtual ~Directive();
 
     // -----------------------
     // Class specific features

@@ -4,13 +4,13 @@
 
 // Default constructor
 BlockDirective::BlockDirective()
-  : ADirective()
+  : Directive()
 {
 }
 
 // Copy constructor
 BlockDirective::BlockDirective(const BlockDirective& other)
-  : ADirective(other)
+  : Directive(other)
 {
 }
 
@@ -19,14 +19,14 @@ BlockDirective& BlockDirective::operator=(const BlockDirective& other)
 {
     if (this != &other)
     {
-        ADirective::operator=(other);
+        Directive::operator=(other);
     }
     return (*this);
 }
 
 // Move constructor
 BlockDirective::BlockDirective(BlockDirective&& other) noexcept
-  : ADirective(std::move(other))
+  : Directive(std::move(other))
 {
 }
 
@@ -35,7 +35,7 @@ BlockDirective& BlockDirective::operator=(BlockDirective&& other) noexcept
 {
     if (this != &other)
     {
-        ADirective::operator=(std::move(other));
+        Directive::operator=(std::move(other));
     }
     return (*this);
 }
@@ -45,21 +45,21 @@ BlockDirective::~BlockDirective() {}
 
 // ---------------------------ACCESSORS-----------------------------
 
-const std::vector<std::unique_ptr<ADirective>>& BlockDirective::directives()
+const std::vector<std::unique_ptr<Directive>>& BlockDirective::directives()
     const
 {
     return m_directives;
 }
 
 // void BlockDirective::setDirectives(
-//     std::vector<std::unique_ptr<ADirective>>&& directives)
+//     std::vector<std::unique_ptr<Directive>>&& directives)
 // {
 //     m_directives = std::move(directives);
 // }
 
 // ---------------------------METHODS-----------------------------
 
-void BlockDirective::addDirective(std::unique_ptr<ADirective>&& directive)
+void BlockDirective::addDirective(std::unique_ptr<Directive>&& directive)
 {
     m_directives.push_back(std::move(directive));
 }

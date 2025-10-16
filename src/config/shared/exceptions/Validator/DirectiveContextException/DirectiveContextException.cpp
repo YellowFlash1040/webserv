@@ -1,5 +1,12 @@
 #include "DirectiveContextException.hpp"
 
+DirectiveContextException::DirectiveContextException(
+    const std::unique_ptr<Directive>& directive, const std::string& context)
+  : DirectiveContextException(directive->line(), directive->column(),
+                              directive->name(), context)
+{
+}
+
 DirectiveContextException::DirectiveContextException(size_t line, size_t column,
                                                      const std::string& name,
                                                      const std::string& context)

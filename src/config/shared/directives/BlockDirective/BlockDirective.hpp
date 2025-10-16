@@ -6,9 +6,9 @@
 # include <utility>
 # include <memory>
 
-# include "ADirective.hpp"
+# include "Directive.hpp"
 
-class BlockDirective : public ADirective
+class BlockDirective : public Directive
 {
     // Construction and destruction
   public:
@@ -22,15 +22,15 @@ class BlockDirective : public ADirective
     // Class specific features
   public:
     // Accessors
-    const std::vector<std::unique_ptr<ADirective>>& directives() const;
+    const std::vector<std::unique_ptr<Directive>>& directives() const;
     // Methods
-    void addDirective(std::unique_ptr<ADirective>&& directive);
-    // void setDirectives(std::vector<std::unique_ptr<ADirective>>&&
+    void addDirective(std::unique_ptr<Directive>&& directive);
+    // void setDirectives(std::vector<std::unique_ptr<Directive>>&&
     // directives);
 
   private:
     // Properties
-    std::vector<std::unique_ptr<ADirective>> m_directives;
+    std::vector<std::unique_ptr<Directive>> m_directives;
 };
 
 #endif

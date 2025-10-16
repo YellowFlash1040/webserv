@@ -47,7 +47,7 @@ Parser::~Parser() {}
 
 // ---------------------------METHODS-----------------------------
 
-std::unique_ptr<ADirective> Parser::parse(std::vector<Token>& tokens)
+std::unique_ptr<Directive> Parser::parse(std::vector<Token>& tokens)
 {
     return Parser(tokens).parse();
 }
@@ -75,7 +75,7 @@ const Token& Parser::peek()
 // PARSING LOGIC
 // ------------------------
 
-std::unique_ptr<ADirective> Parser::parse()
+std::unique_ptr<Directive> Parser::parse()
 {
     auto global = std::make_unique<BlockDirective>();
     global->setName(Directives::GLOBAL_CONTEXT);
@@ -84,7 +84,7 @@ std::unique_ptr<ADirective> Parser::parse()
     return global;
 }
 
-std::unique_ptr<ADirective> Parser::parseDirective()
+std::unique_ptr<Directive> Parser::parseDirective()
 {
     Token token = advance();
     std::string directiveName = expectDirectiveToken(token);
@@ -95,7 +95,7 @@ std::unique_ptr<ADirective> Parser::parseDirective()
 
     expectClosingToken(directiveType);
 
-    std::unique_ptr<ADirective> directive
+    std::unique_ptr<Directive> directive
         = createDirective(directiveType, directiveName, args);
     directive->setPosition(token.line(), token.column());
     m_prevDirectiveType = directiveType;
@@ -176,16 +176,16 @@ void Parser::expectNotDirective(const Token& token)
     throw MissingTokenException(line, column, separator);
 }
 
-std::unique_ptr<ADirective> Parser::createDirective(Directives::Type type,
-                                                    std::string& name,
-                                                    std::vector<Argument>& args)
+std::unique_ptr<Directive> Parser::createDirective(Directives::Type type,
+                                                   std::string& name,
+                                                   std::vector<Argument>& args)
 {
-    std::unique_ptr<ADirective> directive;
+    std::unique_ptr<Directive> directive;
 
     if (type == Directives::Type::BLOCK)
         directive = std::make_unique<BlockDirective>();
     else
-        directive = std::make_unique<SimpleDirective>();
+        directive = std::make_unique<Directive>();
     directive->setName(std::move(name));
     directive->setArgs(std::move(args));
 
@@ -193,7 +193,7 @@ std::unique_ptr<ADirective> Parser::createDirective(Directives::Type type,
 }
 
 void Parser::parseAndFillBlockDirective(
-    const std::unique_ptr<ADirective>& directive)
+    const std::unique_ptr<Directive>& directive)
 {
     auto* blockDir = dynamic_cast<BlockDirective*>(directive.get());
     if (!blockDir)

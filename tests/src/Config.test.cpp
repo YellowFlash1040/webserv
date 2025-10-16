@@ -5,9 +5,9 @@
 #include <vector>
 #include <string>
 
-#include "ADirective.hpp"
+#include "Directive.hpp"
 #include "BlockDirective.hpp"
-#include "SimpleDirective.hpp"
+#include "Directive.hpp"
 #include "Argument.hpp"
 
 // How Config file looks like
@@ -72,7 +72,7 @@ http {
 */
 
 // Code/AST representation of the Config file
-std::unique_ptr<ADirective> createTestAST()
+std::unique_ptr<Directive> createTestAST()
 {
     // ---------------------------
     // GLOBAL
@@ -93,7 +93,7 @@ std::unique_ptr<ADirective> createTestAST()
             int PLACEHOLDER;
             (void)PLACEHOLDER;
             {
-                auto directive = std::make_unique<SimpleDirective>();
+                auto directive = std::make_unique<Directive>();
                 directive->setName("client_max_body_size");
                 directive->setArgs({Argument("20M")});
                 httpBlock->addDirective(std::move(directive));
@@ -108,7 +108,7 @@ std::unique_ptr<ADirective> createTestAST()
 
             for (const auto& ep : errorPages)
             {
-                auto directive = std::make_unique<SimpleDirective>();
+                auto directive = std::make_unique<Directive>();
                 directive->setName("error_page");
                 directive->setArgs({Argument(ep.first), Argument(ep.second)});
                 httpBlock->addDirective(std::move(directive));
@@ -129,7 +129,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // listen
                 {
-                    auto directive = std::make_unique<SimpleDirective>();
+                    auto directive = std::make_unique<Directive>();
                     directive->setName("listen");
                     directive->setArgs({Argument("8080")});
                     serverBlock->addDirective(std::move(directive));
@@ -137,7 +137,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // server_name
                 {
-                    auto directive = std::make_unique<SimpleDirective>();
+                    auto directive = std::make_unique<Directive>();
                     directive->setName("server_name");
                     directive->setArgs({Argument("site1.local")});
                     serverBlock->addDirective(std::move(directive));
@@ -145,7 +145,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // root
                 {
-                    auto directive = std::make_unique<SimpleDirective>();
+                    auto directive = std::make_unique<Directive>();
                     directive->setName("root");
                     directive->setArgs({Argument("/var/www/site1")});
                     serverBlock->addDirective(std::move(directive));
@@ -153,7 +153,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // autoindex
                 {
-                    auto directive = std::make_unique<SimpleDirective>();
+                    auto directive = std::make_unique<Directive>();
                     directive->setName("autoindex");
                     directive->setArgs({Argument("off")});
                     serverBlock->addDirective(std::move(directive));
@@ -170,7 +170,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // limit_except
                 {
-                    auto directive = std::make_unique<SimpleDirective>();
+                    auto directive = std::make_unique<Directive>();
                     directive->setName("limit_except");
                     directive->setArgs({
                         Argument("GET"),
@@ -181,7 +181,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // index
                 {
-                    auto directive = std::make_unique<SimpleDirective>();
+                    auto directive = std::make_unique<Directive>();
                     directive->setName("index");
                     directive->setArgs({Argument("index.html")});
                     locationBlock->addDirective(std::move(directive));
@@ -189,7 +189,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // autoindex
                 {
-                    auto directive = std::make_unique<SimpleDirective>();
+                    auto directive = std::make_unique<Directive>();
                     directive->setName("autoindex");
                     directive->setArgs({Argument("on")});
                     locationBlock->addDirective(std::move(directive));
@@ -208,7 +208,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // root
                 {
-                    auto directive = std::make_unique<SimpleDirective>();
+                    auto directive = std::make_unique<Directive>();
                     directive->setName("root");
                     directive->setArgs({Argument("/tmp/www")});
                     locationBlock->addDirective(std::move(directive));
@@ -216,7 +216,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // autoindex
                 {
-                    auto directive = std::make_unique<SimpleDirective>();
+                    auto directive = std::make_unique<Directive>();
                     directive->setName("autoindex");
                     directive->setArgs({Argument("off")});
                     locationBlock->addDirective(std::move(directive));
@@ -224,7 +224,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // index
                 {
-                    auto directive = std::make_unique<SimpleDirective>();
+                    auto directive = std::make_unique<Directive>();
                     directive->setName("index");
                     directive->setArgs(
                         {Argument("index.html"), Argument("index.php")});
@@ -244,7 +244,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // root
                 {
-                    auto directive = std::make_unique<SimpleDirective>();
+                    auto directive = std::make_unique<Directive>();
                     directive->setName("root");
                     directive->setArgs({Argument("/var/www/site1")});
                     locationBlock->addDirective(std::move(directive));
@@ -252,7 +252,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // autoindex
                 {
-                    auto directive = std::make_unique<SimpleDirective>();
+                    auto directive = std::make_unique<Directive>();
                     directive->setName("autoindex");
                     directive->setArgs({Argument("on")});
                     locationBlock->addDirective(std::move(directive));
@@ -271,7 +271,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // return
                 {
-                    auto directive = std::make_unique<SimpleDirective>();
+                    auto directive = std::make_unique<Directive>();
                     directive->setName("return");
                     directive->setArgs({Argument("301"), Argument("/newpage")});
                     locationBlock->addDirective(std::move(directive));
@@ -296,7 +296,7 @@ std::unique_ptr<ADirective> createTestAST()
                 (void)PLACEHOLDER;
                 // listen
                 {
-                    auto listen = std::make_unique<SimpleDirective>();
+                    auto listen = std::make_unique<Directive>();
                     listen->setName("listen");
                     listen->setArgs({Argument("0.0.0.0:9090")});
                     serverBlock->addDirective(std::move(listen));
@@ -304,7 +304,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // server_name
                 {
-                    auto serverName = std::make_unique<SimpleDirective>();
+                    auto serverName = std::make_unique<Directive>();
                     serverName->setName("server_name");
                     serverName->setArgs({Argument("site2.local")});
                     serverBlock->addDirective(std::move(serverName));
@@ -312,7 +312,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // root
                 {
-                    auto root = std::make_unique<SimpleDirective>();
+                    auto root = std::make_unique<Directive>();
                     root->setName("root");
                     root->setArgs({Argument("/var/www/site2")});
                     serverBlock->addDirective(std::move(root));
@@ -329,7 +329,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // index
                 {
-                    auto directive = std::make_unique<SimpleDirective>();
+                    auto directive = std::make_unique<Directive>();
                     directive->setName("index");
                     directive->setArgs({Argument("index.html")});
                     locationBlock->addDirective(std::move(directive));
@@ -348,7 +348,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // alias
                 {
-                    auto directive = std::make_unique<SimpleDirective>();
+                    auto directive = std::make_unique<Directive>();
                     directive->setName("alias");
                     directive->setArgs({Argument("/tmp/www")});
                     locationBlock->addDirective(std::move(directive));
@@ -356,7 +356,7 @@ std::unique_ptr<ADirective> createTestAST()
 
                 // index
                 {
-                    auto diretive = std::make_unique<SimpleDirective>();
+                    auto diretive = std::make_unique<Directive>();
                     diretive->setName("index");
                     diretive->setArgs({Argument("index.html")});
                     locationBlock->addDirective(std::move(diretive));
