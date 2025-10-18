@@ -5,14 +5,15 @@
 
 # include <stdexcept>
 # include <string>
+# include <memory>
 
 # include "ValidatorException.hpp"
+# include "Directive.hpp"
 
 class NotEnoughArgumentsException : public ValidatorException
 {
   public:
-    NotEnoughArgumentsException(size_t line, size_t column,
-                                const std::string& directiveName);
+    NotEnoughArgumentsException(const std::unique_ptr<Directive>& directive);
 
     const char* what() const noexcept override;
 };

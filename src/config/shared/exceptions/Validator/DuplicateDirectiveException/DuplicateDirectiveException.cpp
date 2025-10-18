@@ -1,10 +1,11 @@
 #include "DuplicateDirectiveException.hpp"
 
 DuplicateDirectiveException::DuplicateDirectiveException(
-    size_t line, size_t column, const std::string& directiveName)
-  : ValidatorException(line, column)
+    const std::unique_ptr<Directive>& directive)
+  : ValidatorException(directive->line(), directive->column())
 {
-    m_message += "duplicate directive '" + directiveName + "' is not allowed";
+    m_message
+        += "duplicate directive '" + directive->name() + "' is not allowed";
 }
 
 const char* DuplicateDirectiveException::what() const noexcept

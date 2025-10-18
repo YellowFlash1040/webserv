@@ -21,6 +21,7 @@ void Validator::validateChildren(const BlockDirective* block)
     for (const auto& directive : block->directives())
     {
         makeDuplicateCheck(seenDirectives, directive);
+        makeConflictsCheck(seenDirectives, directive);
         validateDirective(directive, block->name());
     }
 }
@@ -33,15 +34,29 @@ void Validator::makeDuplicateCheck(std::set<std::string>& seenDirectives,
     bool allowsDuplicates = Directives::allowsDuplicates(name);
 
     if (!inserted && !allowsDuplicates)
-        throw DuplicateDirectiveException(directive->line(),
-                                          directive->column(), name);
+        throw DuplicateDirectiveException(directive);
+}
+
+void Validator::makeConflictsCheck(std::set<std::string>& seenDirectives,
+                                   const std::unique_ptr<Directive>& directive)
+{
+    const std::vector<std::string>& conflictingDirectives
+        = Directives::getConflictingDirectives(directive->name());
+
+    for (auto conflictingDirective : conflictingDirectives)
+
+    {
+        if (seenDirectives.find(conflictingDirective) != seenDirectives.end())
+            throw ConflictingDirectiveException(directive,
+                                                conflictingDirective);
+    }
 }
 
 void Validator::validateDirective(const std::unique_ptr<Directive>& directive,
                                   const std::string& parentContext)
 {
     checkIfAllowedDirective(directive, parentContext);
-    validateArguments(directive->name(), directive->args());
+    validateArguments(directive);
 
     const BlockDirective* block
         = dynamic_cast<const BlockDirective*>(directive.get());
@@ -56,50 +71,95 @@ void Validator::checkIfAllowedDirective(
         throw DirectiveContextException(directive, context);
 }
 
-void Validator::validateArguments(const std::string& name,
-                                  const std::vector<Argument>& args)
+void Validator::validateArguments(const std::unique_ptr<Directive>& directive)
 {
+    const auto& args = directive->args();
+    const auto& argSpecs = Directives::getArgSpecs(directive->name());
+
+    if (argSpecs.empty())
+    {
+        if (args.empty())
+            return;
+        throw NoArgumentsAllowedException(directive);
+    }
+
     makeDuplicateCheck(args);
 
-    const std::vector<Directives::ArgumentSpec>& argSpecs
-        = Directives::getArgSpecs(name);
-
     size_t i = 0;
-    for (const Directives::ArgumentSpec& spec : argSpecs)
+    for (const auto& spec : argSpecs)
     {
         size_t count = 0;
         bool hasThrown = false;
-        while (i < args.size() && !hasThrown)
+        while (i < args.size() && (!hasThrown || count > spec.maxCount))
         {
             try
             {
                 validateArgument(spec.possibleTypes, args[i]);
                 ++count;
-                if (count > spec.maxCount)
-                    throw ExtraArgumentException(args[i]);
                 ++i;
             }
             catch (const std::exception&)
             {
-                if (spec.minCount > 0
-                    && count < spec.minCount) // if argument is not optional,
-                                              // and we haven't found enough yet
-                    throw InvalidArgumentException(args[i]);
                 hasThrown = true;
             }
         }
+
+        if (count < spec.minCount)
+        {
+            if (i < args.size())
+                throw InvalidArgumentException(args[i]);
+            throw NotEnoughArgumentsException(directive);
+        }
+
+        if (count > spec.maxCount)
+            throw TooManyArgumentsException(directive);
     }
 
     if (i < args.size())
         throw InvalidArgumentException(args[i]);
 }
 
+// ***** Thoughts 3 ******
 /*
-Technically it's possible to tell if there is an argument missing, or if it's
-invalid, by trying to convert it to the next type. So in other words: if
-argument failed to convert into group_1 types, but it succeded to convert into
-one of the group_2 types, then it means - argument is missing. Otherwise - it's
-invalid.
+for each group:
+    while (more args and under maxCount):
+        try validate(arg) for current group
+            success → consume it
+        catch (invalid):
+            if next group exists:
+                try validate(arg) with next group
+                    success → move to next group
+                    fail → throw InvalidArgument
+            else:
+                throw InvalidArgument
+
+    if count < minCount → NotEnoughArguments
+*/
+
+// ***** Thoughts 2 ******
+// If argument is valid, :
+// - but we've found enough,
+// - and there are no more groups - too many arguments
+// - and there is one more group,
+// - and it throws - too many arguments
+
+// If the argument has thrown,
+// - it's either invalid,
+// - or it's next group
+
+// If there is no next group - argument is invalid
+// otherwise
+// if we haven't found enough arguments for the current - not enought
+// arguments otherwise go and check with next group If it's valid - continue
+// If it's invalid - invalid argument
+
+// ***** Thoughts 1 ******
+/*
+Technically it's possible to tell if there is an argument missing, or if
+it's invalid, by trying to convert it to the next type. So in other words:
+if argument failed to convert into group_1 types, but it succeded to convert
+into one of the group_2 types, then it means - argument is missing.
+Otherwise - it's invalid.
 
 But for now I decided to treat both situations as "Invalid argument"
 */
@@ -199,6 +259,8 @@ void Validator::validateFilePath(const std::string& s)
 {
     if (s.empty())
         throw std::invalid_argument("Argument cannot be empty");
+    if (s[0] != '/')
+        throw std::invalid_argument("FilePath has to start with '/'");
     // if (s.find('.') == std::string::npos)
     //     throw std::invalid_argument("File has to have an extension");
 }

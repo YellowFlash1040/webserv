@@ -1,10 +1,10 @@
 #include "TooManyArgumentsException.hpp"
 
 TooManyArgumentsException::TooManyArgumentsException(
-    size_t line, size_t column, const std::string& directiveName)
-  : ValidatorException(line, column)
+    const std::unique_ptr<Directive>& directive)
+  : ValidatorException(directive->line(), directive->column())
 {
-    m_message += "too many arguments '" + directiveName + "'";
+    m_message += "too many arguments '" + directive->name() + "'";
 }
 
 const char* TooManyArgumentsException::what() const noexcept

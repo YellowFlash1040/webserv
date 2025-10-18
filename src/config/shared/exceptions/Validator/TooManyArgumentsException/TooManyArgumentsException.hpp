@@ -5,14 +5,16 @@
 
 # include <stdexcept>
 # include <string>
+# include <memory>
 
 # include "ValidatorException.hpp"
+# include "Directive.hpp"
 
 class TooManyArgumentsException : public ValidatorException
 {
   public:
-    TooManyArgumentsException(size_t line, size_t column,
-                              const std::string& directiveName);
+    explicit TooManyArgumentsException(
+        const std::unique_ptr<Directive>& directive);
 
     const char* what() const noexcept override;
 };

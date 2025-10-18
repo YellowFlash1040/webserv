@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef DUPLICATEDIRECTIVEEXCEPTION_HPP
-# define DUPLICATEDIRECTIVEEXCEPTION_HPP
+#ifndef MISSINGARGUMENTEXCEPTION_HPP
+# define MISSINGARGUMENTEXCEPTION_HPP
 
 # include <stdexcept>
 # include <string>
@@ -10,10 +10,10 @@
 # include "ValidatorException.hpp"
 # include "Directive.hpp"
 
-class DuplicateDirectiveException : public ValidatorException
+class MissingArgumentException : public ValidatorException
 {
   public:
-    explicit DuplicateDirectiveException(
+    explicit MissingArgumentException(
         const std::unique_ptr<Directive>& directive);
 
     const char* what() const noexcept override;

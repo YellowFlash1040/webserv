@@ -112,10 +112,29 @@ TEST_F(ValidatorTest, ValidatesArgumentCount)
     auto http = createBlockDirective(Directives::HTTP);
     auto server = createBlockDirective(Directives::SERVER);
 
-    // server_name with too many arguments
+    // 'listen' with too many arguments
     auto listen
         = createSimpleDirective(Directives::LISTEN, {"8080", "9090", "8181"});
     server->addDirective(std::move(listen));
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), TooManyArgumentsException);
+}
+
+TEST_F(ValidatorTest, TooManyArguments)
+{
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    auto server = createBlockDirective(Directives::SERVER);
+
+    // 'autoindex' with too many arguments
+    auto autoindex
+        = createSimpleDirective(Directives::AUTOINDEX, {"on", "off"});
+    server->addDirective(std::move(autoindex));
     http->addDirective(std::move(server));
     global->addDirective(std::move(http));
 
@@ -200,8 +219,8 @@ TEST_F(ValidatorTest, InvalidArgumentsForErrorPage)
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
     auto server = createBlockDirective(Directives::SERVER);
-    auto simpleDirective
-        = createSimpleDirective(Directives::ERROR_PAGE, {"hello"});
+    auto simpleDirective = createSimpleDirective(Directives::ERROR_PAGE,
+                                                 {"hello", "/errors/50x.html"});
 
     server->addDirective(std::move(simpleDirective));
     http->addDirective(std::move(server));
@@ -256,7 +275,8 @@ TEST_F(ValidatorTest, InvalidArgumentsForReturn)
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
     auto server = createBlockDirective(Directives::SERVER);
-    auto simpleDirective = createSimpleDirective(Directives::RETURN, {"hello"});
+    auto simpleDirective = createSimpleDirective(
+        Directives::RETURN, {"hello", "https://profile.intra.42.fr"});
 
     server->addDirective(std::move(simpleDirective));
     http->addDirective(std::move(server));
@@ -637,10 +657,59 @@ TEST_F(ValidatorTest, DuplicateServerNameDirective)
 
     server->addDirective(std::move(simpleDirective));
     server->addDirective(std::move(simpleDirective2));
+    http->addDirective(std::move(server));
     global->addDirective(std::move(http));
 
     std::unique_ptr<Directive>& rootNode
         = reinterpret_cast<std::unique_ptr<Directive>&>(global);
 
     EXPECT_THROW(Validator::validate(rootNode), DuplicateDirectiveException);
+}
+
+TEST_F(ValidatorTest, DuplicateRootDirective)
+{
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    auto server = createBlockDirective(Directives::SERVER);
+    auto simpleDirective
+        = createSimpleDirective(Directives::ROOT, {"/var/data"});
+    auto simpleDirective2
+        = createSimpleDirective(Directives::ROOT, {"/var/data2"});
+
+    server->addDirective(std::move(simpleDirective));
+    server->addDirective(std::move(simpleDirective2));
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), DuplicateDirectiveException);
+}
+
+///----------------------------------------///
+///----------------------------------------///
+///----------------------------------------///
+
+TEST_F(ValidatorTest, ConflictRootAndAlias)
+{
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    auto server = createBlockDirective(Directives::SERVER);
+    auto location = createBlockDirective(Directives::LOCATION, {"/"});
+    auto simpleDirective
+        = createSimpleDirective(Directives::ROOT, {"/var/data"});
+    auto simpleDirective2
+        = createSimpleDirective(Directives::ALIAS, {"/var/data2"});
+
+    location->addDirective(std::move(simpleDirective));
+    location->addDirective(std::move(simpleDirective2));
+    server->addDirective(std::move(location));
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), ConflictingDirectiveException);
 }

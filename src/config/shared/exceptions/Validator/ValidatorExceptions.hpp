@@ -12,5 +12,8 @@
 # include "DuplicateDirectiveException.hpp"
 # include "DuplicateArgumentException.hpp"
 # include "ExtraArgumentException.hpp"
+# include "NoArgumentsAllowedException.hpp"
+# include "ConflictingDirectiveException.hpp"
+# include "MissingArgumentException.hpp"
 
 #endif
