@@ -24,7 +24,64 @@ void Validator::validateChildren(const BlockDirective* block)
         makeConflictsCheck(seenDirectives, directive);
         validateDirective(directive, block->name());
     }
+
+    // if (block->name() == Directives::HTTP)
+    //     checkDuplicateServerPairs(block);
+
+    // if (block->name() == Directives::SERVER)
+    //     checkDuplicateLocationPaths(block);
 }
+
+// void Validator::checkDuplicateLocationPaths(const BlockDirective*
+// serverBlock)
+// {
+//     std::set<std::string> seenPaths;
+
+//     for (const auto& directive : serverBlock->directives())
+//     {
+//         if (directive->name() != Directives::LOCATION)
+//             continue;
+
+//         const std::string& path = directive->args()[0];
+//         bool inserted = seenPaths.insert(path).second;
+//         if (!inserted)
+//             throw DuplicateLocationPathException(directive, path);
+//     }
+// }
+
+// void Validator::checkDuplicateServerPairs(const BlockDirective* httpBlock)
+// {
+//     std::set<std::pair<std::string, std::string>> seenPairs;
+
+//     for (const auto& directive : httpBlock->directives())
+//     {
+//         if (directive->name() != Directives::SERVER)
+//             continue;
+
+//         const BlockDirective* serverBlock
+//             = dynamic_cast<const BlockDirective*>(directive.get());
+
+//         std::string listenValue;
+//         std::string serverNameValue;
+
+//         for (const auto& subdir : serverBlock->directives())
+//         {
+//             if (subdir->name() == "listen" && !subdir->args().empty())
+//                 listenValue = subdir->args()[0].value();
+//             else if (subdir->name() == "server_name" &&
+//             !subdir->args().empty())
+//                 serverNameValue = subdir->args()[0].value();
+//         }
+
+//         std::pair<std::string, std::string> pair
+//             = std::make_pair(listenValue, serverNameValue);
+
+//         bool inserted = seenPairs.insert(pair).second;
+//         if (!inserted)
+//             throw DuplicateServerDefinitionException(directive, listenValue,
+//                                                      serverNameValue);
+//     }
+// }
 
 void Validator::makeDuplicateCheck(std::set<std::string>& seenDirectives,
                                    const std::unique_ptr<Directive>& directive)
@@ -135,6 +192,9 @@ void Validator::validateArguments(const std::unique_ptr<Directive>& directive)
                     throw InvalidArgumentException(args[i]);
             }
         }
+
+        if (count < spec.minCount)
+            throw NotEnoughArgumentsException(directive);
     }
 
     // If some args left → TooManyArguments
@@ -370,6 +430,12 @@ void Validator::validateString(const std::string& s)
 {
     if (s.empty())
         throw std::invalid_argument("Argument cannot be empty");
+    if (s.front() == '"' && s.back() == '"')
+        return;
+    if (s.front() == '\'' && s.back() == '\'')
+        return;
+    if (s.find_first_not_of("0123456789") == std::string::npos)
+        throw std::invalid_argument("It looks like it's a number");
 }
 
 void Validator::validateUri(const std::string& s)

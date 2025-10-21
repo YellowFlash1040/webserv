@@ -89,6 +89,7 @@ std::unique_ptr<Directive> Parser::parseDirective()
     Token token = advance();
     std::string directiveName = expectDirectiveToken(token);
     Directives::Type directiveType = expectKnownDirective(token);
+    m_currentDirectiveType = directiveType;
 
     std::vector<Argument> args;
     consumeArguments(args);
@@ -98,7 +99,6 @@ std::unique_ptr<Directive> Parser::parseDirective()
     std::unique_ptr<Directive> directive
         = createDirective(directiveType, directiveName, args);
     directive->setPosition(token.line(), token.column());
-    m_prevDirectiveType = directiveType;
 
     if (directiveType == Directives::Type::BLOCK)
         parseAndFillBlockDirective(directive);
@@ -166,9 +166,9 @@ void Parser::expectNotDirective(const Token& token)
         return;
 
     const char* separator{};
-    if (m_prevDirectiveType == Directives::Type::SIMPLE)
+    if (m_currentDirectiveType == Directives::Type::SIMPLE)
         separator = ";";
-    else if (m_prevDirectiveType == Directives::Type::BLOCK)
+    else if (m_currentDirectiveType == Directives::Type::BLOCK)
         separator = "{";
 
     size_t line = m_prevToken.line();

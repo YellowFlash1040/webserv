@@ -853,3 +853,209 @@ TEST_F(ValidatorTest, CgiPassWithNotEnoughArguments)
 
     EXPECT_THROW(Validator::validate(rootNode), NotEnoughArgumentsException);
 }
+
+///-----------------------------------///
+///-----------------------------------///
+///--------ADDITIONAL TESTS-----------///
+///-----------------------------------///
+
+/*
+http {
+    server {
+        listen 8080;
+    }
+}
+
+http {                     # ❌ duplicate http block not allowed
+    server {
+        listen 9090;
+    }
+}
+*/
+
+TEST_F(ValidatorTest, DuplicateHttpBlock)
+{
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+
+    {
+        auto http = createBlockDirective(Directives::HTTP);
+        auto server = createBlockDirective(Directives::SERVER);
+        auto listen = createSimpleDirective(Directives::LISTEN, {"8080"});
+
+        server->addDirective(std::move(listen));
+        http->addDirective(std::move(server));
+        global->addDirective(std::move(http));
+    }
+
+    {
+        auto http = createBlockDirective(Directives::HTTP);
+        auto server = createBlockDirective(Directives::SERVER);
+        auto listen = createSimpleDirective(Directives::LISTEN, {"9090"});
+
+        server->addDirective(std::move(listen));
+        http->addDirective(std::move(server));
+        global->addDirective(std::move(http));
+    }
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), DuplicateDirectiveException);
+}
+
+/*
+server {                   # ❌ invalid context (server must be inside http)
+    listen 8080;
+    server_name example.com;
+}
+*/
+
+TEST_F(ValidatorTest, ServerOutsideOfHttp)
+{
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto server = createBlockDirective(Directives::SERVER);
+    auto listen = createSimpleDirective(Directives::LISTEN, {"8080"});
+    auto serverName
+        = createSimpleDirective(Directives::SERVER_NAME, {"example.com"});
+
+    server->addDirective(std::move(listen));
+    global->addDirective(std::move(server));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), DirectiveContextException);
+}
+
+/*
+http {
+    server {
+        listen 8080;
+        server_name example.com;
+        server_name www.example.com;  # ❌ duplicate server_name not allowed
+    }
+}
+*/
+
+TEST_F(ValidatorTest, DuplicatedServerNameInsideSameServer)
+{
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    auto server = createBlockDirective(Directives::SERVER);
+    auto listen = createSimpleDirective(Directives::LISTEN, {"8080"});
+    {
+        auto serverName
+            = createSimpleDirective(Directives::SERVER_NAME, {"example.com"});
+        server->addDirective(std::move(serverName));
+    }
+    {
+        auto serverName = createSimpleDirective(Directives::SERVER_NAME,
+                                                {"www.example.com"});
+        server->addDirective(std::move(serverName));
+    }
+
+    server->addDirective(std::move(listen));
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), DuplicateDirectiveException);
+}
+
+/*
+http {
+    server {
+        listen 8080;
+
+        location /images/ {
+            root /var/www;           # ❌ conflicts with alias
+            alias /data/images/;
+        }
+    }
+}
+*/
+
+TEST_F(ValidatorTest, RootAndAliasConflictInsideSameLocation)
+{
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    auto server = createBlockDirective(Directives::SERVER);
+    auto listen = createSimpleDirective(Directives::LISTEN, {"8080"});
+    auto location = createBlockDirective(Directives::LOCATION, {"/images/"});
+    auto root = createSimpleDirective(Directives::ROOT, {"/var/www"});
+    auto alias = createSimpleDirective(Directives::ALIAS, {"/data/images/"});
+
+    location->addDirective(std::move(alias));
+    location->addDirective(std::move(root));
+    server->addDirective(std::move(location));
+    server->addDirective(std::move(listen));
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), ConflictingDirectiveException);
+}
+
+/*
+http {
+    server {
+        listen 8080;
+        location / {
+            return;                  # ❌ missing return code or URL
+        }
+    }
+}
+*/
+
+TEST_F(ValidatorTest, MissingArgumentsForReturn)
+{
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    auto server = createBlockDirective(Directives::SERVER);
+    auto listen = createSimpleDirective(Directives::LISTEN, {"8080"});
+    auto location = createBlockDirective(Directives::LOCATION, {"/"});
+    auto simpleDirective = createSimpleDirective(Directives::RETURN);
+
+    location->addDirective(std::move(simpleDirective));
+    server->addDirective(std::move(location));
+    server->addDirective(std::move(listen));
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), NotEnoughArgumentsException);
+}
+
+/*
+http {
+    server {
+        listen 8080;
+        limit_except GET;            # ❌ must appear inside location
+    }
+}
+*/
+
+TEST_F(ValidatorTest, LimitExceptOutsideOfLocation)
+{
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    auto server = createBlockDirective(Directives::SERVER);
+    auto listen = createSimpleDirective(Directives::LISTEN, {"8080"});
+    auto limitExcept = createSimpleDirective(Directives::LIMIT_EXCEPT, {"GET"});
+
+    server->addDirective(std::move(limitExcept));
+    server->addDirective(std::move(listen));
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), DirectiveContextException);
+}

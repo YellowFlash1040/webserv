@@ -3,47 +3,50 @@
 #ifndef FILESYSTEM_HPP
 # define FILESYSTEM_HPP
 
-#include <utility>
-#include <string>
-#include <sys/stat.h>
+# include <utility>
+# include <string>
+# include <vector>
+# include <unistd.h>
+# include <sys/stat.h>
+# include <dirent.h>
 
 enum class SourceType
 {
-	Unknown,
-	File,
-	Directory
+    Unknown,
+    File,
+    Directory
 };
 
 class FileSystem
 {
-// Construction and destruction
+    // Construction and destruction
   public:
     FileSystem() = delete;
     FileSystem(const FileSystem& other) = delete;
-	FileSystem& operator=(const FileSystem& other) = delete;
-	FileSystem(FileSystem&& other) noexcept = delete;
-	FileSystem& operator=(FileSystem&& other) noexcept = delete;
+    FileSystem& operator=(const FileSystem& other) = delete;
+    FileSystem(FileSystem&& other) noexcept = delete;
+    FileSystem& operator=(FileSystem&& other) noexcept = delete;
     ~FileSystem() = delete;
 
-// Class specific features
+    // Class specific features
   public:
-  //Constants
-  //Accessors
-  //Methods
-	static SourceType getSourceType(const std::string& sourcePath);
-	static bool isFile(const std::string& path);
-	static bool isDirectory(const std::string& path);
-	static bool canRead(const std::string& sourcePath);
-	static std::vector<std::string> listFilesIn(const std::string& dirPath);
- 
+    // Constants
+    // Accessors
+    // Methods
+    static SourceType getSourceType(const std::string& sourcePath);
+    static bool isFile(const std::string& path);
+    static bool isDirectory(const std::string& path);
+    static bool exists(const std::string& Path);
+    static bool canRead(const std::string& Path);
+    static std::vector<std::string> listFilesIn(const std::string& dirPath);
 
   protected:
-  //Properties
-  //Methods
+    // Properties
+    // Methods
 
   private:
-  //Properties
-  //Methods
+    // Properties
+    // Methods
 };
 
 #endif

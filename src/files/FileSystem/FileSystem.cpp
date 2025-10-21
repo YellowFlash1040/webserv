@@ -4,12 +4,12 @@
 
 SourceType FileSystem::getSourceType(const std::string& sourcePath)
 {
-	if (isFile(sourcePath))
-		return SourceType::File;
-	else if (isDirectory(sourcePath))
-		return SourceType::Directory;
-	else
-		return SourceType::Unknown;
+    if (isFile(sourcePath))
+        return SourceType::File;
+    else if (isDirectory(sourcePath))
+        return SourceType::Directory;
+    else
+        return SourceType::Unknown;
 }
 
 bool FileSystem::isDirectory(const std::string& path)
@@ -28,23 +28,19 @@ bool FileSystem::isFile(const std::string& path)
     return S_ISREG(info.st_mode);
 }
 
-static bool canRead(const std::string& path)
+bool FileSystem::exists(const std::string& path)
 {
-	access(path, F_OK);	
+    return access(path.c_str(), F_OK);
 }
 
-static bool exists(const std::string& path)
+bool FileSystem::canRead(const std::string& path)
 {
-	
+    return access(path.c_str(), R_OK);
 }
 
-
-#include <dirent.h>
-#include <sys/stat.h>
-#include <vector>
-#include <string>
-
-std::vector<std::string> listDirectory(const std::string& directoryPath) {
+std::vector<std::string> FileSystem::listFilesIn(
+    const std::string& directoryPath)
+{
     std::vector<std::string> entries;
 
     DIR* dir = opendir(directoryPath.c_str());

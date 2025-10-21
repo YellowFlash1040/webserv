@@ -38,7 +38,7 @@ class Parser
     // Properties
     std::vector<Token>& m_tokens;
     Token m_prevToken;
-    Directives::Type m_prevDirectiveType;
+    Directives::Type m_currentDirectiveType;
     // Methods
     Token advance();
     const Token& peek();
