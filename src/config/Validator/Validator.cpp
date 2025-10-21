@@ -78,46 +78,118 @@ void Validator::validateArguments(const std::unique_ptr<Directive>& directive)
 
     if (argSpecs.empty())
     {
-        if (args.empty())
-            return;
-        throw NoArgumentsAllowedException(directive);
+        if (!args.empty())
+            throw NoArgumentsAllowedException(directive);
+        return;
     }
 
     makeDuplicateCheck(args);
 
-    size_t i = 0;
+    size_t minCount = 0;
     for (const auto& spec : argSpecs)
+        minCount += spec.minCount;
+
+    if (args.size() < minCount)
+        throw NotEnoughArgumentsException(directive);
+
+    size_t i = 0;
+    for (size_t specIdx = 0; specIdx < argSpecs.size(); ++specIdx)
     {
+        const auto& spec = argSpecs[specIdx];
         size_t count = 0;
-        bool hasThrown = false;
-        while (i < args.size() && (!hasThrown || count > spec.maxCount))
+
+        while (i < args.size() && count < spec.maxCount)
         {
             try
             {
+                // Try to validate current arg with current group
                 validateArgument(spec.possibleTypes, args[i]);
+                // Success → consume it
                 ++count;
                 ++i;
             }
             catch (const std::exception&)
             {
-                hasThrown = true;
+                if (count < spec.minCount)
+                    throw InvalidArgumentException(args[i]);
+                // Invalid for current group
+                if (specIdx + 1 < argSpecs.size())
+                {
+                    // Next group exists, try it
+                    try
+                    {
+                        const auto& nextSpec = argSpecs[specIdx + 1];
+                        validateArgument(nextSpec.possibleTypes, args[i]);
+                        // Success → move to next group (break out of while
+                        // loop)
+                        break;
+                    }
+                    catch (const std::exception&)
+                    {
+                        // Fail → throw InvalidArgument
+                        throw InvalidArgumentException(args[i]);
+                    }
+                }
+                else
+                    // No next group → throw InvalidArgument
+                    throw InvalidArgumentException(args[i]);
             }
         }
-
-        if (count < spec.minCount)
-        {
-            if (i < args.size())
-                throw InvalidArgumentException(args[i]);
-            throw NotEnoughArgumentsException(directive);
-        }
-
-        if (count > spec.maxCount)
-            throw TooManyArgumentsException(directive);
     }
 
+    // If some args left → TooManyArguments
     if (i < args.size())
-        throw InvalidArgumentException(args[i]);
+        throw TooManyArgumentsException(directive);
 }
+
+// void Validator::validateArguments(const std::unique_ptr<Directive>&
+// directive)
+// {
+//     const auto& args = directive->args();
+//     const auto& argSpecs = Directives::getArgSpecs(directive->name());
+
+//     if (argSpecs.empty())
+//     {
+//         if (args.empty())
+//             return;
+//         throw NoArgumentsAllowedException(directive);
+//     }
+
+//     makeDuplicateCheck(args);
+
+//     size_t i = 0;
+//     for (const auto& spec : argSpecs)
+//     {
+//         size_t count = 0;
+//         bool hasThrown = false;
+//         while (i < args.size() && (!hasThrown || count > spec.maxCount))
+//         {
+//             try
+//             {
+//                 validateArgument(spec.possibleTypes, args[i]);
+//                 ++count;
+//                 ++i;
+//             }
+//             catch (const std::exception&)
+//             {
+//                 hasThrown = true;
+//             }
+//         }
+
+//         if (count < spec.minCount)
+//         {
+//             if (i < args.size())
+//                 throw InvalidArgumentException(args[i]);
+//             throw NotEnoughArgumentsException(directive);
+//         }
+
+//         if (count > spec.maxCount)
+//             throw TooManyArgumentsException(directive);
+//     }
+
+//     if (i < args.size())
+//         throw InvalidArgumentException(args[i]);
+// }
 
 // ***** Thoughts 3 ******
 /*

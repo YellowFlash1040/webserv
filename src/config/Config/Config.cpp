@@ -65,7 +65,8 @@ RequestContext Config::createRequestContext(const std::string& host,
 
     httpBlock.applyTo(requestContext);
     serverBlock.applyTo(requestContext);
-    locationBlock->applyTo(requestContext);
+    if (locationBlock)
+    	locationBlock->applyTo(requestContext);
 
     return requestContext;
 }

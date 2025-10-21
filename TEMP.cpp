@@ -232,3 +232,93 @@ void Validator::validateArguments(const std::unique_ptr<Directive>& directive)
             throw TooManyArgumentsException(directive);
     }
 }
+
+// V5
+
+void Validator::validateArguments(const std::unique_ptr<Directive>& directive)
+{
+    const auto& args = directive->args();
+    const auto& argSpecs = Directives::getArgSpecs(directive->name());
+
+    if (argSpecs.empty())
+    {
+        if (!args.empty())
+            throw NoArgumentsAllowedException(directive);
+        return;
+    }
+
+    makeDuplicateCheck(args);
+
+    size_t i = 0;
+    for (size_t specIdx = 0; specIdx < argSpecs.size(); ++specIdx)
+    {
+        const auto& spec = argSpecs[specIdx];
+        size_t count = 0;
+
+        // While we have more args and haven't reached maxCount
+        while (i < args.size() && count < spec.maxCount)
+        {
+            try
+            {
+                // Try to validate current arg with current group
+                validateArgument(spec.possibleTypes, args[i]);
+                // Success → consume it
+                ++count;
+                ++i;
+            }
+            catch (const std::exception&)
+            {
+                // Invalid for current group
+                if (specIdx + 1 < argSpecs.size())
+                {
+                    // Next group exists, try it
+                    try
+                    {
+                        const auto& nextSpec = argSpecs[specIdx + 1];
+                        validateArgument(nextSpec.possibleTypes, args[i]);
+                        // Success → move to next group (break out of while
+                        // loop)
+                        break;
+                    }
+                    catch (const std::exception&)
+                    {
+                        // Fail → throw InvalidArgument
+                        throw InvalidArgumentException(args[i]);
+                    }
+                }
+                else
+                {
+                    // No next group → throw InvalidArgument
+                    throw InvalidArgumentException(args[i]);
+                }
+            }
+        }
+
+        // Check if we collected enough arguments for this group
+        if (count < spec.minCount)
+            throw NotEnoughArgumentsException(directive);
+    }
+
+    // If some args left → TooManyArguments
+    if (i < args.size())
+        throw TooManyArgumentsException(directive);
+}
+
+/*
+for each group:
+    while (more args and not enough):
+        try validate(arg) for current group
+            success → consume it
+        catch (invalid):
+            if next group exists:
+                try validate(arg) with next group
+                    success → move to next group
+                    fail → throw InvalidArgument
+            else:
+                throw InvalidArgument
+
+    if count < minCount → NotEnoughArguments
+
+if (some args left)
+    -> TooManyArguments
+*/

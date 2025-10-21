@@ -12,9 +12,7 @@ static void expectToken(const Token& token, TokenType expectedType,
 // Your existing tests
 TEST(LexerTest, EmptyInputProducesEndToken)
 {
-    auto tokens = Lexer::tokenize("");
-    ASSERT_EQ(tokens.size(), 1u); // should contain just END
-    expectToken(tokens[0], TokenType::END, "");
+    EXPECT_THROW(Lexer::tokenize(""), std::logic_error);
 }
 
 TEST(LexerTest, SingleDirective)

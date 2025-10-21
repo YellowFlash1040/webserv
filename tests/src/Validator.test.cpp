@@ -385,8 +385,8 @@ TEST_F(ValidatorTest, InvalidArgumentsForCgiPass)
     auto http = createBlockDirective(Directives::HTTP);
     auto server = createBlockDirective(Directives::SERVER);
     auto location = createBlockDirective(Directives::LOCATION, {"/"});
-    auto simpleDirective
-        = createSimpleDirective(Directives::CGI_PASS, {"hello"});
+    auto simpleDirective = createSimpleDirective(Directives::CGI_PASS,
+                                                 {"hello", "/usr/bin/python3"});
 
     location->addDirective(std::move(simpleDirective));
     server->addDirective(std::move(location));
@@ -712,4 +712,144 @@ TEST_F(ValidatorTest, ConflictRootAndAlias)
         = reinterpret_cast<std::unique_ptr<Directive>&>(global);
 
     EXPECT_THROW(Validator::validate(rootNode), ConflictingDirectiveException);
+}
+
+//----------------------------//
+//----------------------------//
+//----------------------------//
+
+TEST_F(ValidatorTest, ReturnWithoutArguments)
+{
+    auto server = createBlockDirective(Directives::SERVER);
+    auto returnDir = createSimpleDirective(Directives::RETURN, {});
+
+    server->addDirective(std::move(returnDir));
+
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), NotEnoughArgumentsException);
+}
+
+TEST_F(ValidatorTest, ReturnWithTwoStatusCodes)
+{
+    auto server = createBlockDirective(Directives::SERVER);
+    auto returnDir = createSimpleDirective(Directives::RETURN, {"200", "301"});
+
+    server->addDirective(std::move(returnDir));
+
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
+}
+
+TEST_F(ValidatorTest, ReturnWithNoStatusCodeOnlyString)
+{
+    auto server = createBlockDirective(Directives::SERVER);
+    auto returnDir = createSimpleDirective(Directives::RETURN, {"/index.html"});
+
+    server->addDirective(std::move(returnDir));
+
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
+}
+
+TEST_F(ValidatorTest, ReturnWithStatusCodeAndTwoStrings)
+{
+    auto server = createBlockDirective(Directives::SERVER);
+    auto returnDir = createSimpleDirective(
+        Directives::RETURN, {"302", "/page1.html", "/page2.html"});
+
+    server->addDirective(std::move(returnDir));
+
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), TooManyArgumentsException);
+}
+
+TEST_F(ValidatorTest, ReturnWithInvalidStatusCode)
+{
+    auto server = createBlockDirective(Directives::SERVER);
+    auto returnDir
+        = createSimpleDirective(Directives::RETURN, {"abc", "/index.html"});
+
+    server->addDirective(std::move(returnDir));
+
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
+}
+
+TEST_F(ValidatorTest, ReturnWithTooManyArguments)
+{
+    auto server = createBlockDirective(Directives::SERVER);
+    auto returnDir = createSimpleDirective(Directives::RETURN,
+                                           {"301", "/index.html", "extra_arg"});
+
+    server->addDirective(std::move(returnDir));
+
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), TooManyArgumentsException);
+}
+
+//-------------------------------------//
+//-------------------------------------//
+//-------------------------------------//
+
+TEST_F(ValidatorTest, CgiPassWithNotEnoughArguments)
+{
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    auto server = createBlockDirective(Directives::SERVER);
+    auto location = createBlockDirective(Directives::LOCATION, {"/"});
+
+    auto simpleDirective
+        = createSimpleDirective(Directives::CGI_PASS, {"/usr/bin/python3"});
+
+    location->addDirective(std::move(simpleDirective));
+    server->addDirective(std::move(location));
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), NotEnoughArgumentsException);
 }

@@ -518,7 +518,8 @@ TEST_F(ConfigTest, RequestContext_FileInsideList_Site1Local)
     EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
     EXPECT_EQ(requestContext.allowed_methods[2], HttpMethod::DELETE);
 
-    EXPECT_TRUE(requestContext.index_files.empty());
+    ASSERT_EQ(requestContext.index_files.size(), 1u);
+    EXPECT_EQ(requestContext.index_files[0], "index.html");
 
     EXPECT_TRUE(requestContext.autoindex_enabled);
 
@@ -554,7 +555,8 @@ TEST_F(ConfigTest, RequestContext_Oldpage_Site1Local)
     EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
     EXPECT_EQ(requestContext.allowed_methods[2], HttpMethod::DELETE);
 
-    EXPECT_TRUE(requestContext.index_files.empty());
+	ASSERT_EQ(requestContext.index_files.size(), 1u);
+	EXPECT_EQ(requestContext.index_files[0], "index.html");
 
     EXPECT_FALSE(requestContext.autoindex_enabled);
 

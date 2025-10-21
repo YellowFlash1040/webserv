@@ -1,15 +1,28 @@
 #include <iostream>
 #include "Config.hpp"
 
-int main(void)
+int main(int argc, char** argv)
 {
-    const char* filepath = "./webserv.conf";
+    // const char* filepath = "./webserv.conf";
+    // const char* filepath = "./noneexistent.conf";
+    // const char* filepath = "./nopermissions.conf";
+    // const char* filepath = "./empty.conf";
+    // const char* filepath = "./invalid.conf";
+
+	const char* filepath;
+    if (argc > 1)
+		filepath = argv[1];
+	else
+		filepath = "webserv.conf";
+    
     try
     {
         Config config = Config::fromFile(filepath);
 
         RequestContext context
             = config.createRequestContext("server.com", "/kapouet/file");
+        // RequestContext context
+          // = config.createRequestContext("server.com", "/images/file");
 
         std::cout << "Well done :)"
                   << "\n";
@@ -24,7 +37,7 @@ int main(void)
     }
     catch (const std::exception& e)
     {
-        std::cerr << e.what() << '\n';
+        std::cerr << "Error: " << e.what() << '\n';
     }
 
     return 0;
