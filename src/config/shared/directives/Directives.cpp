@@ -39,7 +39,7 @@ const std::map<std::string, DirectiveSpec> directives = {
         {HTTP, SERVER, LOCATION},
         {
             {{ArgumentType::StatusCode}, 1, UNLIMITED},
-            {{ArgumentType::FilePath}, 1, 1}
+            {{ArgumentType::FilePath, ArgumentType::File}, 1, 1}
         },
         {},
         true

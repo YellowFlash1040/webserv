@@ -32,8 +32,8 @@ Lexer::~Lexer() {}
 
 std::vector<Token> Lexer::tokenize(const std::string& input)
 {
-	if (input.length() == 0)
-		throw std::logic_error("input is empty");
+    if (input.length() == 0)
+        throw std::logic_error("input is empty");
     return Lexer(input).tokenize();
 }
 
@@ -93,15 +93,15 @@ void Lexer::processQuote()
 void Lexer::parseQuotedString()
 {
     char quote_char = m_input[m_pos];
-    m_value.push_back(quote_char);
+    // m_value.push_back(quote_char);
 
     while (!(++m_pos == m_input.length() || m_input[m_pos] == quote_char))
         m_value.push_back(m_input[m_pos]);
 
     if (m_pos == m_input.length())
         throw std::logic_error("No end of quote");
-    else
-        m_value.push_back(m_input[m_pos]);
+    // else
+    //     m_value.push_back(m_input[m_pos]);
 }
 
 void Lexer::skipComment()

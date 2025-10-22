@@ -32,8 +32,8 @@ class Directive
     const std::vector<Argument>& args();
     void setArgs(std::vector<Argument>&& args);
     void setPosition(size_t line, size_t column);
-    size_t line();
-    size_t column();
+    size_t line() const;
+    size_t column() const;
 
   protected:
     // Properties

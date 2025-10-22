@@ -14,6 +14,8 @@ class ConfigException : public std::exception
     ConfigException(size_t line, size_t column, const std::string& message);
 
     const char* what() const noexcept override;
+    size_t line() const;
+    size_t column() const;
 
   protected:
     // Properties

@@ -5,16 +5,16 @@ int main(int argc, char** argv)
 {
     // const char* filepath = "./webserv.conf";
     // const char* filepath = "./noneexistent.conf";
-    // const char* filepath = "./nopermissions.conf";
-    // const char* filepath = "./empty.conf";
-    // const char* filepath = "./invalid.conf";
+    // const char* filepath = "./assets/nopermissions.conf";
+    // const char* filepath = "./assets/empty.conf";
+    // const char* filepath = "./assets/invalid.conf";
 
-	const char* filepath;
+    const char* filepath;
     if (argc > 1)
-		filepath = argv[1];
-	else
-		filepath = "webserv.conf";
-    
+        filepath = argv[1];
+    else
+        filepath = "webserv.conf";
+
     try
     {
         Config config = Config::fromFile(filepath);
@@ -22,7 +22,7 @@ int main(int argc, char** argv)
         RequestContext context
             = config.createRequestContext("server.com", "/kapouet/file");
         // RequestContext context
-          // = config.createRequestContext("server.com", "/images/file");
+        // = config.createRequestContext("server.com", "/images/file");
 
         std::cout << "Well done :)"
                   << "\n";

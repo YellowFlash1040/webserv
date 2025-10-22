@@ -80,12 +80,12 @@ void Directive::setPosition(size_t line, size_t column)
     m_column = column;
 }
 
-size_t Directive::line()
+size_t Directive::line() const
 {
     return m_line;
 }
 
-size_t Directive::column()
+size_t Directive::column() const
 {
     return m_column;
 }

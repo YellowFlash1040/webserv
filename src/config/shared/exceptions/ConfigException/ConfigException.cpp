@@ -21,6 +21,16 @@ const char* ConfigException::what() const noexcept
     return m_message.c_str();
 }
 
+size_t ConfigException::line() const
+{
+    return m_line;
+}
+
+size_t ConfigException::column() const
+{
+    return m_column;
+}
+
 std::string ConfigException::createLocationMessage(size_t line, size_t column)
 {
     std::ostringstream os;

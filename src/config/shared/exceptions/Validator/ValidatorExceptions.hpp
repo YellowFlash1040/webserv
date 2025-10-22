@@ -15,5 +15,7 @@
 # include "NoArgumentsAllowedException.hpp"
 # include "ConflictingDirectiveException.hpp"
 # include "MissingArgumentException.hpp"
+# include "DuplicateLocationPathException.hpp"
+# include "DuplicateListenException.hpp"
 
 #endif

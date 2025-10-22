@@ -718,7 +718,6 @@ TEST(ParserTest, ParseDirectiveWithNumericValue)
 
 // clang-format on
 
-/*
 TEST(ParserTest, ParseLargeConfiguration)
 {
     // Test parsing a large number of directives
@@ -728,26 +727,27 @@ TEST(ParserTest, ParseLargeConfiguration)
     // Generate 100 simple directives
     for (int i = 0; i < 100; ++i)
     {
-        tokens.emplace_back(TokenType::DIRECTIVE, "directive" +
-std::to_string(i)); tokens.emplace_back(TokenType::VALUE, "value" +
-std::to_string(i)); tokens.emplace_back(TokenType::SEMICOLON, ";");
+        tokens.emplace_back(TokenType::DIRECTIVE, "root");
+        tokens.emplace_back(TokenType::VALUE, "value");
+        tokens.emplace_back(TokenType::SEMICOLON, ";");
     }
     tokens.emplace_back(TokenType::END, "");
 
     auto result = Parser::parse(tokens);
+    auto* global = dynamic_cast<BlockDirective*>(result.get());
+    const auto& directives = global->directives();
 
-    ASSERT_EQ(result.size(), 100u);
+    ASSERT_EQ(directives.size(), 100u);
 
     for (size_t i = 0; i < 100; ++i)
     {
-        auto* directive = dynamic_cast<Directive*>(result[i].get());
+        auto* directive = dynamic_cast<Directive*>(directives[i].get());
         ASSERT_NE(directive, nullptr);
-        EXPECT_EQ(directive->name(), "directive" + std::to_string(i));
+        EXPECT_EQ(directive->name(), "root");
         ASSERT_EQ(directive->args().size(), 1u);
-        EXPECT_EQ(directive->args()[0].value(), "value" + std::to_string(i));
+        EXPECT_EQ(directive->args()[0].value(), "value");
     }
 }
-*/
 
 //---------------------------------
 // Parser Error reporting

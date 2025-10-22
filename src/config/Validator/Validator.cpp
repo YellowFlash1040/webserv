@@ -25,14 +25,18 @@ void Validator::validateChildren(const BlockDirective* block)
         validateDirective(directive, block->name());
     }
 
-    if (block->name() == Directives::HTTP)
-        checkDuplicateServerPairs(block);
+    // if (block->name() == Directives::HTTP)
+    //     checkDuplicateServerPairs(block);
 
     if (block->name() == Directives::SERVER)
-        checkDuplicateLocationPaths(block);
+    {
+        checkForDuplicateLocationPaths(block);
+        checkForDuplicateListen(block);
+    }
 }
 
-void Validator::checkDuplicateLocationPaths(const BlockDirective* serverBlock)
+void Validator::checkForDuplicateLocationPaths(
+    const BlockDirective* serverBlock)
 {
     std::set<std::string> seenPaths;
 
@@ -48,36 +52,19 @@ void Validator::checkDuplicateLocationPaths(const BlockDirective* serverBlock)
     }
 }
 
-void Validator::checkDuplicateServerPairs(const BlockDirective* httpBlock)
+void Validator::checkForDuplicateListen(const BlockDirective* serverBlock)
 {
-    std::set<std::pair<std::string, std::string>> seenPairs;
+    std::set<std::string> seenListen;
 
-    for (const auto& directive : httpBlock->directives())
+    for (const auto& directive : serverBlock->directives())
     {
-        if (directive->name() != Directives::SERVER)
+        if (directive->name() != Directives::LISTEN)
             continue;
 
-        const BlockDirective* serverBlock
-            = dynamic_cast<const BlockDirective*>(directive.get());
-
-        std::string listenValue;
-        std::string serverNameValue;
-
-        for (const auto& subdir : serverBlock->directives())
-        {
-            if (subdir->name() == "listen" && !subdir->args().empty())
-                listenValue = subdir->args()[0].value();
-            else if (subdir->name() == "server_name" && !subdir->args().empty())
-                serverNameValue = subdir->args()[0].value();
-        }
-
-        std::pair<std::string, std::string> pair
-            = std::make_pair(listenValue, serverNameValue);
-
-        bool inserted = seenPairs.insert(pair).second;
+        const std::string& value = directive->args()[0];
+        bool inserted = seenListen.insert(value).second;
         if (!inserted)
-            throw DuplicateServerDefinitionException(directive, listenValue,
-                                                     serverNameValue);
+            throw DuplicateListenException(directive, value);
     }
 }
 
@@ -368,6 +355,9 @@ Validator::validators()
 
 void Validator::validateStatusCode(const std::string& s)
 {
+    if (s.empty())
+        throw std::invalid_argument("status code can not be empty");
+
     int code = std::stoi(s);
     if (code < 100 || code > 599)
         throw std::invalid_argument("Invalid status code: " + s);
@@ -375,12 +365,18 @@ void Validator::validateStatusCode(const std::string& s)
 
 void Validator::validateUrl(const std::string& s)
 {
-    if (s.empty() || s.find('.') == std::string::npos)
+    if (s.empty())
+        throw std::invalid_argument("URL can not be empty");
+
+    if (s.find('.') == std::string::npos)
         throw std::invalid_argument("Invalid URL: " + s);
 }
 
 void Validator::validateOnOff(const std::string& s)
 {
+    if (s.empty())
+        throw std::invalid_argument("expected 'on' or 'off'");
+
     if (s != "on" && s != "off")
         throw std::invalid_argument("Expected 'on' or 'off', got: " + s);
 }
@@ -388,7 +384,8 @@ void Validator::validateOnOff(const std::string& s)
 void Validator::validateFilePath(const std::string& s)
 {
     if (s.empty())
-        throw std::invalid_argument("Argument cannot be empty");
+        throw std::invalid_argument("file path cannot be empty");
+
     if (s[0] != '/')
         throw std::invalid_argument("FilePath has to start with '/'");
     // if (s.find('.') == std::string::npos)
@@ -398,13 +395,17 @@ void Validator::validateFilePath(const std::string& s)
 void Validator::validateFolderPath(const std::string& s)
 {
     if (s.empty())
-        throw std::invalid_argument("Argument cannot be empty");
+        throw std::invalid_argument("folder path cannot be empty");
+
     if (s[0] != '/')
         throw std::invalid_argument("Folder path has to start from a '/'");
 }
 
 void Validator::validateInteger(const std::string& s)
 {
+    if (s.empty())
+        throw std::invalid_argument("integer argument can not be empty");
+
     std::stoi(s);
 }
 
@@ -415,6 +416,10 @@ void Validator::validateDataSize(const std::string& s)
 
 void Validator::validateNetworkEndpoint(const std::string& s)
 {
+    if (s.empty())
+        throw std::invalid_argument(
+            "argument for 'listen' directive can not be empty");
+
     (void)s;
     return;
 }
@@ -474,7 +479,7 @@ void Validator::validateFile(const std::string& s)
 
     for (char c : s)
     {
-        if (!(std::isalnum(c) || c == '.'))
+        if (!(std::isalnum(c) || c == '.' || c == '_' || c == ' '))
             throw std::invalid_argument("File can only contain alphanumeric "
                                         "characters and dots. Invalid file: '"
                                         + s + "'");
@@ -483,12 +488,20 @@ void Validator::validateFile(const std::string& s)
 
 void Validator::validateIp(const std::string& s)
 {
+    if (s.empty())
+        throw std::invalid_argument(
+            "argument for 'listen' directive can not be empty");
+
     (void)s;
     return;
 }
 
 void Validator::validatePort(const std::string& s)
 {
+    if (s.empty())
+        throw std::invalid_argument(
+            "argument for 'listen' directive can not be empty");
+
     int number = std::stoi(s);
     if (number < 0 || number > 65535)
         throw std::invalid_argument(

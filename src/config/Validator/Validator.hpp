@@ -38,6 +38,9 @@ class Validator
     static void makeDuplicateCheck(const std::vector<Argument>& args);
     static void makeConflictsCheck(std::set<std::string>& seenDirectives,
                                    const std::unique_ptr<Directive>& directive);
+    static void checkForDuplicateLocationPaths(
+        const BlockDirective* serverBlock);
+    static void checkForDuplicateListen(const BlockDirective* serverBlock);
     static void checkIfAllowedDirective(
         const std::unique_ptr<Directive>& directive,
         const std::string& context);

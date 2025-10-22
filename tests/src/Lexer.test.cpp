@@ -10,7 +10,7 @@ static void expectToken(const Token& token, TokenType expectedType,
 }
 
 // Your existing tests
-TEST(LexerTest, EmptyInputProducesEndToken)
+TEST(LexerTest, EmptyInputThrowsAnError)
 {
     EXPECT_THROW(Lexer::tokenize(""), std::logic_error);
 }
