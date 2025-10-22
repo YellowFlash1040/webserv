@@ -25,63 +25,61 @@ void Validator::validateChildren(const BlockDirective* block)
         validateDirective(directive, block->name());
     }
 
-    // if (block->name() == Directives::HTTP)
-    //     checkDuplicateServerPairs(block);
+    if (block->name() == Directives::HTTP)
+        checkDuplicateServerPairs(block);
 
-    // if (block->name() == Directives::SERVER)
-    //     checkDuplicateLocationPaths(block);
+    if (block->name() == Directives::SERVER)
+        checkDuplicateLocationPaths(block);
 }
 
-// void Validator::checkDuplicateLocationPaths(const BlockDirective*
-// serverBlock)
-// {
-//     std::set<std::string> seenPaths;
+void Validator::checkDuplicateLocationPaths(const BlockDirective* serverBlock)
+{
+    std::set<std::string> seenPaths;
 
-//     for (const auto& directive : serverBlock->directives())
-//     {
-//         if (directive->name() != Directives::LOCATION)
-//             continue;
+    for (const auto& directive : serverBlock->directives())
+    {
+        if (directive->name() != Directives::LOCATION)
+            continue;
 
-//         const std::string& path = directive->args()[0];
-//         bool inserted = seenPaths.insert(path).second;
-//         if (!inserted)
-//             throw DuplicateLocationPathException(directive, path);
-//     }
-// }
+        const std::string& path = directive->args()[0];
+        bool inserted = seenPaths.insert(path).second;
+        if (!inserted)
+            throw DuplicateLocationPathException(directive, path);
+    }
+}
 
-// void Validator::checkDuplicateServerPairs(const BlockDirective* httpBlock)
-// {
-//     std::set<std::pair<std::string, std::string>> seenPairs;
+void Validator::checkDuplicateServerPairs(const BlockDirective* httpBlock)
+{
+    std::set<std::pair<std::string, std::string>> seenPairs;
 
-//     for (const auto& directive : httpBlock->directives())
-//     {
-//         if (directive->name() != Directives::SERVER)
-//             continue;
+    for (const auto& directive : httpBlock->directives())
+    {
+        if (directive->name() != Directives::SERVER)
+            continue;
 
-//         const BlockDirective* serverBlock
-//             = dynamic_cast<const BlockDirective*>(directive.get());
+        const BlockDirective* serverBlock
+            = dynamic_cast<const BlockDirective*>(directive.get());
 
-//         std::string listenValue;
-//         std::string serverNameValue;
+        std::string listenValue;
+        std::string serverNameValue;
 
-//         for (const auto& subdir : serverBlock->directives())
-//         {
-//             if (subdir->name() == "listen" && !subdir->args().empty())
-//                 listenValue = subdir->args()[0].value();
-//             else if (subdir->name() == "server_name" &&
-//             !subdir->args().empty())
-//                 serverNameValue = subdir->args()[0].value();
-//         }
+        for (const auto& subdir : serverBlock->directives())
+        {
+            if (subdir->name() == "listen" && !subdir->args().empty())
+                listenValue = subdir->args()[0].value();
+            else if (subdir->name() == "server_name" && !subdir->args().empty())
+                serverNameValue = subdir->args()[0].value();
+        }
 
-//         std::pair<std::string, std::string> pair
-//             = std::make_pair(listenValue, serverNameValue);
+        std::pair<std::string, std::string> pair
+            = std::make_pair(listenValue, serverNameValue);
 
-//         bool inserted = seenPairs.insert(pair).second;
-//         if (!inserted)
-//             throw DuplicateServerDefinitionException(directive, listenValue,
-//                                                      serverNameValue);
-//     }
-// }
+        bool inserted = seenPairs.insert(pair).second;
+        if (!inserted)
+            throw DuplicateServerDefinitionException(directive, listenValue,
+                                                     serverNameValue);
+    }
+}
 
 void Validator::makeDuplicateCheck(std::set<std::string>& seenDirectives,
                                    const std::unique_ptr<Directive>& directive)
