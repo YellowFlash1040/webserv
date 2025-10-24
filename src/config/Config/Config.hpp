@@ -57,10 +57,11 @@ class Config
                        const std::vector<Argument>& args);
     static void assign(Property<size_t>& property,
                        const std::vector<Argument>& args);
-    // static void assign(Property<std::vector<ErrorPage>>& property,
-                       // const std::vector<Argument>& args);
-    static void assign(Property<std::map<HttpStatusCode, std::string>>& property,
+    static void assign(Property<std::vector<ErrorPage>>& property,
                        const std::vector<Argument>& args);
+    // static void assign(Property<std::map<HttpStatusCode, std::string>>&
+    // property,
+    //                    const std::vector<Argument>& args);
     static void assign(Property<std::vector<std::string>>& property,
                        const std::vector<Argument>& args);
     static void assign(Property<std::vector<HttpMethod>>& property,

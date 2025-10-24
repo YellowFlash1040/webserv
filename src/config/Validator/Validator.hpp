@@ -7,10 +7,13 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "ConfigExceptions.hpp"
 #include "Directives.hpp"
 #include "Converter.hpp"
+#include "HttpBlock.hpp"
 
 class Validator
 {
@@ -27,6 +30,7 @@ class Validator
   public:
     // Methods
     static void validate(const std::unique_ptr<Directive>& node);
+    static void validate(const HttpBlock& httpBlock);
 
   private:
     // Methods
@@ -69,6 +73,9 @@ class Validator
     static const std::map<ArgumentType,
                           std::function<void(const std::string&)>>&
     validators();
+
+    // static bool tryValidateArgument(
+    //     const std::vector<ArgumentType>& possibleTypes, const Argument& arg);
 };
 
 #endif

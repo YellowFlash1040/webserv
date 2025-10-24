@@ -11,6 +11,7 @@ Config::Config(std::unique_ptr<Directive> ast)
         throw std::invalid_argument("AST root node is not a block directive");
 
     m_httpBlock = buildHttpBlock(mainNode->directives()[0]);
+    Validator::validate(m_httpBlock);
 }
 
 // Move constructor
@@ -47,9 +48,16 @@ Config Config::fromFile(const std::string& filepath)
 std::vector<std::string> Config::getAllEnpoints()
 {
     std::vector<std::string> endpoints;
-    endpoints.reserve(m_httpBlock.servers->size());
+
+    size_t totalListens = 0;
     for (const auto& server : m_httpBlock.servers)
-        endpoints.emplace_back(server.listen);
+        totalListens += server.listen->size();
+
+    endpoints.reserve(totalListens);
+
+    for (const auto& server : m_httpBlock.servers)
+        for (const auto& listen : server.listen)
+            endpoints.emplace_back(listen);
 
     return endpoints;
 }
@@ -66,7 +74,7 @@ RequestContext Config::createRequestContext(const std::string& host,
     httpBlock.applyTo(requestContext);
     serverBlock.applyTo(requestContext);
     if (locationBlock)
-    	locationBlock->applyTo(requestContext);
+        locationBlock->applyTo(requestContext);
 
     return requestContext;
 }
@@ -219,31 +227,7 @@ void Config::assign(Property<size_t>& property,
     }
 }
 
-// void Config::assign(Property<std::vector<ErrorPage>>& errorPages,
-                    // const std::vector<Argument>& args)
-// {
-    // std::vector<HttpStatusCode> statusCodes;
-// 
-    // for (size_t i = 0; i < args.size() - 1; ++i)
-    // {
-        // try
-        // {
-            // statusCodes.push_back(Converter::toHttpStatusCode(args[i]));
-        // }
-        // catch (const std::exception& ex)
-        // {
-            // const Argument& arg = args[i];
-            // throw ConfigException(arg.line(), arg.column(), ex.what());
-        // }
-    // }
-// 
-    // const std::string& filePath = args.back();
-    // errorPages->emplace_back(statusCodes, filePath);
-// 
-    // errorPages.isSet() = true;
-// }
-
-void Config::assign(Property<std::map<HttpStatusCode, std::string>>& errorPages,
+void Config::assign(Property<std::vector<ErrorPage>>& errorPages,
                     const std::vector<Argument>& args)
 {
     std::vector<HttpStatusCode> statusCodes;
@@ -262,12 +246,37 @@ void Config::assign(Property<std::map<HttpStatusCode, std::string>>& errorPages,
     }
 
     const std::string& filePath = args.back();
-    
-    for (auto statusCode: statusCodes)
-    	errorPages[statusCode] = filePath;
+    errorPages->emplace_back(statusCodes, filePath);
 
     errorPages.isSet() = true;
 }
+
+// void Config::assign(Property<std::map<HttpStatusCode, std::string>>&
+// errorPages,
+//                     const std::vector<Argument>& args)
+// {
+//     std::vector<HttpStatusCode> statusCodes;
+
+//     for (size_t i = 0; i < args.size() - 1; ++i)
+//     {
+//         try
+//         {
+//             statusCodes.push_back(Converter::toHttpStatusCode(args[i]));
+//         }
+//         catch (const std::exception& ex)
+//         {
+//             const Argument& arg = args[i];
+//             throw ConfigException(arg.line(), arg.column(), ex.what());
+//         }
+//     }
+
+//     const std::string& filePath = args.back();
+
+//     for (auto statusCode : statusCodes)
+//         errorPages[statusCode] = filePath;
+
+//     errorPages.isSet() = true;
+// }
 
 void Config::assign(Property<std::vector<HttpMethod>>& httpMethods,
                     const std::vector<Argument>& args)

@@ -19,7 +19,7 @@ struct LocationBlock : public ConfigBlock
 {
     // Properties
     Property<std::string> path;
-    Property<std::map<HttpStatusCode, std::string>> errorPages;
+    Property<std::vector<ErrorPage>> errorPages;
     Property<size_t> clientMaxBodySize{};
     Property<std::vector<HttpMethod>> acceptedHttpMethods;
     Property<HttpRedirection> httpRedirection;

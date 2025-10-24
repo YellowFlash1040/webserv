@@ -113,6 +113,73 @@ void Validator::checkIfAllowedDirective(
         throw DirectiveContextException(directive, context);
 }
 
+// void Validator::validateArguments(const std::unique_ptr<Directive>&
+// directive)
+// {
+//     const auto& args = directive->args();
+//     const auto& argSpecs = Directives::getArgSpecs(directive->name());
+
+//     if (argSpecs.empty())
+//     {
+//         if (!args.empty())
+//             throw NoArgumentsAllowedException(directive);
+//         return;
+//     }
+
+//     makeDuplicateCheck(args);
+
+//     size_t argIdx = 0;
+
+//     for (const auto& spec : argSpecs)
+//     {
+//         size_t matchedCount = 0;
+
+//         // Consume all arguments that match this group (up to maxCount)
+//         while (argIdx < args.size() && matchedCount < spec.maxCount
+//                && tryValidateArgument(spec.possibleTypes, args[argIdx]))
+//         {
+//             ++matchedCount;
+//             ++argIdx;
+//         }
+
+//         // Check if we got enough for this group
+//         if (matchedCount < spec.minCount)
+//         {
+//             // If we still have args but they don't match, they're invalid
+//             if (argIdx < args.size())
+//                 throw InvalidArgumentException(args[argIdx]);
+//             // Otherwise we simply don't have enough args
+//             throw NotEnoughArgumentsException(directive);
+//         }
+//     }
+
+//     // Any leftover arguments?
+//     if (argIdx < args.size())
+//         throw TooManyArgumentsException(directive);
+// }
+
+// bool Validator::tryValidateArgument(
+//     const std::vector<ArgumentType>& possibleTypes, const Argument& arg)
+// {
+//     for (ArgumentType type : possibleTypes)
+//     {
+//         auto it = validators().find(type);
+//         if (it == validators().end())
+//             throw std::logic_error("No validator found");
+
+//         try
+//         {
+//             it->second(arg.value());
+//             return true;
+//         }
+//         catch (const std::exception&)
+//         {
+//             continue;
+//         }
+//     }
+//     return false;
+// }
+
 void Validator::validateArguments(const std::unique_ptr<Directive>& directive)
 {
     const auto& args = directive->args();
@@ -529,3 +596,25 @@ void Validator::validateBinaryPath(const std::string& s)
 // Create a function for each directive
 // Create a class for each possible data type
 // Use appropriate string -> class conversions and see the results
+
+///----------------------------------------///
+///----------------------------------------///
+///----------------------------------------///
+
+void Validator::validate(const HttpBlock& httpBlock)
+{
+    std::unordered_map<std::string, std::unordered_set<std::string>> listen_map;
+
+    for (auto& server : httpBlock.servers)
+    {
+        for (auto& listen : server.listen)
+        {
+            for (auto& name : server.serverName)
+            {
+                auto& names = listen_map[listen];
+                if (!names.insert(name).second)
+                    throw DuplicateServerIdException(name, listen);
+            }
+        }
+    }
+}

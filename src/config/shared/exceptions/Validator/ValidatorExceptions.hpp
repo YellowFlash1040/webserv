@@ -17,5 +17,6 @@
 # include "MissingArgumentException.hpp"
 # include "DuplicateLocationPathException.hpp"
 # include "DuplicateListenException.hpp"
+# include "DuplicateServerIdException.hpp"
 
 #endif
