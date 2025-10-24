@@ -136,3 +136,20 @@ bool Property<T>::operator!=(const T& other) const
 {
     return m_value != other;
 }
+
+template <typename T>
+template <typename Key>
+auto Property<T>::operator[](const Key& key)
+    -> decltype(std::declval<T&>()[key])
+{
+    m_isSet = true;
+    return m_value[key];
+}
+
+template <typename T>
+template <typename Key>
+auto Property<T>::operator[](const Key& key) const
+    -> decltype(std::declval<const T&>()[key])
+{
+    return m_value[key];
+}

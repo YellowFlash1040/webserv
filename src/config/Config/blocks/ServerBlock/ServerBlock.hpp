@@ -24,7 +24,7 @@ struct ServerBlock : public ConfigBlock
     Property<std::vector<std::string>> serverName;
     Property<std::string> root;
     Property<std::string> alias;
-    Property<std::vector<ErrorPage>> errorPages;
+    Property<std::map<HttpStatusCode, std::string>> errorPages;
     Property<size_t> clientMaxBodySize{};
     Property<HttpRedirection> httpRedirection;
     Property<bool> autoindex{};

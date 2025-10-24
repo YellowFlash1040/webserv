@@ -7,14 +7,14 @@
 # include <vector>
 # include <map>
 
-# include "ErrorPage.hpp"
 # include "HttpMethod.hpp"
 # include "HttpRedirection.hpp"
+# include "HttpStatusCode.hpp"
 
 struct RequestContext
 {
     size_t client_max_body_size = 1024 * 1024; // in bytes
-    std::vector<ErrorPage> error_pages{};      // {status_code -> file path}
+    std::map<HttpStatusCode, std::string> error_pages{};      // {status_code -> file path}
     std::string root = "/var/www";             // filesystem root
     std::string alias{};                       // if alias is used
     bool autoindex_enabled = false;            // true if autoindex on

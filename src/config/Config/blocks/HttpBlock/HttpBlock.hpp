@@ -14,7 +14,7 @@ struct HttpBlock : public ConfigBlock
 {
     // Accessors
     Property<std::vector<ServerBlock>> servers;
-    Property<std::vector<ErrorPage>> errorPages;
+    Property<std::map<HttpStatusCode, std::string>> errorPages;
     Property<size_t> clientMaxBodySize{};
     Property<std::string> root;
     Property<bool> autoindex{};

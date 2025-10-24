@@ -155,6 +155,8 @@ LocationBlock Config::buildLocationBlock(
             assign(locationBlock.index, args);
         else if (name == Directives::LIMIT_EXCEPT)
             assign(locationBlock.acceptedHttpMethods, args);
+        else if (name == Directives::ERROR_PAGE)
+            assign(locationBlock.errorPages, args);
     }
 
     if (locationBlock.acceptedHttpMethods->empty())
@@ -217,7 +219,31 @@ void Config::assign(Property<size_t>& property,
     }
 }
 
-void Config::assign(Property<std::vector<ErrorPage>>& errorPages,
+// void Config::assign(Property<std::vector<ErrorPage>>& errorPages,
+                    // const std::vector<Argument>& args)
+// {
+    // std::vector<HttpStatusCode> statusCodes;
+// 
+    // for (size_t i = 0; i < args.size() - 1; ++i)
+    // {
+        // try
+        // {
+            // statusCodes.push_back(Converter::toHttpStatusCode(args[i]));
+        // }
+        // catch (const std::exception& ex)
+        // {
+            // const Argument& arg = args[i];
+            // throw ConfigException(arg.line(), arg.column(), ex.what());
+        // }
+    // }
+// 
+    // const std::string& filePath = args.back();
+    // errorPages->emplace_back(statusCodes, filePath);
+// 
+    // errorPages.isSet() = true;
+// }
+
+void Config::assign(Property<std::map<HttpStatusCode, std::string>>& errorPages,
                     const std::vector<Argument>& args)
 {
     std::vector<HttpStatusCode> statusCodes;
@@ -236,7 +262,9 @@ void Config::assign(Property<std::vector<ErrorPage>>& errorPages,
     }
 
     const std::string& filePath = args.back();
-    errorPages->emplace_back(statusCodes, filePath);
+    
+    for (auto statusCode: statusCodes)
+    	errorPages[statusCode] = filePath;
 
     errorPages.isSet() = true;
 }

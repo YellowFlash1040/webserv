@@ -10,8 +10,8 @@
 # include "ConfigBlock.hpp"
 # include "HttpMethod.hpp"
 # include "HttpRedirection.hpp"
-# include "ErrorPage.hpp"
 # include "RequestContext.hpp"
+# include "HttpStatusCode.hpp"
 
 # include "Property.hpp"
 
@@ -19,7 +19,7 @@ struct LocationBlock : public ConfigBlock
 {
     // Properties
     Property<std::string> path;
-    Property<std::vector<ErrorPage>> errorPages;
+    Property<std::map<HttpStatusCode, std::string>> errorPages;
     Property<size_t> clientMaxBodySize{};
     Property<std::vector<HttpMethod>> acceptedHttpMethods;
     Property<HttpRedirection> httpRedirection;
