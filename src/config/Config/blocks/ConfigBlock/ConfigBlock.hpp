@@ -4,6 +4,7 @@
 # define CONFIGBLOCK_HPP
 
 # include "RequestContext.hpp"
+# include "rules.hpp"
 
 class ConfigBlock
 {
@@ -16,11 +17,12 @@ class ConfigBlock
 
   protected:
     // Methods
-    template <typename T, typename U>
-    void applyIfSet(const T& property, U& contextField) const
+    template <typename T, typename U, typename ApplyProperty>
+    void applyIfSet(const T& property, U& contextField,
+                    ApplyProperty applyProperty) const
     {
         if (property.isSet())
-            contextField = property;
+            applyProperty(property, contextField);
     }
 };
 
