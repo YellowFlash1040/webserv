@@ -118,7 +118,7 @@ const std::map<std::string, DirectiveSpec> directives = {
             {{ArgumentType::BinaryPath}, 1, 1}
         },
         {},
-        false
+        true
     }}
 };
 
