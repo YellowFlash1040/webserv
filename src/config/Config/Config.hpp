@@ -66,8 +66,21 @@ class Config
                        const std::vector<Argument>& args);
     static void assign(Property<std::vector<HttpMethod>>& property,
                        const std::vector<Argument>& args);
+    static void assign(Property<HttpRedirection>& property,
+                       const std::vector<Argument>& args);
+    static void assign(Property<std::map<std::string, std::string>>& cgiPass,
+                       const std::vector<Argument>& args);
 
     static void setDefaultHttpMethods(std::vector<HttpMethod>& httpMethods);
+
+    EffectiveConfig createEffectiveConfig(const std::string& host,
+                                          const std::string& uri);
+    static RequestContext createContext(const EffectiveConfig& config,
+                                        const std::string& uri);
+    static std::map<HttpStatusCode, std::string> constructErrorPages(
+        const std::vector<ErrorPage>& errorPages);
+    static std::string resolvePath(const EffectiveConfig& config,
+                                   const std::string& uri);
 };
 
 #endif

@@ -8,8 +8,9 @@
 # include <vector>
 
 # include "ConfigBlock.hpp"
-# include "ErrorPage.hpp"
 # include "LocationBlock.hpp"
+
+# include "ErrorPage.hpp"
 # include "HttpRedirection.hpp"
 # include "RequestContext.hpp"
 // # include "NetworkEndpoint.hpp"
@@ -30,7 +31,7 @@ struct ServerBlock : public ConfigBlock
     Property<bool> autoindex{};
     Property<std::vector<std::string>> index;
     // Methods
-    void applyTo(RequestContext& context) const override;
+    void applyTo(EffectiveConfig& context) const override;
     const LocationBlock* matchLocationBlock(const std::string& uri) const;
 };
 

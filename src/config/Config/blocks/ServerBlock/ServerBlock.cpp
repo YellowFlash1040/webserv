@@ -2,15 +2,33 @@
 
 // ---------------------------METHODS-----------------------------
 
-void ServerBlock::applyTo(RequestContext& context) const
+// void ServerBlock::applyTo(RequestContext& context) const
+// {
+//     applyIfSet(clientMaxBodySize, context.client_max_body_size,
+//                Rules::Replace{});
+//     applyIfSet(errorPages, context.error_pages, Rules::applyErrorPages);
+//     applyIfSet(root, context.resolved_path, Rules::Replace{});
+//     applyIfSet(alias, context.resolved_path, Rules::Replace{});
+//     applyIfSet(autoindex, context.autoindex_enabled, Rules::Replace{});
+//     applyIfSet(index, context.index_files, Rules::AppendHead{});
+//     applyIfSet(httpRedirection, context.redirection, Rules::Replace{});
+// }
+
+void ServerBlock::applyTo(EffectiveConfig& context) const
 {
-    applyIfSet(clientMaxBodySize, context.client_max_body_size);
-    applyIfSet(errorPages, context.error_pages);
-    applyIfSet(root, context.root);
-    applyIfSet(alias, context.alias);
-    applyIfSet(autoindex, context.autoindex_enabled);
-    applyIfSet(index, context.index_files);
-    applyIfSet(httpRedirection, context.redirection);
+    applyIfSet(clientMaxBodySize, context.client_max_body_size,
+               Rules::Replace{});
+    applyIfSet(errorPages, context.error_pages, Rules::AppendTail{});
+    applyIfSet(root, context.root, Rules::Replace{});
+    applyIfSet(alias, context.alias, Rules::Replace{});
+    applyIfSet(autoindex, context.autoindex_enabled, Rules::Replace{});
+    applyIfSet(index, context.index_files, Rules::Replace{});
+
+    if (!context.redirection.isSet)
+    {
+        applyIfSet(httpRedirection, context.redirection, Rules::Replace{});
+        context.redirection.isSet = true;
+    }
 }
 
 const LocationBlock* ServerBlock::matchLocationBlock(

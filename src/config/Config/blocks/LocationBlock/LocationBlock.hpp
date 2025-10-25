@@ -8,12 +8,14 @@
 # include <vector>
 
 # include "ConfigBlock.hpp"
+
 # include "HttpMethod.hpp"
 # include "HttpRedirection.hpp"
 # include "RequestContext.hpp"
 # include "HttpStatusCode.hpp"
 
 # include "Property.hpp"
+# include "DirectiveAppliers.hpp"
 
 struct LocationBlock : public ConfigBlock
 {
@@ -28,9 +30,9 @@ struct LocationBlock : public ConfigBlock
     Property<bool> autoindex{};
     Property<std::vector<std::string>> index;
     Property<std::string> uploadStore;
-    Property<std::string> cgiPass;
+    Property<std::map<std::string, std::string>> cgiPass;
     // Methods
-    void applyTo(RequestContext& ctx) const override;
+    void applyTo(EffectiveConfig& ctx) const override;
 };
 
 #endif

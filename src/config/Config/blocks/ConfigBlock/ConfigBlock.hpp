@@ -4,7 +4,10 @@
 # define CONFIGBLOCK_HPP
 
 # include "RequestContext.hpp"
-# include "rules.hpp"
+# include "Property.hpp"
+# include "DirectiveAppliers.hpp"
+
+# include "EffectiveConfig.hpp"
 
 class ConfigBlock
 {
@@ -13,16 +16,16 @@ class ConfigBlock
     virtual ~ConfigBlock() = default;
 
     // Methods
-    virtual void applyTo(RequestContext& ctx) const = 0;
+    virtual void applyTo(EffectiveConfig& ctx) const = 0;
 
   protected:
     // Methods
     template <typename T, typename U, typename ApplyProperty>
-    void applyIfSet(const T& property, U& contextField,
+    void applyIfSet(const Property<T>& property, U& contextField,
                     ApplyProperty applyProperty) const
     {
         if (property.isSet())
-            applyProperty(property, contextField);
+            applyProperty(property.value(), contextField);
     }
 };
 

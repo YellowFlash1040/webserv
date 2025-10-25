@@ -33,19 +33,31 @@
 //         = "/"; // path prefix of location, or "" if none
 // };
 
+// struct RequestContext
+// {
+//     HttpRedirection redirection{};
+//     std::vector<HttpMethod> allowed_methods
+//         = {HttpMethod::GET, HttpMethod::POST, HttpMethod::DELETE};
+//     size_t client_max_body_size = 1024 * 1024;
+//     std::string resolved_path{};
+//     std::vector<std::string> index_files = {"index.html"};
+//     bool autoindex_enabled = false;
+//     std::map<HttpStatusCode, std::string> error_pages{};
+//     std::string upload_store{};
+//     std::map<std::string, std::string> cgi_pass{};
+// };
+
 struct RequestContext
 {
-    bool has_return = false;
     HttpRedirection redirection{};
-    std::vector<HttpMethod> allowed_methods
-        = {HttpMethod::GET, HttpMethod::POST, HttpMethod::DELETE};
-    size_t client_max_body_size = 1024 * 1024;
+    std::vector<HttpMethod> allowed_methods{};
+    size_t client_max_body_size{};
     std::string resolved_path{};
-    std::vector<std::string> index_files = {"index.html"};
-    bool autoindex_enabled = false;
+    std::vector<std::string> index_files{};
+    bool autoindex_enabled{};
     std::map<HttpStatusCode, std::string> error_pages{};
     std::string upload_store{};
-    std::map<std::string, std::string> cgi_pass_map{};
+    std::map<std::string, std::string> cgi_pass{};
 };
 
 #endif

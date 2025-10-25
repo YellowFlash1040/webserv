@@ -9,7 +9,8 @@
 
 struct HttpRedirection
 {
-    HttpStatusCode statusCode = HttpStatusCode::Ok;
+    bool isSet = false;
+    HttpStatusCode statusCode = HttpStatusCode::None;
     std::string url;
 };
 

@@ -2,13 +2,24 @@
 
 // ---------------------------METHODS-----------------------------
 
-void HttpBlock::applyTo(RequestContext& context) const
+// void HttpBlock::applyTo(RequestContext& context) const
+// {
+//     applyIfSet(clientMaxBodySize, context.client_max_body_size,
+//                Rules::Replace{});
+//     applyIfSet(errorPages, context.error_pages, Rules::applyErrorPages);
+//     applyIfSet(root, context.resolved_path, Rules::Replace{});
+//     applyIfSet(autoindex, context.autoindex_enabled, Rules::Replace{});
+//     applyIfSet(index, context.index_files, Rules::AppendHead{});
+// }
+
+void HttpBlock::applyTo(EffectiveConfig& context) const
 {
-    applyIfSet(clientMaxBodySize, context.client_max_body_size, Rules::replace);
-    applyIfSet(errorPages, context.error_pages, Rules::applyErrorPages);
-    applyIfSet(root, context.root, Rules::replace);
-    applyIfSet(autoindex, context.autoindex_enabled, Rules::replace);
-    applyIfSet(index, context.index_files, Rules::appendHead);
+    applyIfSet(clientMaxBodySize, context.client_max_body_size,
+               Rules::Replace{});
+    applyIfSet(errorPages, context.error_pages, Rules::AppendTail{});
+    applyIfSet(root, context.root, Rules::Replace{});
+    applyIfSet(autoindex, context.autoindex_enabled, Rules::Replace{});
+    applyIfSet(index, context.index_files, Rules::Replace{});
 }
 
 const ServerBlock& HttpBlock::matchServerBlock(const std::string& host) const

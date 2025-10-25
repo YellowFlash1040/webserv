@@ -5,6 +5,8 @@
 
 enum class HttpStatusCode
 {
+    None,
+
     // 1xx Informational
     Continue = 100,
     SwitchingProtocols = 101,

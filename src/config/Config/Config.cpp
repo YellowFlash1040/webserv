@@ -65,18 +65,100 @@ std::vector<std::string> Config::getAllEnpoints()
 RequestContext Config::createRequestContext(const std::string& host,
                                             const std::string& uri)
 {
-    RequestContext requestContext;
+    EffectiveConfig config = createEffectiveConfig(host, uri);
+
+    return createContext(config, uri);
+}
+
+EffectiveConfig Config::createEffectiveConfig(const std::string& host,
+                                              const std::string& uri)
+{
+    EffectiveConfig config;
 
     HttpBlock& httpBlock = m_httpBlock;
     const ServerBlock& serverBlock = httpBlock.matchServerBlock(host);
     const LocationBlock* locationBlock = serverBlock.matchLocationBlock(uri);
 
-    httpBlock.applyTo(requestContext);
-    serverBlock.applyTo(requestContext);
+    httpBlock.applyTo(config);
+    serverBlock.applyTo(config);
     if (locationBlock)
-        locationBlock->applyTo(requestContext);
+        locationBlock->applyTo(config);
 
-    return requestContext;
+    return config;
+}
+
+RequestContext Config::createContext(const EffectiveConfig& config,
+                                     const std::string& uri)
+{
+    RequestContext context;
+
+    context.allowed_methods = config.allowed_methods;
+    context.autoindex_enabled = config.autoindex_enabled;
+    context.cgi_pass = config.cgi_pass;
+    context.client_max_body_size = config.client_max_body_size;
+    context.error_pages = constructErrorPages(config.error_pages);
+    context.index_files = config.index_files;
+    context.resolved_path = resolvePath(config, uri);
+    context.upload_store = config.upload_store;
+    context.redirection = config.redirection;
+
+    return context;
+}
+
+std::map<HttpStatusCode, std::string> Config::constructErrorPages(
+    const std::vector<ErrorPage>& errorPages)
+{
+    std::map<HttpStatusCode, std::string> result;
+    for (const auto& errorPage : errorPages)
+    {
+        for (const auto& statusCode : errorPage.statusCodes)
+            result[statusCode] = errorPage.filePath;
+    }
+
+    return result;
+}
+
+// std::string Config::resolvePath(const EffectiveConfig& config,
+//                                 const std::string& uri)
+// {
+//     if (config.alias.empty())
+//         return config.root + uri;
+
+//     if (config.alias.back() == '/')
+//         return config.alias + uri.substr(config.matchedLocation.size());
+//     return config.alias + "/" + uri.substr(config.matchedLocation.size());
+// }
+
+#include <string>
+
+std::string Config::resolvePath(const EffectiveConfig& config,
+                                const std::string& uri)
+{
+    const std::string* base = &config.root; // default to root
+    std::string subpath;
+
+    if (!config.alias.empty())
+    {
+        base = &config.alias;
+        // remove the matched location part from the URI for alias
+        if (uri.size() >= config.matchedLocation.size())
+            subpath = uri.substr(config.matchedLocation.size());
+        else
+            subpath.clear();
+    }
+    else
+        subpath = uri;
+
+    // Ensure exactly one slash between base and subpath
+    bool baseEndsWithSlash = !base->empty() && base->back() == '/';
+    bool subpathStartsWithSlash = !subpath.empty() && subpath.front() == '/';
+
+    if (baseEndsWithSlash && subpathStartsWithSlash)
+        return *base + subpath.substr(1); // remove duplicate slash
+    else if (!baseEndsWithSlash && !subpathStartsWithSlash)
+        return *base + "/" + subpath; // add missing slash
+    else
+        return *base + subpath; // exactly one slash already
 }
 
 ///----------------------------///
@@ -101,6 +183,12 @@ HttpBlock Config::buildHttpBlock(const std::unique_ptr<Directive>& httpNode)
             assign(httpBlock.clientMaxBodySize, args);
         else if (name == Directives::ERROR_PAGE)
             assign(httpBlock.errorPages, args);
+        else if (name == Directives::ROOT)
+            assign(httpBlock.root, args);
+        else if (name == Directives::INDEX)
+            assign(httpBlock.index, args);
+        else if (name == Directives::AUTOINDEX)
+            assign(httpBlock.autoindex, args);
     }
 
     return httpBlock;
@@ -127,14 +215,16 @@ ServerBlock Config::buildServerBlock(
             assign(serverBlock.serverName, args);
         else if (name == Directives::ROOT)
             assign(serverBlock.root, args);
-        else if (name == Directives::ALIAS)
-            assign(serverBlock.alias, args);
         else if (name == Directives::ERROR_PAGE)
             assign(serverBlock.errorPages, args);
         else if (name == Directives::CLIENT_MAX_BODY_SIZE)
             assign(serverBlock.clientMaxBodySize, args);
+        else if (name == Directives::INDEX)
+            assign(serverBlock.index, args);
         else if (name == Directives::AUTOINDEX)
             assign(serverBlock.autoindex, args);
+        else if (name == Directives::RETURN)
+            assign(serverBlock.httpRedirection, args);
     }
 
     return serverBlock;
@@ -165,6 +255,14 @@ LocationBlock Config::buildLocationBlock(
             assign(locationBlock.acceptedHttpMethods, args);
         else if (name == Directives::ERROR_PAGE)
             assign(locationBlock.errorPages, args);
+        else if (name == Directives::RETURN)
+            assign(locationBlock.httpRedirection, args);
+        else if (name == Directives::CLIENT_MAX_BODY_SIZE)
+            assign(locationBlock.clientMaxBodySize, args);
+        else if (name == Directives::UPLOAD_STORE)
+            assign(locationBlock.uploadStore, args);
+        else if (name == Directives::CGI_PASS)
+            assign(locationBlock.cgiPass, args);
     }
 
     if (locationBlock.acceptedHttpMethods->empty())
@@ -189,42 +287,18 @@ LocationBlock Config::buildLocationBlock(
 void Config::assign(Property<std::string>& property,
                     const std::vector<Argument>& args)
 {
-    try
-    {
-        property = args[0];
-    }
-    catch (const std::exception& ex)
-    {
-        const Argument& arg = args[0];
-        throw ConfigException(arg.line(), arg.column(), ex.what());
-    }
+    property = args[0];
 }
 
 void Config::assign(Property<bool>& property, const std::vector<Argument>& args)
 {
-    try
-    {
-        property = Converter::toBool(args[0]);
-    }
-    catch (const std::exception& ex)
-    {
-        const Argument& arg = args[0];
-        throw ConfigException(arg.line(), arg.column(), ex.what());
-    }
+    property = Converter::toBool(args[0]);
 }
 
 void Config::assign(Property<size_t>& property,
                     const std::vector<Argument>& args)
 {
-    try
-    {
-        property = Converter::toBodySize(args[0]);
-    }
-    catch (const std::exception& ex)
-    {
-        const Argument& arg = args[0];
-        throw ConfigException(arg.line(), arg.column(), ex.what());
-    }
+    property = Converter::toBodySize(args[0]);
 }
 
 void Config::assign(Property<std::vector<ErrorPage>>& errorPages,
@@ -233,19 +307,10 @@ void Config::assign(Property<std::vector<ErrorPage>>& errorPages,
     std::vector<HttpStatusCode> statusCodes;
 
     for (size_t i = 0; i < args.size() - 1; ++i)
-    {
-        try
-        {
-            statusCodes.push_back(Converter::toHttpStatusCode(args[i]));
-        }
-        catch (const std::exception& ex)
-        {
-            const Argument& arg = args[i];
-            throw ConfigException(arg.line(), arg.column(), ex.what());
-        }
-    }
+        statusCodes.push_back(Converter::toHttpStatusCode(args[i]));
 
     const std::string& filePath = args.back();
+
     errorPages->emplace_back(statusCodes, filePath);
 
     errorPages.isSet() = true;
@@ -282,16 +347,7 @@ void Config::assign(Property<std::vector<HttpMethod>>& httpMethods,
                     const std::vector<Argument>& args)
 {
     for (Argument arg : args)
-    {
-        try
-        {
-            httpMethods->push_back(Converter::toHttpMethod(arg));
-        }
-        catch (const std::exception& ex)
-        {
-            throw ConfigException(arg.line(), arg.column(), ex.what());
-        }
-    }
+        httpMethods->push_back(Converter::toHttpMethod(arg));
 
     httpMethods.isSet() = true;
 }
@@ -300,18 +356,27 @@ void Config::assign(Property<std::vector<std::string>>& property,
                     const std::vector<Argument>& args)
 {
     for (Argument arg : args)
-    {
-        try
-        {
-            property->emplace_back(arg);
-        }
-        catch (const std::exception& ex)
-        {
-            throw ConfigException(arg.line(), arg.column(), ex.what());
-        }
-    }
+        property->emplace_back(arg);
 
     property.isSet() = true;
+}
+
+void Config::assign(Property<HttpRedirection>& property,
+                    const std::vector<Argument>& args)
+{
+    property->statusCode = Converter::toHttpStatusCode(args[0]);
+    if (args.size() == 2)
+        property->url = args[1];
+
+    property.isSet() = true;
+}
+
+void Config::assign(Property<std::map<std::string, std::string>>& cgiPass,
+                    const std::vector<Argument>& args)
+{
+    cgiPass[args[0]] = args[1];
+
+    cgiPass.isSet() = true;
 }
 
 void Config::setDefaultHttpMethods(std::vector<HttpMethod>& httpMethods)

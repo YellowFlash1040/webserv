@@ -4,11 +4,12 @@
 # define HTTPBLOCK_HPP
 
 # include <vector>
+# include <string>
 
 # include "ConfigBlock.hpp"
 # include "ServerBlock.hpp"
+
 # include "ErrorPage.hpp"
-# include "RequestContext.hpp"
 
 struct HttpBlock : public ConfigBlock
 {
@@ -20,7 +21,7 @@ struct HttpBlock : public ConfigBlock
     Property<bool> autoindex{};
     Property<std::vector<std::string>> index;
     // Methods
-    void applyTo(RequestContext& context) const override;
+    void applyTo(EffectiveConfig& config) const override;
     const ServerBlock& matchServerBlock(const std::string& host) const;
     const ServerBlock& matchServerBlock(const std::string& listen,
                                         const std::string& host) const;
