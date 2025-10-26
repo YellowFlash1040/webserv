@@ -33,9 +33,9 @@ void LocationBlock::applyTo(EffectiveConfig& context) const
     applyIfSet(uploadStore, context.upload_store, Rules::Replace{});
     applyIfSet(cgiPass, context.cgi_pass, Rules::MergeMap{});
 
-    if (!context.redirection.isSet)
+    if (httpRedirection.isSet() && !context.redirection.isSet)
     {
-        applyIfSet(httpRedirection, context.redirection, Rules::Replace{});
+        context.redirection = httpRedirection;
         context.redirection.isSet = true;
     }
 }

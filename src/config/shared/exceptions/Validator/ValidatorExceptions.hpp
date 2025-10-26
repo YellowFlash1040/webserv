@@ -18,5 +18,6 @@
 # include "DuplicateLocationPathException.hpp"
 # include "DuplicateListenException.hpp"
 # include "DuplicateServerIdException.hpp"
+# include "MissingRequiredDirectiveException.hpp"
 
 #endif

@@ -25,14 +25,28 @@ void Validator::validateChildren(const BlockDirective* block)
         validateDirective(directive, block->name());
     }
 
-    // if (block->name() == Directives::HTTP)
-    //     checkDuplicateServerPairs(block);
+    if (block->name() == Directives::GLOBAL_CONTEXT)
+        expectRequiredDirective(Directives::HTTP, block);
+
+    if (block->name() == Directives::HTTP)
+        expectRequiredDirective(Directives::SERVER, block);
 
     if (block->name() == Directives::SERVER)
     {
-        checkForDuplicateLocationPaths(block);
+        expectRequiredDirective(Directives::LISTEN, block);
         checkForDuplicateListen(block);
+        checkForDuplicateLocationPaths(block);
     }
+}
+
+void Validator::expectRequiredDirective(const std::string& requiredDirective,
+                                        const BlockDirective* context)
+{
+    for (const auto& directive : context->directives())
+        if (directive->name() == requiredDirective)
+            return;
+
+    throw MissingRequiredDirectiveException(requiredDirective, context->name());
 }
 
 void Validator::checkForDuplicateLocationPaths(

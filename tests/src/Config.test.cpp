@@ -1,14 +1,6 @@
 #include <gtest/gtest.h>
+#include "DirectiveTestUtils/DirectiveTestUtils.hpp"
 #include "Config.hpp"
-
-#include <memory>
-#include <vector>
-#include <string>
-
-#include "Directive.hpp"
-#include "BlockDirective.hpp"
-#include "Directive.hpp"
-#include "Argument.hpp"
 
 // How Config file looks like
 /*
@@ -27,7 +19,7 @@ http {
         autoindex off;
 
         location / {
-            limit_except GET POST DELETE POST;
+            limit_except GET POST DELETE;
             index index.html;
             autoindex on;
         }
@@ -85,17 +77,16 @@ std::unique_ptr<Directive> createTestAST()
     // HTTP
     // ---------------------------
     {
-        auto httpBlock = std::make_unique<BlockDirective>();
-        httpBlock->setName("http");
+        auto httpBlock = createBlockDirective(Directives::HTTP);
 
         // http simple directives
         {
             int PLACEHOLDER;
             (void)PLACEHOLDER;
             {
-                auto directive = std::make_unique<Directive>();
-                directive->setName("client_max_body_size");
-                directive->setArgs({Argument("20M")});
+
+                auto directive = createSimpleDirective(
+                    Directives::CLIENT_MAX_BODY_SIZE, {"20M"});
                 httpBlock->addDirective(std::move(directive));
             }
 
@@ -108,9 +99,8 @@ std::unique_ptr<Directive> createTestAST()
 
             for (const auto& ep : errorPages)
             {
-                auto directive = std::make_unique<Directive>();
-                directive->setName("error_page");
-                directive->setArgs({Argument(ep.first), Argument(ep.second)});
+                auto directive = createSimpleDirective(Directives::ERROR_PAGE,
+                                                       {ep.first, ep.second});
                 httpBlock->addDirective(std::move(directive));
             }
         }
@@ -119,8 +109,7 @@ std::unique_ptr<Directive> createTestAST()
         // SERVER 1
         // ---------------------------
         {
-            auto serverBlock = std::make_unique<BlockDirective>();
-            serverBlock->setName("server");
+            auto serverBlock = createBlockDirective(Directives::SERVER);
 
             // server simple directives
             {
@@ -129,33 +118,29 @@ std::unique_ptr<Directive> createTestAST()
 
                 // listen
                 {
-                    auto directive = std::make_unique<Directive>();
-                    directive->setName("listen");
-                    directive->setArgs({Argument("8080")});
+                    auto directive
+                        = createSimpleDirective(Directives::LISTEN, {"8080"});
                     serverBlock->addDirective(std::move(directive));
                 }
 
                 // server_name
                 {
-                    auto directive = std::make_unique<Directive>();
-                    directive->setName("server_name");
-                    directive->setArgs({Argument("site1.local")});
+                    auto directive = createSimpleDirective(
+                        Directives::SERVER_NAME, {"site1.local"});
                     serverBlock->addDirective(std::move(directive));
                 }
 
                 // root
                 {
-                    auto directive = std::make_unique<Directive>();
-                    directive->setName("root");
-                    directive->setArgs({Argument("/var/www/site1")});
+                    auto directive = createSimpleDirective(Directives::ROOT,
+                                                           {"/var/www/site1"});
                     serverBlock->addDirective(std::move(directive));
                 }
 
                 // autoindex
                 {
-                    auto directive = std::make_unique<Directive>();
-                    directive->setName("autoindex");
-                    directive->setArgs({Argument("off")});
+                    auto directive
+                        = createSimpleDirective(Directives::AUTOINDEX, {"off"});
                     serverBlock->addDirective(std::move(directive));
                 }
             }
@@ -164,34 +149,27 @@ std::unique_ptr<Directive> createTestAST()
             // LOCATION /
             // ---------------------------
             {
-                auto locationBlock = std::make_unique<BlockDirective>();
-                locationBlock->setName("location");
-                locationBlock->setArgs({Argument("/")});
+                auto locationBlock
+                    = createBlockDirective(Directives::LOCATION, {"/"});
 
                 // limit_except
                 {
-                    auto directive = std::make_unique<Directive>();
-                    directive->setName("limit_except");
-                    directive->setArgs({
-                        Argument("GET"),
-                        Argument("POST"),
-                    });
+                    auto directive = createSimpleDirective(
+                        Directives::LIMIT_EXCEPT, {"GET", "POST", "DELETE"});
                     locationBlock->addDirective(std::move(directive));
                 }
 
                 // index
                 {
-                    auto directive = std::make_unique<Directive>();
-                    directive->setName("index");
-                    directive->setArgs({Argument("index.html")});
+                    auto directive = createSimpleDirective(Directives::INDEX,
+                                                           {"index.html"});
                     locationBlock->addDirective(std::move(directive));
                 }
 
                 // autoindex
                 {
-                    auto directive = std::make_unique<Directive>();
-                    directive->setName("autoindex");
-                    directive->setArgs({Argument("on")});
+                    auto directive
+                        = createSimpleDirective(Directives::AUTOINDEX, {"on"});
                     locationBlock->addDirective(std::move(directive));
                 }
 
@@ -202,32 +180,27 @@ std::unique_ptr<Directive> createTestAST()
             // LOCATION /kapouet/
             // ---------------------------
             {
-                auto locationBlock = std::make_unique<BlockDirective>();
-                locationBlock->setName("location");
-                locationBlock->setArgs({Argument("/kapouet/")});
+                auto locationBlock
+                    = createBlockDirective(Directives::LOCATION, {"/kapouet/"});
 
                 // root
                 {
-                    auto directive = std::make_unique<Directive>();
-                    directive->setName("root");
-                    directive->setArgs({Argument("/tmp/www")});
+                    auto directive
+                        = createSimpleDirective(Directives::ROOT, {"/tmp/www"});
                     locationBlock->addDirective(std::move(directive));
                 }
 
                 // autoindex
                 {
-                    auto directive = std::make_unique<Directive>();
-                    directive->setName("autoindex");
-                    directive->setArgs({Argument("off")});
+                    auto directive
+                        = createSimpleDirective(Directives::AUTOINDEX, {"on"});
                     locationBlock->addDirective(std::move(directive));
                 }
 
                 // index
                 {
-                    auto directive = std::make_unique<Directive>();
-                    directive->setName("index");
-                    directive->setArgs(
-                        {Argument("index.html"), Argument("index.php")});
+                    auto directive = createSimpleDirective(
+                        Directives::INDEX, {"index.html", "index.php"});
                     locationBlock->addDirective(std::move(directive));
                 }
 
@@ -238,23 +211,20 @@ std::unique_ptr<Directive> createTestAST()
             // LOCATION /list/
             // ---------------------------
             {
-                auto locationBlock = std::make_unique<BlockDirective>();
-                locationBlock->setName("location");
-                locationBlock->setArgs({Argument("/list/")});
+                auto locationBlock
+                    = createBlockDirective(Directives::LOCATION, {"/list/"});
 
                 // root
                 {
-                    auto directive = std::make_unique<Directive>();
-                    directive->setName("root");
-                    directive->setArgs({Argument("/var/www/site1")});
+                    auto directive = createSimpleDirective(Directives::ROOT,
+                                                           {"/var/www/site1"});
                     locationBlock->addDirective(std::move(directive));
                 }
 
                 // autoindex
                 {
-                    auto directive = std::make_unique<Directive>();
-                    directive->setName("autoindex");
-                    directive->setArgs({Argument("on")});
+                    auto directive
+                        = createSimpleDirective(Directives::AUTOINDEX, {"on"});
                     locationBlock->addDirective(std::move(directive));
                 }
 
@@ -265,15 +235,13 @@ std::unique_ptr<Directive> createTestAST()
             // LOCATION /oldpage
             // ---------------------------
             {
-                auto locationBlock = std::make_unique<BlockDirective>();
-                locationBlock->setName("location");
-                locationBlock->setArgs({Argument("/oldpage")});
+                auto locationBlock
+                    = createBlockDirective(Directives::LOCATION, {"/oldpage"});
 
                 // return
                 {
-                    auto directive = std::make_unique<Directive>();
-                    directive->setName("return");
-                    directive->setArgs({Argument("301"), Argument("/newpage")});
+                    auto directive = createSimpleDirective(Directives::RETURN,
+                                                           {"301", "/newpage"});
                     locationBlock->addDirective(std::move(directive));
                 }
 
@@ -323,15 +291,13 @@ std::unique_ptr<Directive> createTestAST()
             // LOCATION /
             // ---------------------------
             {
-                auto locationBlock = std::make_unique<BlockDirective>();
-                locationBlock->setName("location");
-                locationBlock->setArgs({Argument("/")});
+                auto locationBlock
+                    = createBlockDirective(Directives::LOCATION, {"/"});
 
                 // index
                 {
-                    auto directive = std::make_unique<Directive>();
-                    directive->setName("index");
-                    directive->setArgs({Argument("index.html")});
+                    auto directive = createSimpleDirective(Directives::INDEX,
+                                                           {"index.html"});
                     locationBlock->addDirective(std::move(directive));
                 }
 
@@ -342,23 +308,20 @@ std::unique_ptr<Directive> createTestAST()
             // LOCATION /profile
             // ---------------------------
             {
-                auto locationBlock = std::make_unique<BlockDirective>();
-                locationBlock->setName("location");
-                locationBlock->setArgs({Argument("/profile")});
+                auto locationBlock
+                    = createBlockDirective(Directives::LOCATION, {"/profile"});
 
                 // alias
                 {
-                    auto directive = std::make_unique<Directive>();
-                    directive->setName("alias");
-                    directive->setArgs({Argument("/tmp/www")});
+                    auto directive = createSimpleDirective(Directives::ALIAS,
+                                                           {"/tmp/www"});
                     locationBlock->addDirective(std::move(directive));
                 }
 
                 // index
                 {
-                    auto diretive = std::make_unique<Directive>();
-                    diretive->setName("index");
-                    diretive->setArgs({Argument("index.html")});
+                    auto diretive = createSimpleDirective(Directives::INDEX,
+                                                          {"index.html"});
                     locationBlock->addDirective(std::move(diretive));
                 }
 
@@ -394,263 +357,259 @@ class ConfigTest : public ::testing::Test
 // Define the static member
 Config* ConfigTest::config = nullptr;
 
+class RequestContextValidator
+{
+  public:
+    explicit RequestContextValidator(const RequestContext& ctx)
+      : m_ctx(ctx)
+    {
+    }
+
+    RequestContextValidator& hasRedirection(const HttpStatusCode code,
+                                            const std::string& url)
+    {
+        EXPECT_EQ(m_ctx.redirection.statusCode, code);
+        EXPECT_EQ(m_ctx.redirection.url, url);
+        return *this;
+    }
+
+    RequestContextValidator& hasAllowedMethods(
+        const std::vector<HttpMethod>& methods)
+    {
+        if (m_ctx.allowed_methods.size() != methods.size())
+            return (ADD_FAILURE(), *this);
+
+        for (size_t i = 0; i < methods.size(); ++i)
+            EXPECT_EQ(m_ctx.allowed_methods[i], methods[i]);
+        return *this;
+    }
+
+    RequestContextValidator& hasBodySize(size_t size)
+    {
+        EXPECT_EQ(m_ctx.client_max_body_size, size);
+        return *this;
+    }
+
+    RequestContextValidator& hasResolvedPath(const std::string& path)
+    {
+        EXPECT_EQ(m_ctx.resolved_path, path);
+        return *this;
+    }
+
+    RequestContextValidator& hasIndexFiles(
+        const std::vector<std::string>& files)
+    {
+        if (m_ctx.index_files.size() != files.size())
+            return (ADD_FAILURE(), *this);
+
+        for (size_t i = 0; i < files.size(); ++i)
+            EXPECT_EQ(m_ctx.index_files[i], files[i]);
+        return *this;
+    }
+
+    RequestContextValidator& hasAutoindex(bool enabled)
+    {
+        EXPECT_EQ(m_ctx.autoindex_enabled, enabled);
+        return *this;
+    }
+
+    RequestContextValidator& hasExactErrorPages(
+        const std::map<HttpStatusCode, std::string>& expected)
+    {
+        if (m_ctx.error_pages.size() != expected.size())
+            return (ADD_FAILURE(), *this);
+
+        for (const auto& page : expected)
+        {
+            auto it = m_ctx.error_pages.find(page.first);
+            if (it == m_ctx.error_pages.end())
+                return (ADD_FAILURE(), *this);
+            EXPECT_EQ(it->second, page.second);
+        }
+
+        return *this;
+    }
+
+    RequestContextValidator& hasUploadStore(const std::string& path)
+    {
+        EXPECT_EQ(m_ctx.upload_store, path);
+        return *this;
+    }
+
+    RequestContextValidator& hasNoUploadStore()
+    {
+        EXPECT_TRUE(m_ctx.upload_store.empty());
+        return *this;
+    }
+
+    RequestContextValidator& hasCgiPass(const std::string& extension,
+                                        const std::string& handler)
+    {
+        auto it = m_ctx.cgi_pass.find(extension);
+        EXPECT_NE(it, m_ctx.cgi_pass.end());
+        if (it != m_ctx.cgi_pass.end())
+        {
+            EXPECT_EQ(it->second, handler);
+        }
+        return *this;
+    }
+
+    // Convenience methods for common cases
+    RequestContextValidator& hasNoRedirection()
+    {
+        EXPECT_FALSE(m_ctx.redirection.isSet);
+        EXPECT_EQ(m_ctx.redirection.statusCode, HttpStatusCode::None);
+        EXPECT_TRUE(m_ctx.redirection.url.empty());
+        return *this;
+    }
+
+    RequestContextValidator& hasEmptyErrorPages()
+    {
+        EXPECT_TRUE(m_ctx.error_pages.empty());
+        return *this;
+    }
+
+    RequestContextValidator& hasNoCgiHandlers()
+    {
+        EXPECT_TRUE(m_ctx.cgi_pass.empty());
+        return *this;
+    }
+
+  private:
+    const RequestContext& m_ctx;
+};
 // clang-format off
 
 TEST_F(ConfigTest, RequestContext_RootPath_Site1Local)
 {
-    RequestContext requestContext = config->createRequestContext("site1.local", "/");
+    RequestContext ctx = config->createRequestContext("site1.local", "/");
 
-    EXPECT_EQ(requestContext.root, "/var/www/site1");
-
-    ASSERT_EQ(requestContext.allowed_methods.size(), 2u);
-    EXPECT_EQ(requestContext.allowed_methods[0], HttpMethod::GET);
-    EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
-
-    ASSERT_EQ(requestContext.index_files.size(), 1u);
-    EXPECT_EQ(requestContext.index_files[0], "index.html");
-
-    EXPECT_TRUE(requestContext.autoindex_enabled);
-
-    EXPECT_EQ(requestContext.client_max_body_size, 20ull * 1024 * 1024);
-
-    ASSERT_EQ(requestContext.error_pages.size(), 4u);
-
-    EXPECT_EQ(requestContext.error_pages[0].filePath, "/errors/400.html");
-    ASSERT_EQ(requestContext.error_pages[0].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[0].statusCodes[0], HttpStatusCode::BadRequest);
-
-    EXPECT_EQ(requestContext.error_pages[1].filePath, "/errors/403.html");
-    ASSERT_EQ(requestContext.error_pages[1].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[1].statusCodes[0], HttpStatusCode::Forbidden);
-
-    EXPECT_EQ(requestContext.error_pages[2].filePath, "/errors/404.html");
-    ASSERT_EQ(requestContext.error_pages[2].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[2].statusCodes[0], HttpStatusCode::NotFound);
-
-    EXPECT_EQ(requestContext.error_pages[3].filePath, "/errors/50x.html");
-    ASSERT_EQ(requestContext.error_pages[3].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[3].statusCodes[0], HttpStatusCode::InternalError);
+     RequestContextValidator(ctx)
+        .hasBodySize(20ul * 1024 * 1024)
+        .hasExactErrorPages({{static_cast<HttpStatusCode>(400), "/errors/400.html"},
+                             {static_cast<HttpStatusCode>(403), "/errors/403.html"},
+                             {static_cast<HttpStatusCode>(404), "/errors/404.html"},
+                             {static_cast<HttpStatusCode>(500), "/errors/50x.html"}})
+        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST, HttpMethod::DELETE})
+        .hasIndexFiles({"index.html"})
+        .hasAutoindex(true)
+        .hasResolvedPath("/var/www/site1/")
+        .hasNoRedirection()
+        .hasNoUploadStore()
+        .hasNoCgiHandlers();
 }
 
 TEST_F(ConfigTest, RequestContext_KapouetPath_Site1Local)
 {
-    RequestContext requestContext = config->createRequestContext("site1.local", "/kapouet");
+    RequestContext ctx = config->createRequestContext("site1.local", "/kapouet");
 
-    EXPECT_EQ(requestContext.root, "/var/www/site1");
-
-    ASSERT_EQ(requestContext.allowed_methods.size(), 2u);
-    EXPECT_EQ(requestContext.allowed_methods[0], HttpMethod::GET);
-    EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
-
-    ASSERT_EQ(requestContext.index_files.size(), 1u);
-    EXPECT_EQ(requestContext.index_files[0], "index.html");
-
-    EXPECT_TRUE(requestContext.autoindex_enabled);
-
-    EXPECT_EQ(requestContext.client_max_body_size, 20ull * 1024 * 1024);
-
-    ASSERT_EQ(requestContext.error_pages.size(), 4u);
-
-    EXPECT_EQ(requestContext.error_pages[0].filePath, "/errors/400.html");
-    ASSERT_EQ(requestContext.error_pages[0].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[0].statusCodes[0], HttpStatusCode::BadRequest);
-
-    EXPECT_EQ(requestContext.error_pages[1].filePath, "/errors/403.html");
-    ASSERT_EQ(requestContext.error_pages[1].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[1].statusCodes[0], HttpStatusCode::Forbidden);
-
-    EXPECT_EQ(requestContext.error_pages[2].filePath, "/errors/404.html");
-    ASSERT_EQ(requestContext.error_pages[2].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[2].statusCodes[0], HttpStatusCode::NotFound);
-
-    EXPECT_EQ(requestContext.error_pages[3].filePath, "/errors/50x.html");
-    ASSERT_EQ(requestContext.error_pages[3].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[3].statusCodes[0], HttpStatusCode::InternalError);
+    RequestContextValidator(ctx)
+        .hasResolvedPath("/var/www/site1/kapouet")
+        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST, HttpMethod::DELETE})
+        .hasIndexFiles({"index.html"})
+        .hasBodySize(20ul * 1024 * 1024)
+        .hasExactErrorPages({{static_cast<HttpStatusCode>(400), "/errors/400.html"},
+                             {static_cast<HttpStatusCode>(403), "/errors/403.html"},
+                             {static_cast<HttpStatusCode>(404), "/errors/404.html"},
+                             {static_cast<HttpStatusCode>(500), "/errors/50x.html"}})
+        .hasAutoindex(true)
+        .hasNoRedirection()
+        .hasNoUploadStore()
+        .hasNoCgiHandlers();
 }
 
 
 TEST_F(ConfigTest, RequestContext_FileInsideKapouet_Site1Local)
 {
-    RequestContext requestContext = config->createRequestContext("site1.local", "/kapouet/file.jpg");
+    RequestContext ctx = config->createRequestContext("site1.local", "/kapouet/file.jpg");
 
-    EXPECT_EQ(requestContext.root, "/tmp/www");
-
-    ASSERT_EQ(requestContext.allowed_methods.size(), 3u);
-    EXPECT_EQ(requestContext.allowed_methods[0], HttpMethod::GET);
-    EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
-    EXPECT_EQ(requestContext.allowed_methods[2], HttpMethod::DELETE);
-
-    ASSERT_EQ(requestContext.index_files.size(), 2u);
-    EXPECT_EQ(requestContext.index_files[0], "index.html");
-    EXPECT_EQ(requestContext.index_files[1], "index.php");
-
-    EXPECT_FALSE(requestContext.autoindex_enabled);
-
-    EXPECT_EQ(requestContext.client_max_body_size, 20ull * 1024 * 1024);
-
-    ASSERT_EQ(requestContext.error_pages.size(), 4u);
-
-    EXPECT_EQ(requestContext.error_pages[0].filePath, "/errors/400.html");
-    ASSERT_EQ(requestContext.error_pages[0].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[0].statusCodes[0], HttpStatusCode::BadRequest);
-
-    EXPECT_EQ(requestContext.error_pages[1].filePath, "/errors/403.html");
-    ASSERT_EQ(requestContext.error_pages[1].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[1].statusCodes[0], HttpStatusCode::Forbidden);
-
-    EXPECT_EQ(requestContext.error_pages[2].filePath, "/errors/404.html");
-    ASSERT_EQ(requestContext.error_pages[2].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[2].statusCodes[0], HttpStatusCode::NotFound);
-
-    EXPECT_EQ(requestContext.error_pages[3].filePath, "/errors/50x.html");
-    ASSERT_EQ(requestContext.error_pages[3].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[3].statusCodes[0], HttpStatusCode::InternalError);
+    RequestContextValidator(ctx)
+        .hasResolvedPath("/tmp/www/kapouet/file.jpg")
+        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST, HttpMethod::DELETE})
+        .hasIndexFiles({"index.html", "index.php"})
+        .hasBodySize(20ul * 1024 * 1024)
+        .hasExactErrorPages({{static_cast<HttpStatusCode>(400), "/errors/400.html"},
+                             {static_cast<HttpStatusCode>(403), "/errors/403.html"},
+                             {static_cast<HttpStatusCode>(404), "/errors/404.html"},
+                             {static_cast<HttpStatusCode>(500), "/errors/50x.html"}})
+        .hasAutoindex(true)
+        .hasNoRedirection()
+        .hasNoUploadStore()
+        .hasNoCgiHandlers();
 }
 
 TEST_F(ConfigTest, RequestContext_FileInsideList_Site1Local)
 {
-    RequestContext requestContext = config->createRequestContext("site1.local", "/list/file.jpg");
+    RequestContext ctx = config->createRequestContext("site1.local", "/list/file.jpg");
 
-    EXPECT_EQ(requestContext.root, "/var/www/site1");
-
-    ASSERT_EQ(requestContext.allowed_methods.size(), 3u);
-    EXPECT_EQ(requestContext.allowed_methods[0], HttpMethod::GET);
-    EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
-    EXPECT_EQ(requestContext.allowed_methods[2], HttpMethod::DELETE);
-
-    ASSERT_EQ(requestContext.index_files.size(), 1u);
-    EXPECT_EQ(requestContext.index_files[0], "index.html");
-
-    EXPECT_TRUE(requestContext.autoindex_enabled);
-
-    EXPECT_EQ(requestContext.client_max_body_size, 20ull * 1024 * 1024);
-
-    ASSERT_EQ(requestContext.error_pages.size(), 4u);
-
-    EXPECT_EQ(requestContext.error_pages[0].filePath, "/errors/400.html");
-    ASSERT_EQ(requestContext.error_pages[0].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[0].statusCodes[0], HttpStatusCode::BadRequest);
-
-    EXPECT_EQ(requestContext.error_pages[1].filePath, "/errors/403.html");
-    ASSERT_EQ(requestContext.error_pages[1].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[1].statusCodes[0], HttpStatusCode::Forbidden);
-
-    EXPECT_EQ(requestContext.error_pages[2].filePath, "/errors/404.html");
-    ASSERT_EQ(requestContext.error_pages[2].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[2].statusCodes[0], HttpStatusCode::NotFound);
-
-    EXPECT_EQ(requestContext.error_pages[3].filePath, "/errors/50x.html");
-    ASSERT_EQ(requestContext.error_pages[3].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[3].statusCodes[0], HttpStatusCode::InternalError);
+    RequestContextValidator(ctx)
+        .hasResolvedPath("/var/www/site1/list/file.jpg")
+        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST, HttpMethod::DELETE})
+        .hasIndexFiles({"index.html"})
+        .hasBodySize(20ul * 1024 * 1024)
+        .hasExactErrorPages({{static_cast<HttpStatusCode>(400), "/errors/400.html"},
+                             {static_cast<HttpStatusCode>(403), "/errors/403.html"},
+                             {static_cast<HttpStatusCode>(404), "/errors/404.html"},
+                             {static_cast<HttpStatusCode>(500), "/errors/50x.html"}})
+        .hasAutoindex(true)
+        .hasNoRedirection()
+        .hasNoUploadStore()
+        .hasNoCgiHandlers();
 }
 
 TEST_F(ConfigTest, RequestContext_Oldpage_Site1Local)
 {
-    RequestContext requestContext = config->createRequestContext("site1.local", "/oldpage");
+    RequestContext ctx = config->createRequestContext("site1.local", "/oldpage");
 
-    EXPECT_EQ(requestContext.root, "/var/www/site1");
-
-    ASSERT_EQ(requestContext.allowed_methods.size(), 3u);
-    EXPECT_EQ(requestContext.allowed_methods[0], HttpMethod::GET);
-    EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
-    EXPECT_EQ(requestContext.allowed_methods[2], HttpMethod::DELETE);
-
-	ASSERT_EQ(requestContext.index_files.size(), 1u);
-	EXPECT_EQ(requestContext.index_files[0], "index.html");
-
-    EXPECT_FALSE(requestContext.autoindex_enabled);
-
-    EXPECT_EQ(requestContext.client_max_body_size, 20ull * 1024 * 1024);
-
-    ASSERT_EQ(requestContext.error_pages.size(), 4u);
-
-    EXPECT_EQ(requestContext.error_pages[0].filePath, "/errors/400.html");
-    ASSERT_EQ(requestContext.error_pages[0].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[0].statusCodes[0], HttpStatusCode::BadRequest);
-
-    EXPECT_EQ(requestContext.error_pages[1].filePath, "/errors/403.html");
-    ASSERT_EQ(requestContext.error_pages[1].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[1].statusCodes[0], HttpStatusCode::Forbidden);
-
-    EXPECT_EQ(requestContext.error_pages[2].filePath, "/errors/404.html");
-    ASSERT_EQ(requestContext.error_pages[2].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[2].statusCodes[0], HttpStatusCode::NotFound);
-
-    EXPECT_EQ(requestContext.error_pages[3].filePath, "/errors/50x.html");
-    ASSERT_EQ(requestContext.error_pages[3].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[3].statusCodes[0], HttpStatusCode::InternalError);
+    RequestContextValidator(ctx)
+        .hasResolvedPath("/var/www/site1/oldpage")
+        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST, HttpMethod::DELETE})
+        .hasIndexFiles({"index.html"})
+        .hasBodySize(20ul * 1024 * 1024)
+        .hasExactErrorPages({{static_cast<HttpStatusCode>(400), "/errors/400.html"},
+                             {static_cast<HttpStatusCode>(403), "/errors/403.html"},
+                             {static_cast<HttpStatusCode>(404), "/errors/404.html"},
+                             {static_cast<HttpStatusCode>(500), "/errors/50x.html"}})
+        .hasAutoindex(false)
+        .hasRedirection(HttpStatusCode::MovedPermanently, "/newpage")
+        .hasNoUploadStore()
+        .hasNoCgiHandlers();
 }
 
 TEST_F(ConfigTest, RequestContext_RootPath_Site2Local)
 {
-    RequestContext requestContext = config->createRequestContext("site2.local", "/");
+    RequestContext ctx = config->createRequestContext("site2.local", "/");
 
-    EXPECT_EQ(requestContext.root, "/var/www/site2");
-
-    ASSERT_EQ(requestContext.allowed_methods.size(), 3u);
-    EXPECT_EQ(requestContext.allowed_methods[0], HttpMethod::GET);
-    EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
-    EXPECT_EQ(requestContext.allowed_methods[2], HttpMethod::DELETE);
-
-    ASSERT_EQ(requestContext.index_files.size(), 1u);
-    EXPECT_EQ(requestContext.index_files[0], "index.html");
-
-    EXPECT_FALSE(requestContext.autoindex_enabled);
-
-    EXPECT_EQ(requestContext.client_max_body_size, 20ull * 1024 * 1024);
-
-    ASSERT_EQ(requestContext.error_pages.size(), 4u);
-
-    EXPECT_EQ(requestContext.error_pages[0].filePath, "/errors/400.html");
-    ASSERT_EQ(requestContext.error_pages[0].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[0].statusCodes[0], HttpStatusCode::BadRequest);
-
-    EXPECT_EQ(requestContext.error_pages[1].filePath, "/errors/403.html");
-    ASSERT_EQ(requestContext.error_pages[1].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[1].statusCodes[0], HttpStatusCode::Forbidden);
-
-    EXPECT_EQ(requestContext.error_pages[2].filePath, "/errors/404.html");
-    ASSERT_EQ(requestContext.error_pages[2].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[2].statusCodes[0], HttpStatusCode::NotFound);
-
-    EXPECT_EQ(requestContext.error_pages[3].filePath, "/errors/50x.html");
-    ASSERT_EQ(requestContext.error_pages[3].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[3].statusCodes[0], HttpStatusCode::InternalError);
+    RequestContextValidator(ctx)
+        .hasResolvedPath("/var/www/site2/")
+        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST, HttpMethod::DELETE})
+        .hasIndexFiles({"index.html"})
+        .hasBodySize(20ul * 1024 * 1024)
+        .hasExactErrorPages({{static_cast<HttpStatusCode>(400), "/errors/400.html"},
+                             {static_cast<HttpStatusCode>(403), "/errors/403.html"},
+                             {static_cast<HttpStatusCode>(404), "/errors/404.html"},
+                             {static_cast<HttpStatusCode>(500), "/errors/50x.html"}})
+        .hasAutoindex(false)
+        .hasNoRedirection()
+        .hasNoUploadStore()
+        .hasNoCgiHandlers();
 }
 
 TEST_F(ConfigTest, RequestContext_RandomPage_Site2Local)
 {
-    RequestContext requestContext = config->createRequestContext("site2.local", "/something");
+    RequestContext ctx = config->createRequestContext("site2.local", "/something");
 
-    EXPECT_EQ(requestContext.root, "/var/www/site2");
-
-    ASSERT_EQ(requestContext.allowed_methods.size(), 3u);
-    EXPECT_EQ(requestContext.allowed_methods[0], HttpMethod::GET);
-    EXPECT_EQ(requestContext.allowed_methods[1], HttpMethod::POST);
-    EXPECT_EQ(requestContext.allowed_methods[2], HttpMethod::DELETE);
-
-    ASSERT_EQ(requestContext.index_files.size(), 1u);
-    EXPECT_EQ(requestContext.index_files[0], "index.html");
-
-    EXPECT_FALSE(requestContext.autoindex_enabled);
-
-    EXPECT_EQ(requestContext.client_max_body_size, 20ull * 1024 * 1024);
-
-    ASSERT_EQ(requestContext.error_pages.size(), 4u);
-
-    EXPECT_EQ(requestContext.error_pages[0].filePath, "/errors/400.html");
-    ASSERT_EQ(requestContext.error_pages[0].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[0].statusCodes[0], HttpStatusCode::BadRequest);
-
-    EXPECT_EQ(requestContext.error_pages[1].filePath, "/errors/403.html");
-    ASSERT_EQ(requestContext.error_pages[1].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[1].statusCodes[0], HttpStatusCode::Forbidden);
-
-    EXPECT_EQ(requestContext.error_pages[2].filePath, "/errors/404.html");
-    ASSERT_EQ(requestContext.error_pages[2].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[2].statusCodes[0], HttpStatusCode::NotFound);
-
-    EXPECT_EQ(requestContext.error_pages[3].filePath, "/errors/50x.html");
-    ASSERT_EQ(requestContext.error_pages[3].statusCodes.size(), 1u);
-    EXPECT_EQ(requestContext.error_pages[3].statusCodes[0], HttpStatusCode::InternalError);
+    RequestContextValidator(ctx)
+        .hasResolvedPath("/var/www/site2/something")
+        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST, HttpMethod::DELETE})
+        .hasIndexFiles({"index.html"})
+        .hasBodySize(20ul * 1024 * 1024)
+        .hasExactErrorPages({{static_cast<HttpStatusCode>(400), "/errors/400.html"},
+                             {static_cast<HttpStatusCode>(403), "/errors/403.html"},
+                             {static_cast<HttpStatusCode>(404), "/errors/404.html"},
+                             {static_cast<HttpStatusCode>(500), "/errors/50x.html"}})
+        .hasAutoindex(false)
+        .hasNoRedirection()
+        .hasNoUploadStore()
+        .hasNoCgiHandlers();
 }

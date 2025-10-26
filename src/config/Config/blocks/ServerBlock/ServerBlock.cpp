@@ -24,9 +24,9 @@ void ServerBlock::applyTo(EffectiveConfig& context) const
     applyIfSet(autoindex, context.autoindex_enabled, Rules::Replace{});
     applyIfSet(index, context.index_files, Rules::Replace{});
 
-    if (!context.redirection.isSet)
+    if (httpRedirection.isSet() && !context.redirection.isSet)
     {
-        applyIfSet(httpRedirection, context.redirection, Rules::Replace{});
+        context.redirection = httpRedirection;
         context.redirection.isSet = true;
     }
 }

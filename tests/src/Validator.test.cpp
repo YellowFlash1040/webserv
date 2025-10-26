@@ -1,53 +1,21 @@
 #include <gtest/gtest.h>
+#include "DirectiveTestUtils/DirectiveTestUtils.hpp"
 #include "Validator.hpp"
 
-/*
-- Validate arguments: amount and type
-- Validate amount of directives: some of the directives
-may appear only once per context;
-*/
-
-class ValidatorTest : public ::testing::Test
-{
-  protected:
-    std::unique_ptr<Directive> createSimpleDirective(
-        const std::string& name, const std::vector<std::string>& args = {})
-    {
-        auto directive = std::make_unique<Directive>();
-        directive->setName(std::string(name));
-
-        std::vector<Argument> arguments(args.begin(), args.end());
-        directive->setArgs(std::move(arguments));
-        return directive;
-    }
-
-    std::unique_ptr<BlockDirective> createBlockDirective(
-        const std::string& name, const std::vector<std::string>& args = {})
-    {
-        auto directive = std::make_unique<BlockDirective>();
-        directive->setName(std::string(name));
-
-        std::vector<Argument> arguments(args.begin(), args.end());
-        directive->setArgs(std::move(arguments));
-
-        return directive;
-    }
-};
-
-TEST_F(ValidatorTest, ValidatesSimpleHttpBlock)
+TEST(ValidatorTest, ValidatesSimpleHttpBlock)
 {
     std::unique_ptr<Directive> config = createBlockDirective(Directives::HTTP);
     EXPECT_THROW(Validator::validate(config), std::logic_error);
 }
 
-TEST_F(ValidatorTest, ThrowsOnInvalidDirectiveInRoot)
+TEST(ValidatorTest, ThrowsOnInvalidDirectiveInRoot)
 {
     std::unique_ptr<Directive> config
         = createBlockDirective(Directives::SERVER);
     EXPECT_THROW(Validator::validate(config), std::logic_error);
 }
 
-TEST_F(ValidatorTest, ValidatesHttpBlockWithServerBlock)
+TEST(ValidatorTest, ValidatesHttpBlockWithServerBlock)
 {
     auto http = createBlockDirective(Directives::HTTP);
     auto server = createBlockDirective(Directives::SERVER);
@@ -58,7 +26,7 @@ TEST_F(ValidatorTest, ValidatesHttpBlockWithServerBlock)
                  std::logic_error);
 }
 
-TEST_F(ValidatorTest, ValidatesGlobalBlockWithHttpBlockWithServerBlock)
+TEST(ValidatorTest, ValidatesGlobalBlockWithHttpBlockWithServerBlock)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -73,7 +41,7 @@ TEST_F(ValidatorTest, ValidatesGlobalBlockWithHttpBlockWithServerBlock)
     EXPECT_NO_THROW(Validator::validate(rootNode));
 }
 
-TEST_F(ValidatorTest, ValidatesServerDirectivesInServerBlock)
+TEST(ValidatorTest, ValidatesServerDirectivesInServerBlock)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -89,7 +57,7 @@ TEST_F(ValidatorTest, ValidatesServerDirectivesInServerBlock)
     EXPECT_NO_THROW(Validator::validate(rootNode));
 }
 
-TEST_F(ValidatorTest, ThrowsOnHttpDirectiveInServerBlock)
+TEST(ValidatorTest, ThrowsOnHttpDirectiveInServerBlock)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -106,7 +74,7 @@ TEST_F(ValidatorTest, ThrowsOnHttpDirectiveInServerBlock)
     EXPECT_THROW(Validator::validate(rootNode), DirectiveContextException);
 }
 
-TEST_F(ValidatorTest, ValidatesArgumentCount)
+TEST(ValidatorTest, ValidatesArgumentCount)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -125,7 +93,7 @@ TEST_F(ValidatorTest, ValidatesArgumentCount)
     EXPECT_THROW(Validator::validate(rootNode), TooManyArgumentsException);
 }
 
-TEST_F(ValidatorTest, TooManyArguments)
+TEST(ValidatorTest, TooManyArguments)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -144,7 +112,7 @@ TEST_F(ValidatorTest, TooManyArguments)
     EXPECT_THROW(Validator::validate(rootNode), TooManyArgumentsException);
 }
 
-TEST_F(ValidatorTest, ThrowsOnMissingRequiredArguments)
+TEST(ValidatorTest, ThrowsOnMissingRequiredArguments)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -162,7 +130,7 @@ TEST_F(ValidatorTest, ThrowsOnMissingRequiredArguments)
     EXPECT_THROW(Validator::validate(rootNode), NotEnoughArgumentsException);
 }
 
-TEST_F(ValidatorTest, ServerBlockInsideGlobalBlock)
+TEST(ValidatorTest, ServerBlockInsideGlobalBlock)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto server = createBlockDirective(Directives::SERVER);
@@ -179,7 +147,7 @@ TEST_F(ValidatorTest, ServerBlockInsideGlobalBlock)
 //-----------------------------//
 //-----------------------------//
 
-TEST_F(ValidatorTest, InvalidArgumentsForServerName)
+TEST(ValidatorTest, InvalidArgumentsForServerName)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -197,7 +165,7 @@ TEST_F(ValidatorTest, InvalidArgumentsForServerName)
     EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
 }
 
-TEST_F(ValidatorTest, InvalidArgumentsForListen)
+TEST(ValidatorTest, InvalidArgumentsForListen)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -214,7 +182,7 @@ TEST_F(ValidatorTest, InvalidArgumentsForListen)
     EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
 }
 
-TEST_F(ValidatorTest, InvalidArgumentsForErrorPage)
+TEST(ValidatorTest, InvalidArgumentsForErrorPage)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -232,7 +200,7 @@ TEST_F(ValidatorTest, InvalidArgumentsForErrorPage)
     EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
 }
 
-TEST_F(ValidatorTest, InvalidArgumentsForClientMaxBodySize)
+TEST(ValidatorTest, InvalidArgumentsForClientMaxBodySize)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -250,7 +218,7 @@ TEST_F(ValidatorTest, InvalidArgumentsForClientMaxBodySize)
     EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
 }
 
-TEST_F(ValidatorTest, InvalidArgumentsForLimitExcept)
+TEST(ValidatorTest, InvalidArgumentsForLimitExcept)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -270,7 +238,7 @@ TEST_F(ValidatorTest, InvalidArgumentsForLimitExcept)
     EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
 }
 
-TEST_F(ValidatorTest, InvalidArgumentsForReturn)
+TEST(ValidatorTest, InvalidArgumentsForReturn)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -288,7 +256,7 @@ TEST_F(ValidatorTest, InvalidArgumentsForReturn)
     EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
 }
 
-TEST_F(ValidatorTest, InvalidArgumentsForRoot)
+TEST(ValidatorTest, InvalidArgumentsForRoot)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -305,7 +273,7 @@ TEST_F(ValidatorTest, InvalidArgumentsForRoot)
     EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
 }
 
-TEST_F(ValidatorTest, InvalidArgumentsForAlias)
+TEST(ValidatorTest, InvalidArgumentsForAlias)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -324,7 +292,7 @@ TEST_F(ValidatorTest, InvalidArgumentsForAlias)
     EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
 }
 
-TEST_F(ValidatorTest, InvalidArgumentsForAutoindex)
+TEST(ValidatorTest, InvalidArgumentsForAutoindex)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -342,7 +310,7 @@ TEST_F(ValidatorTest, InvalidArgumentsForAutoindex)
     EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
 }
 
-TEST_F(ValidatorTest, InvalidArgumentsForIndex)
+TEST(ValidatorTest, InvalidArgumentsForIndex)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -359,7 +327,7 @@ TEST_F(ValidatorTest, InvalidArgumentsForIndex)
     EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
 }
 
-TEST_F(ValidatorTest, InvalidArgumentsForUploadStore)
+TEST(ValidatorTest, InvalidArgumentsForUploadStore)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -379,7 +347,7 @@ TEST_F(ValidatorTest, InvalidArgumentsForUploadStore)
     EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
 }
 
-TEST_F(ValidatorTest, InvalidArgumentsForCgiPass)
+TEST(ValidatorTest, InvalidArgumentsForCgiPass)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -403,7 +371,7 @@ TEST_F(ValidatorTest, InvalidArgumentsForCgiPass)
 ///-------------------------------------------//
 ///-------------------------------------------//
 
-TEST_F(ValidatorTest, ValidArgumentsForServerName)
+TEST(ValidatorTest, ValidArgumentsForServerName)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -421,7 +389,7 @@ TEST_F(ValidatorTest, ValidArgumentsForServerName)
     EXPECT_NO_THROW(Validator::validate(rootNode));
 }
 
-TEST_F(ValidatorTest, ValidArgumentsForListen)
+TEST(ValidatorTest, ValidArgumentsForListen)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -439,7 +407,7 @@ TEST_F(ValidatorTest, ValidArgumentsForListen)
     EXPECT_NO_THROW(Validator::validate(rootNode));
 }
 
-TEST_F(ValidatorTest, ValidArgumentsForErrorPage)
+TEST(ValidatorTest, ValidArgumentsForErrorPage)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -457,7 +425,7 @@ TEST_F(ValidatorTest, ValidArgumentsForErrorPage)
     EXPECT_NO_THROW(Validator::validate(rootNode));
 }
 
-TEST_F(ValidatorTest, ValidArgumentsForClientMaxBodySize)
+TEST(ValidatorTest, ValidArgumentsForClientMaxBodySize)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -475,7 +443,7 @@ TEST_F(ValidatorTest, ValidArgumentsForClientMaxBodySize)
     EXPECT_NO_THROW(Validator::validate(rootNode));
 }
 
-TEST_F(ValidatorTest, ValidArgumentsForLimitExcept)
+TEST(ValidatorTest, ValidArgumentsForLimitExcept)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -495,7 +463,7 @@ TEST_F(ValidatorTest, ValidArgumentsForLimitExcept)
     EXPECT_NO_THROW(Validator::validate(rootNode));
 }
 
-TEST_F(ValidatorTest, ValidArgumentsForReturn)
+TEST(ValidatorTest, ValidArgumentsForReturn)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -513,7 +481,7 @@ TEST_F(ValidatorTest, ValidArgumentsForReturn)
     EXPECT_NO_THROW(Validator::validate(rootNode));
 }
 
-TEST_F(ValidatorTest, ValidArgumentsForRoot)
+TEST(ValidatorTest, ValidArgumentsForRoot)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -531,7 +499,7 @@ TEST_F(ValidatorTest, ValidArgumentsForRoot)
     EXPECT_NO_THROW(Validator::validate(rootNode));
 }
 
-TEST_F(ValidatorTest, ValidArgumentsForAlias)
+TEST(ValidatorTest, ValidArgumentsForAlias)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -551,7 +519,7 @@ TEST_F(ValidatorTest, ValidArgumentsForAlias)
     EXPECT_NO_THROW(Validator::validate(rootNode));
 }
 
-TEST_F(ValidatorTest, ValidArgumentsForAutoindex)
+TEST(ValidatorTest, ValidArgumentsForAutoindex)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -568,7 +536,7 @@ TEST_F(ValidatorTest, ValidArgumentsForAutoindex)
     EXPECT_NO_THROW(Validator::validate(rootNode));
 }
 
-TEST_F(ValidatorTest, ValidArgumentsForIndex)
+TEST(ValidatorTest, ValidArgumentsForIndex)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -586,7 +554,7 @@ TEST_F(ValidatorTest, ValidArgumentsForIndex)
     EXPECT_NO_THROW(Validator::validate(rootNode));
 }
 
-TEST_F(ValidatorTest, ValidArgumentsForUploadStore)
+TEST(ValidatorTest, ValidArgumentsForUploadStore)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -606,7 +574,7 @@ TEST_F(ValidatorTest, ValidArgumentsForUploadStore)
     EXPECT_NO_THROW(Validator::validate(rootNode));
 }
 
-TEST_F(ValidatorTest, ValidArgumentsForCgiPass)
+TEST(ValidatorTest, ValidArgumentsForCgiPass)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -630,7 +598,7 @@ TEST_F(ValidatorTest, ValidArgumentsForCgiPass)
 ///----------------------------///
 ///----------------------------///
 
-TEST_F(ValidatorTest, DuplicateHttpDirective)
+TEST(ValidatorTest, DuplicateHttpDirective)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -645,7 +613,7 @@ TEST_F(ValidatorTest, DuplicateHttpDirective)
     EXPECT_THROW(Validator::validate(rootNode), DuplicateDirectiveException);
 }
 
-TEST_F(ValidatorTest, DuplicateServerNameDirective)
+TEST(ValidatorTest, DuplicateServerNameDirective)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -666,7 +634,7 @@ TEST_F(ValidatorTest, DuplicateServerNameDirective)
     EXPECT_THROW(Validator::validate(rootNode), DuplicateDirectiveException);
 }
 
-TEST_F(ValidatorTest, DuplicateRootDirective)
+TEST(ValidatorTest, DuplicateRootDirective)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -691,7 +659,7 @@ TEST_F(ValidatorTest, DuplicateRootDirective)
 ///----------------------------------------///
 ///----------------------------------------///
 
-TEST_F(ValidatorTest, ConflictRootAndAlias)
+TEST(ValidatorTest, ConflictRootAndAlias)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -718,7 +686,7 @@ TEST_F(ValidatorTest, ConflictRootAndAlias)
 //----------------------------//
 //----------------------------//
 
-TEST_F(ValidatorTest, ReturnWithoutArguments)
+TEST(ValidatorTest, ReturnWithoutArguments)
 {
     auto server = createBlockDirective(Directives::SERVER);
     auto returnDir = createSimpleDirective(Directives::RETURN, {});
@@ -736,7 +704,7 @@ TEST_F(ValidatorTest, ReturnWithoutArguments)
     EXPECT_THROW(Validator::validate(rootNode), NotEnoughArgumentsException);
 }
 
-TEST_F(ValidatorTest, ReturnWithTwoStatusCodes)
+TEST(ValidatorTest, ReturnWithTwoStatusCodes)
 {
     auto server = createBlockDirective(Directives::SERVER);
     auto returnDir = createSimpleDirective(Directives::RETURN, {"200", "301"});
@@ -754,7 +722,7 @@ TEST_F(ValidatorTest, ReturnWithTwoStatusCodes)
     EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
 }
 
-TEST_F(ValidatorTest, ReturnWithNoStatusCodeOnlyString)
+TEST(ValidatorTest, ReturnWithNoStatusCodeOnlyString)
 {
     auto server = createBlockDirective(Directives::SERVER);
     auto returnDir = createSimpleDirective(Directives::RETURN, {"/index.html"});
@@ -772,7 +740,7 @@ TEST_F(ValidatorTest, ReturnWithNoStatusCodeOnlyString)
     EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
 }
 
-TEST_F(ValidatorTest, ReturnWithStatusCodeAndTwoStrings)
+TEST(ValidatorTest, ReturnWithStatusCodeAndTwoStrings)
 {
     auto server = createBlockDirective(Directives::SERVER);
     auto returnDir = createSimpleDirective(
@@ -791,7 +759,7 @@ TEST_F(ValidatorTest, ReturnWithStatusCodeAndTwoStrings)
     EXPECT_THROW(Validator::validate(rootNode), TooManyArgumentsException);
 }
 
-TEST_F(ValidatorTest, ReturnWithInvalidStatusCode)
+TEST(ValidatorTest, ReturnWithInvalidStatusCode)
 {
     auto server = createBlockDirective(Directives::SERVER);
     auto returnDir
@@ -810,7 +778,7 @@ TEST_F(ValidatorTest, ReturnWithInvalidStatusCode)
     EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
 }
 
-TEST_F(ValidatorTest, ReturnWithTooManyArguments)
+TEST(ValidatorTest, ReturnWithTooManyArguments)
 {
     auto server = createBlockDirective(Directives::SERVER);
     auto returnDir = createSimpleDirective(Directives::RETURN,
@@ -833,7 +801,7 @@ TEST_F(ValidatorTest, ReturnWithTooManyArguments)
 //-------------------------------------//
 //-------------------------------------//
 
-TEST_F(ValidatorTest, CgiPassWithNotEnoughArguments)
+TEST(ValidatorTest, CgiPassWithNotEnoughArguments)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -873,7 +841,7 @@ http {                     # ❌ duplicate http block not allowed
 }
 */
 
-TEST_F(ValidatorTest, DuplicateHttpBlock)
+TEST(ValidatorTest, DuplicateHttpBlock)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
 
@@ -910,7 +878,7 @@ server {                   # ❌ invalid context (server must be inside http)
 }
 */
 
-TEST_F(ValidatorTest, ServerOutsideOfHttp)
+TEST(ValidatorTest, ServerOutsideOfHttp)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto server = createBlockDirective(Directives::SERVER);
@@ -937,7 +905,7 @@ http {
 }
 */
 
-TEST_F(ValidatorTest, DuplicatedServerNameInsideSameServer)
+TEST(ValidatorTest, DuplicatedServerNameInsideSameServer)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -977,7 +945,7 @@ http {
 }
 */
 
-TEST_F(ValidatorTest, RootAndAliasConflictInsideSameLocation)
+TEST(ValidatorTest, RootAndAliasConflictInsideSameLocation)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -1011,7 +979,7 @@ http {
 }
 */
 
-TEST_F(ValidatorTest, MissingArgumentsForReturn)
+TEST(ValidatorTest, MissingArgumentsForReturn)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);
@@ -1041,7 +1009,7 @@ http {
 }
 */
 
-TEST_F(ValidatorTest, LimitExceptOutsideOfLocation)
+TEST(ValidatorTest, LimitExceptOutsideOfLocation)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
     auto http = createBlockDirective(Directives::HTTP);

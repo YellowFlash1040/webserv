@@ -45,6 +45,8 @@ class Validator
     static void checkForDuplicateLocationPaths(
         const BlockDirective* serverBlock);
     static void checkForDuplicateListen(const BlockDirective* serverBlock);
+    static void expectRequiredDirective(const std::string& requiredDirective,
+                                        const BlockDirective* context);
     static void checkIfAllowedDirective(
         const std::unique_ptr<Directive>& directive,
         const std::string& context);
