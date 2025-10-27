@@ -1,15 +1,17 @@
 #ifndef CLIENTSTATE
 #define CLIENTSTATE
 
+#include "../RawRequest/RawRequest.hpp"
+#include "../../Response/Response.hpp"
+#include "../../HttpMethod/HttpMethod.hpp"
+#include "../../RequestData/RequestData.hpp"
+
 #include <string>
 #include <iostream>
 #include <vector>
 #include <cstdint>
 #include <stdexcept>
 #include <queue>
-#include "../ParsedRequest/ParsedRequest.hpp"
-#include "../../Response/Response.hpp"
-#include "../../HttpMethod/HttpMethod.hpp"
 
 #define GREEN "\033[0;32m"
 #define YELLOW "\033[0;33m"
@@ -22,7 +24,8 @@
 class ClientState
 {
 	private:
-		std::vector<ParsedRequest> _parsedRequests;
+		std::vector<RawRequest> _rawRequests;
+		std::vector<RequestData> _requestsData;
 		std::queue<Response> _responseQueue;
 		
 	public:
@@ -33,17 +36,20 @@ class ClientState
 		ClientState(ClientState&& other) noexcept = default;
 		ClientState& operator=(ClientState&& other) noexcept = default;
 
-		size_t getParsedRequestCount() const;
+		size_t getRawReqCount() const;
+		size_t getRequestCount() const;
 		
-		ParsedRequest& getRequest(size_t idx);
-		const ParsedRequest& getRequest(size_t idx) const;
-		ParsedRequest& getLatestRequest();
-		const ParsedRequest& getLatestRequest() const;
+		RawRequest& getRawRequest(size_t idx);
+		const RawRequest& getRawRequest(size_t idx) const;
+		RequestData& getRequest(size_t idx);
+		
+		RawRequest& getLatestRawReq();
+		const RawRequest& getLatestRawReq() const;
 		
 
-		size_t getLatestRequestIndex() const;
+		size_t getLatestRawReqIndex() const;
 		
-		bool latestRequestNeedsBody() const;
+		bool latestRawReqNeedsBody() const;
 
 		// Response management
 		void enqueueResponse(const Response& resp);
@@ -53,17 +59,20 @@ class ClientState
 
 		
 
-		ParsedRequest& addParsedRequest();
+		RawRequest& addRawRequest();
 		
-		//for gtests
-		ParsedRequest popFirstFinishedReq();
+
+		RawRequest popRawReq();
+		RequestData popRequestData();
 		
 		bool hasPendingResponses() const;
         Response popNextResponse();
+		
+		void addRequestData(const RequestData& requestData);
+		
+		bool hasCompleteRawRequest() const;
+		RawRequest popFirstCompleteRawRequest();
 
-		
-		
-		
 };
 
 

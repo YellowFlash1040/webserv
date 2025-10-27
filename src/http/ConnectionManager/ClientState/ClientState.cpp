@@ -1,25 +1,30 @@
 #include "ClientState.hpp"
 
 ClientState::ClientState()
-	: _parsedRequests()
+	: _rawRequests()
 	, _responseQueue()
 {
-	// The first empty request so getLatestRequest() is always valid
-	std::cout << RED << "[ClientState Constructor] Creating first empty ParsedRequest so getLatestRequest() is always valid\n";
-	_parsedRequests.emplace_back();
+	// The first empty request so getLatestRawReq() is always valid
+	std::cout << RED << "[ClientState Constructor] Creating first empty RawRequest so getLatestRawReq() is always valid\n";
+	_rawRequests.emplace_back();
 }
 
-size_t ClientState::getParsedRequestCount() const
+size_t ClientState::getRawReqCount() const
 {
-	return _parsedRequests.size();
+	return _rawRequests.size();
+}
+
+size_t ClientState::getRequestCount() const
+{
+	return _requestsData.size();
 }
 
 
-bool ClientState::latestRequestNeedsBody() const
+bool ClientState::latestRawReqNeedsBody() const
 {
-	if (_parsedRequests.empty())
+	if (_rawRequests.empty())
 		return false;
-	const ParsedRequest& latest = _parsedRequests.back();
+	const RawRequest& latest = _rawRequests.back();
 
 	// Needs a body if headers are done but body isn’t
 	return latest.isHeadersDone() && !latest.isBodyDone();
@@ -43,53 +48,63 @@ const Response& ClientState::getRespObj() const
 }
 
 //will always return a request
-ParsedRequest& ClientState::getLatestRequest()
+RawRequest& ClientState::getLatestRawReq()
 {
-	if (_parsedRequests.empty())
+	if (_rawRequests.empty())
 	{
 		 std::cout << RED 
-			<< "[getLatestRequest] _parsedRequests empty, creating a new ParsedRequest" 
+			<< "[getLatestRawReq] _rawRequests empty, creating a new RawRequest" 
 			<< RESET << "\n";
-		_parsedRequests.emplace_back(); // default-construct a new request
+		_rawRequests.emplace_back(); // default-construct a new request
 	}
-	return _parsedRequests.back();
+	return _rawRequests.back();
 }
 
-const ParsedRequest& ClientState::getLatestRequest() const
+const RawRequest& ClientState::getLatestRawReq() const
 {
-	if (_parsedRequests.empty())
+	if (_rawRequests.empty())
 		throw std::runtime_error("No requests available in ClientState");
-	return _parsedRequests.back();
+	return _rawRequests.back();
 }
 
-ParsedRequest& ClientState::addParsedRequest()
+RawRequest& ClientState::addRawRequest()
 {
-	std::cout << RED << "[addParsedRequest]: made a new request" << RESET << "\n";
-	_parsedRequests.emplace_back();
+	std::cout << RED << "[addRawRequest]: made a new request" << RESET << "\n";
+	_rawRequests.emplace_back();
 	return 
-		_parsedRequests.back();
+		_rawRequests.back();
 
 }
 
 //requests
-ParsedRequest& ClientState::getRequest(size_t idx)
+RawRequest& ClientState::getRawRequest(size_t idx)
 {
-	if (idx >= _parsedRequests.size()) 
+	if (idx >= _rawRequests.size()) 
 	{
-		std::cerr << "Tried to access parsed request " << idx << " but size=" << _parsedRequests.size() << "\n";
+		std::cout << "Tried to access raw request " << idx << " but size=" << _rawRequests.size() << "\n";
+		throw std::out_of_range("getRawRequest index out of bounds");
+	}
+	return _rawRequests[idx];
+}
+
+const RawRequest& ClientState::getRawRequest(size_t idx) const
+{
+	return _rawRequests.at(idx);
+}
+
+RequestData& ClientState::getRequest(size_t idx)
+{
+	if (idx >= _requestsData.size()) 
+	{
+		std::cout << "Tried to access request " << idx << " but size=" << _requestsData.size() << "\n";
 		throw std::out_of_range("getRequest index out of bounds");
 	}
-	return _parsedRequests[idx];
+	return _requestsData[idx];
 }
 
-const ParsedRequest& ClientState::getRequest(size_t idx) const
+size_t ClientState::getLatestRawReqIndex() const
 {
-	return _parsedRequests.at(idx);
-}
-
-size_t ClientState::getLatestRequestIndex() const
-{
-	return _parsedRequests.empty() ? 0 : _parsedRequests.size() - 1;
+	return _rawRequests.empty() ? 0 : _rawRequests.size() - 1;
 }
 
 bool ClientState::hasPendingResponses() const
@@ -107,36 +122,83 @@ Response ClientState::popNextResponse()
 	return resp;
 }
 
-//for gtest
-ParsedRequest ClientState::popFirstFinishedReq()
+RawRequest ClientState::popRawReq()
 {
-	std::cout << YELLOW << "DEBUG: popFirstFinishedRequest(for GTESTS):" << RESET << std::endl;
-std::cout << "[popFirstFinishedRequest]: _parsedRequests size = " << _parsedRequests.size() << "\n";
+	std::cout << YELLOW << "DEBUG: popRawReq:" << RESET << std::endl;
+	std::cout << "[popRawReq]: _rawRequests size = " << _rawRequests.size() << "\n";
 
-	for (size_t idx = 0; idx < _parsedRequests.size(); ++idx)
+	for (size_t idx = 0; idx < _rawRequests.size(); ++idx)
 	{
-		auto& req = _parsedRequests[idx];
+		auto& req = _rawRequests[idx];
 
 		if (req.isRequestDone())
 		{
-			std::cout << RED << "[popFirstFinishedRequest]: Popping finished request #" << idx << RESET
-				<< ", Method = " << req.getMethod()
-				<< ", rawURI = " << req.getRawUri()
-				<< ", URI = " << req.getUri()
-				<< ", Query = " << req.getQuery()
-				<< ", HeadersDone = " << req.isHeadersDone()
-				<< ", BodyDone = " << req.isBodyDone()
-				<< ", RequestDone = " << req.isRequestDone()
-				<< ", NeedsResponse = " << (req.needsResponse() ? "true" : "false")
-				<< ", Body = |" << req.getBody() << "|"
-				<< "\n";
+			std::cout << RED << "[popRawReq]: Popping finished raw request #" << idx << RESET << "\n";
 
-			ParsedRequest finished = std::move(req);
-			_parsedRequests.erase(_parsedRequests.begin() + idx);
+			RawRequest finished = std::move(req);
+			_rawRequests.erase(_rawRequests.begin() + idx);
 			return finished;
 		}
 	}
 
-	std::cout << "No finished request found in _parsedRequests\n";
+	std::cout << "No finished request found in _rawRequests\n";
 	throw std::runtime_error("No finished request found");
+}
+
+RequestData ClientState::popRequestData()
+{
+	std::cout << YELLOW << "DEBUG: popRequestData" << RESET << std::endl;
+	std::cout << "[popRequestData]: _requestsData size = " << _requestsData.size() << "\n";
+
+	for (size_t idx = 0; idx < _requestsData.size(); ++idx)
+	{
+		auto& req = _requestsData[idx];
+
+		{
+			std::cout << RED << "[popRequestData]: Popping finished ready request #" << idx << RESET
+				// << ", Method = " << req. //print the enum
+				<< ", URI = " << req.uri
+				<< ", Query = " << req.query
+				<< ", Body = |" << req.body << "|"
+				<< "\n\n";
+
+			RequestData finished = std::move(req);
+			_requestsData.erase(_requestsData.begin() + idx);
+			return finished;
+		}
+	}
+
+	std::cout << "No finished request found in _rawRequests\n";
+	throw std::runtime_error("No finished request found");
+	
+}
+
+
+
+void ClientState::addRequestData(const RequestData& requestData)
+{
+	std::cout << RED << "added Request to _requestData" << RESET << "\n";
+     _requestsData.emplace_back(std::move(requestData));
+}
+
+bool ClientState::hasCompleteRawRequest() const {
+    for (std::vector<RawRequest>::const_iterator it = _rawRequests.begin(); it != _rawRequests.end(); ++it) {
+        if (it->isRequestDone())
+            return true;
+    }
+    return false;
+}
+
+RawRequest ClientState::popFirstCompleteRawRequest()
+{
+    for (size_t i = 0; i < _rawRequests.size(); ++i)
+	{
+        if (_rawRequests[i].isRequestDone())
+		{
+            RawRequest completed = std::move(_rawRequests[i]);
+            _rawRequests.erase(_rawRequests.begin() + i);
+            return completed;
+        }
+    }
+    throw std::runtime_error("No complete RawRequest available");
 }

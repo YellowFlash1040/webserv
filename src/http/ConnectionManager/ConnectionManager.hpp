@@ -1,17 +1,17 @@
 #ifndef CONNECTIONMANAGER_HPP
 #define CONNECTIONMANAGER_HPP
 
+#include "../RawRequest/RawRequest.hpp"
+#include "ClientState/ClientState.hpp"
+#include "../utils/utils.hpp"
+#include "../config/Config/Config.hpp"
+
 #include <unordered_map>
 #include <string>
 #include <iostream>
 #include <cstdint>
 #include <sstream>
 #include <filesystem>
-#include "../ParsedRequest/ParsedRequest.hpp"
-#include "ClientState/ClientState.hpp"
-#include "../utils/ReqContextPrinter/ReqContextPrinter.hpp"
-#include "../utils/ParsedRequestUtils/ParsedRequestUtils.hpp"
-#include "../config/Config/Config.hpp"
 
 #define GREEN "\033[0;32m"
 #define YELLOW "\033[0;33m"
@@ -41,7 +41,7 @@ class ConnectionManager
 		ConnectionManager(ConnectionManager&&) noexcept = default;
 		ConnectionManager& operator=(ConnectionManager&&) noexcept = default;
 
-		const ParsedRequest& getRequest(int clientId, size_t index = SIZE_MAX) const;
+		const RawRequest& getRawRequest(int clientId, size_t index = SIZE_MAX) const;
 		
 		void addClient(int clientId);
 		bool clientSentClose(int clientId) const;
@@ -52,11 +52,9 @@ class ConnectionManager
 		size_t processReqs(int clientId, const std::string& tcpData);
 		void genRespsForReadyReqs(int clientId);
 		
-		//for gtests
-		ParsedRequest popFinishedReq(int clientId);
+		RawRequest popRawReq(int clientId);
 		
-		bool isPathInsideRoot(const std::string& root, const std::string& resolved);
-		std::string getNextResponseString(int clientId);
+		Response popNextResponse(int clientId);
 		bool hasPendingResponses(int clientId) const;
 	
 	};

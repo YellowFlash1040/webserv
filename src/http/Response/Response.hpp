@@ -6,25 +6,26 @@
 #include <chrono>
 #include <iomanip>
 #include <fstream>
-#include "../ParsedRequest/ParsedRequest.hpp"
+#include "../RawRequest/RawRequest.hpp"
 #include "../config/RequestContext/RequestContext.hpp"
 #include "../Cgi/CgiRequest/CgiRequest.hpp"
+#include "../FileHandler/FileHandler.hpp"
 
 class Response
 {
 private:
-	const ParsedRequest& _req;
+	RequestData _req;
     RequestContext _ctx;
 	
 	int _statusCode;
 	std::string _statusText;
 	std::unordered_map<std::string, std::string> _headers;
 	std::string _body;
-
+	
 public:
 
-	Response() = delete;
-	Response(const ParsedRequest& req, const RequestContext& ctx); 
+	Response() = default; //will be used for bad requests
+	Response(const RequestData& req, const RequestContext& ctx); 
    ~Response() = default;
     Response(const Response&) = default;
     Response& operator=(const Response&) = default;
@@ -55,14 +56,22 @@ public:
 	std::string codeToText(int code) const;
 	std::string genResp();
 	
-	CgiRequest createCgiRequest();
+	// CgiRequest createCgiRequest();
 	
 	bool isMethodAllowed(HttpMethodEnum method, const std::vector<HttpMethod>& allowed_methods);
 	std::string allowedMethodsToString(const std::vector<HttpMethod>& allowed_methods);
 	std::string getErrorPageFilePath(
     	HttpStatusCode status, const std::vector<ErrorPage>& errorPages);
 	void setErrorPageBody(HttpStatusCode code, const std::vector<ErrorPage>& errorPages);
-
+	bool shouldClose() const;
+	
+	std::string handleMethodNotAllowed();
+	std::string handleCgiScript();
+	std::string handleStaticFile();
+	std::string handleRedirection();
+	
+	CgiRequest createCgiRequest();
+	
 	};
 
 #endif

@@ -3,7 +3,7 @@
 #include <stdexcept>   // for invalid_argument
 
 
-Response::Response(const ParsedRequest& req, const RequestContext& ctx)
+Response::Response(const RequestData& req, const RequestContext& ctx)
 	: _req(req), _ctx(ctx), _statusCode(200), _statusText("OK"), _body("")
 {
 	setDefaultHeaders();
@@ -112,80 +112,137 @@ std::string Response::codeToText(int code) const
 		default: return "Unknown";
 	}
 }
-	
-std::string Response::genResp()
+
+std::string Response::handleMethodNotAllowed()
 {
-	if (!_req.isRequestDone())
-		return ""; // nothing ready
-	
-	// ----- REDIRECTION -----
-	if (_ctx.has_return) 
-	{
-		setStatusCode(static_cast<int>(HttpStatusCode::MovedPermanently));
-		setStatusText("Moved Permanently");
-		addHeader("Location", _ctx.redirection.url);
-		setBody("Redirection in progress\n");
-		return toString();
-	}
-	
-	if (!isMethodAllowed(_req.getMethodEnum(), _ctx.allowed_methods))
-	{
-    	setStatusCode(static_cast<int>(HttpStatusCode::MethodNotAllowed));
-    	setStatusText("Method Not Allowed");
-		addHeader("Allow", allowedMethodsToString(_ctx.allowed_methods));
-    	setErrorPageBody(HttpStatusCode::MethodNotAllowed, _ctx.error_pages);
-		return toString();
-	}
-
-	// ----- CGI SCRIPT -----
-	if (!_ctx.cgi_pass.empty()) 
-	{
-		CgiRequest cgiReq = createCgiRequest();
-		// TO DO: pass cgiReq to Pavel's CGI handler
-		
-		// For now here is a placeholder response:
-		setStatusCode(static_cast<int>(HttpStatusCode::Ok));
-		setStatusText("OK");
-		addHeader("Transfer-Encoding", "chunked"); // hardcoded body length
-		addHeader("Content-Type", "?");
-		setBody("CGI script would be executed\n");
-		return toString();
-	}
-
-	// ----- STATIC FILE -----
-	setStatusCode(static_cast<int>(HttpStatusCode::Ok));
-	setStatusText("OK");
-	std::string body = "Static file would be served\n";
-	setBody(body);
-	addHeader("Content-Length", std::to_string(body.size()));
-	addHeader("Content-Type", "text/plain");
+	setStatusCode(static_cast<int>(HttpStatusCode::MethodNotAllowed));
+	setStatusText("Method Not Allowed");
+	addHeader("Allow", allowedMethodsToString(_ctx.allowed_methods));
+	setErrorPageBody(HttpStatusCode::MethodNotAllowed, _ctx.error_pages);
 	return toString();
 }
 
-  void Response::setDefaultHeaders()
+void Response::setDefaultHeaders()
 {
 	addHeader("Date", getCurrentHttpDate());
 	addHeader("Server", "APT-Server/1.0");
 	addHeader("Connection", "keep-alive");
 }
 
+std::string Response::genResp()
+{
+	if (_ctx.has_return)
+		return handleRedirection();
+	if (!isMethodAllowed(_req.method, _ctx.allowed_methods))
+		return handleMethodNotAllowed();
+	if (!_ctx.cgi_pass.empty())
+		return handleCgiScript();
+	{	
+		std::cout << "static\n";
+		return handleStaticFile();
+	}
+}
+
+std::string Response::handleRedirection()
+{
+	setStatusCode(static_cast<int>(HttpStatusCode::MovedPermanently));
+	setStatusText("Moved Permanently");
+	addHeader("Location", _ctx.redirection.url);
+	setBody("Redirection in progress\n");
+	return toString();
+}
+
+std::string Response::handleStaticFile()
+{
+	std::cout << "[DEBUG] Entered handleStaticFile\n";
+	FileHandler fileHandler(_ctx.root, _ctx.autoindex_enabled, _ctx.index_files);
+	 std::cout << "[DEBUG] Root = '" << _ctx.root << "', URI = '" << _req.uri << "'\n";
+
+	try
+	{
+		std::string path = fileHandler.resolveFilePath(_req.uri);
+		std::cout << "[DEBUG] Resolved file path = '" << path << "'\n";
+
+		if (fileHandler.isDirectory(path))
+		{
+			std::cout << "[DEBUG] Path is a directory\n";
+			std::string dirResp = fileHandler.handleDirectory(path);
+			std::cout << "[DEBUG] Directory response generated:\n" << dirResp << "\n";
+			return dirResp;
+		}
+
+		if (!fileHandler.fileExists(path))
+		if (!fileHandler.fileExists(path))
+		{
+			std::cout << "[DEBUG] File does not exist\n";
+			std::string notFoundResp = fileHandler.handleNotFound();
+			std::cout << "[DEBUG] Not Found response generated:\n" << notFoundResp << "\n";
+			return notFoundResp;
+		}
+
+		std::string body = fileHandler.serveFile(path);
+		std::cout << "[DEBUG] Serving file with length " << body.size() << " bytes\n";
+		std::string mime = fileHandler.detectMimeType(path);
+		std::cout << "[DEBUG] Detected MIME type = " << mime << "\n";
+
+		addHeader("Content-Length", std::to_string(body.size()));
+		addHeader("Content-Type", mime);
+		setBody(body);
+
+		std::string finalResp = toString();
+		std::cout << "[DEBUG] Final response generated:\n" << finalResp << "\n";
+
+		return finalResp;
+	}
+	catch(const std::exception& e)
+	{
+        std::cerr << "[Response] File error: " << e.what() << "\n";
+        if (std::string(e.what()).find("path escapes root") != std::string::npos)
+        {
+            setStatusCode(403);
+            setStatusText("Forbidden");
+        }
+        else
+        {
+            setStatusCode(404);
+            setStatusText("Not Found");
+        }
+        setBody(fileHandler.handleNotFound());
+        return toString();
+    }
+}
+
+std::string Response::handleCgiScript()
+{
+	CgiRequest cgiReq = createCgiRequest();
+	// TODO: integrate with CGI handler
+
+	setStatusCode(static_cast<int>(HttpStatusCode::Ok));
+	setStatusText("OK");
+	addHeader("Transfer-Encoding", "chunked");
+	addHeader("Content-Type", "?");
+	setBody("CGI script would be executed\n");
+	return toString();
+}
+
+
 CgiRequest Response::createCgiRequest()
 {
-    CgiRequest cgiReq;
+	CgiRequest cgiReq;
 
-    // Script path is the CGI executable
-    cgiReq.scriptPath = _ctx.cgi_pass;
+	// Script path is the CGI executable
+	cgiReq.scriptPath = _ctx.cgi_pass;
 
-    // HTTP method
-    cgiReq.method = _req.getMethodEnum(); // or req.method if you have a string already
+	// HTTP method
+	cgiReq.method = _req.method; // or req.method if you have a string already
 
-    // Query string (from URL)
-    cgiReq.queryString = _req.getQuery(); // implement/get it from ParsedRequest
+	// Query string (from URL)
+	cgiReq.queryString = _req.query; // implement/get it from RawRequest
 
-    // POST body
-    cgiReq.body = _req.getBody();
+	// POST body
+	cgiReq.body = _req.body;
 
-    // Fill headers
+	// Fill headers
 	const std::string hdrs[] =
 	{
 		"Content-Type",
@@ -197,81 +254,87 @@ CgiRequest Response::createCgiRequest()
 	};
 	
 	
-    for (const std::string& h : hdrs)
-    {
-        std::string value = _req.getHeader(h);
-        if (!value.empty())
-            cgiReq.headers[h] = value;
-    }
-    return cgiReq;
+	for (const std::string& h : hdrs)
+	{
+		std::string value = _req.getHeader(h);
+		if (!value.empty())
+			cgiReq.headers[h] = value;
+	}
+	return cgiReq;
 }
 
 bool Response::isMethodAllowed(HttpMethodEnum method, const std::vector<HttpMethod>& allowed_methods)
 {
-    for (std::vector<HttpMethod>::const_iterator it = allowed_methods.begin(); it != allowed_methods.end(); ++it)
-    {
-        if (it->value() == method)
-            return true;
-    }
-    return false;
+	for (std::vector<HttpMethod>::const_iterator it = allowed_methods.begin(); it != allowed_methods.end(); ++it)
+	{
+		if (it->value() == method)
+			return true;
+	}
+	return false;
 }
 
 std::string Response::allowedMethodsToString(const std::vector<HttpMethod>& allowed_methods)
 {
-    std::ostringstream oss;
-    for (size_t i = 0; i < allowed_methods.size(); ++i)
-    {
-        oss << allowed_methods[i].toString();
-        if (i + 1 < allowed_methods.size())
-            oss << ", ";
-    }
-    return oss.str();
+	std::ostringstream oss;
+	for (size_t i = 0; i < allowed_methods.size(); ++i)
+	{
+		oss << allowed_methods[i].toString();
+		if (i + 1 < allowed_methods.size())
+			oss << ", ";
+	}
+	return oss.str();
 }
 
 std::string Response::getErrorPageFilePath(
-    HttpStatusCode status, const std::vector<ErrorPage>& errorPages)
+	HttpStatusCode status, const std::vector<ErrorPage>& errorPages)
 {
-    for (std::vector<ErrorPage>::const_iterator it = errorPages.begin();
+	for (std::vector<ErrorPage>::const_iterator it = errorPages.begin();
 		it != errorPages.end(); ++it)
 		{
 			if (std::find(it->statusCodes.begin(), it->statusCodes.end(), status) != it->statusCodes.end())
 			{
 				return it->filePath;
 			}
-    	}
-    return "";
+		}
+	return "";
 }
 
 void Response::setErrorPageBody(HttpStatusCode code, const std::vector<ErrorPage>& errorPages)
 {
-    std::string errorBodyPath = getErrorPageFilePath(code, errorPages);
-    std::string htmlBody;
+	std::string errorBodyPath = getErrorPageFilePath(code, errorPages);
+	std::string htmlBody;
 
-    if (!errorBodyPath.empty())
-    {
-        std::ifstream file(errorBodyPath);
-        if (file)
-        {
-            std::ostringstream ss;
-            ss << file.rdbuf();
-            htmlBody = ss.str();
-        }
-    }
+	if (!errorBodyPath.empty())
+	{
+		std::ifstream file(errorBodyPath);
+		if (file)
+		{
+			std::ostringstream ss;
+			ss << file.rdbuf();
+			htmlBody = ss.str();
+		}
+	}
 
-    // Fallback if file not found or no custom error page
-    if (htmlBody.empty())
-    {
-        htmlBody =
-            "<html>\n"
-            "<head><title>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</title></head>\n"
-            "<body>\n"
-            "<center><h1>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</h1></center>\n"
-            "<hr><center>APT-Server/1.0</center>\n"
-            "</body>\n"
-            "</html>\n";
-    }
+	// Fallback if file not found or no custom error page
+	if (htmlBody.empty())
+	{
+		htmlBody =
+			"<html>\n"
+			"<head><title>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</title></head>\n"
+			"<body>\n"
+			"<center><h1>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</h1></center>\n"
+			"<hr><center>APT-Server/1.0</center>\n"
+			"</body>\n"
+			"</html>\n";
+	}
 
-    setBody(htmlBody);
-    addHeader("Content-Type", "text/html");
-    addHeader("Content-Length", std::to_string(_body.size()));
+	setBody(htmlBody);
+	addHeader("Content-Type", "text/html");
+	addHeader("Content-Length", std::to_string(_body.size()));
+}
+
+bool Response::shouldClose() const
+{
+	auto it = _headers.find("Connection");
+	return it != _headers.end() && it->second == "close";
 }

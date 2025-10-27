@@ -141,21 +141,23 @@ void Server::processClient(int clientId)
 		//Send all ready responses
 		std::string respStr;
 		
-	if (anyRequestDone)
-	{
-		while (m_connMgr.hasPendingResponses(clientId))
+		if (anyRequestDone)
 		{
-		   std::string respStr = m_connMgr.getNextResponseString(clientId);
-		   write(clientId, respStr.c_str(), respStr.size());
-		}
-	}
-
-		// Only remove client if last request indicates Connection: close
-		if (m_connMgr.clientSentClose(clientId))
-		{
-			printf ("CLOSE\n");
-			m_connMgr.removeClient(clientId);
-			close(clientId);
+			while (m_connMgr.hasPendingResponses(clientId))
+			{
+				Response resp = m_connMgr.popNextResponse(clientId);	
+				std::string respStr = resp.toString();
+				write(clientId, respStr.c_str(), respStr.size());
+				
+				// Only remove client if last request indicates Connection: close
+				if (resp.shouldClose())
+				{
+					printf ("CLOSE\n");
+					m_connMgr.removeClient(clientId);
+					close(clientId);
+					break;
+				}
+			}
 		}
 	}
 		

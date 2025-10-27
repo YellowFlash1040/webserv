@@ -9,28 +9,6 @@ void ConnectionManager::addClient(int clientId)
 	m_clients.emplace(clientId, ClientState());
 }
 
-//I think this will be read in the response
-bool ConnectionManager::clientSentClose(int clientId) const 
-{
-	
-	auto it = m_clients.find(clientId);
-	if (it == m_clients.end())
-		return true;
-
-	const ClientState& clientState = it->second;
-	if (clientState.getParsedRequestCount() == 0)
-	{
-		
-		return false; // no requests yet
-	}
-		
-	const ParsedRequest& req = clientState.getRequest(0);
-	
-	std::string connHeader = req.getHeader("Connection");
-	
-	return (connHeader == "close");
-}
-
 // Remove a client
 void ConnectionManager::removeClient(int clientId)
 {
@@ -38,22 +16,23 @@ void ConnectionManager::removeClient(int clientId)
 }
 
 
-const ParsedRequest& ConnectionManager::getRequest(int clientId, size_t index) const
+const RawRequest& ConnectionManager::getRawRequest(int clientId, size_t index) const
 {
 	auto it = m_clients.find(clientId);
 	if (it == m_clients.end())
-		throw std::runtime_error("getRequest: clientId not found");
+		throw std::runtime_error("getRawRequest: clientId not found");
 
 	if (index == SIZE_MAX)
-		return it->second.getLatestRequest(); // const getter
+		return it->second.getLatestRawReq(); // const getter
 	
-	return it->second.getRequest(index); // const getter
+	return it->second.getRawRequest(index); // const getter
 }
 
 ClientState& ConnectionManager::getClientStateForTest(int clientId)
 {
 	return m_clients.at(clientId);
 }
+
 bool ConnectionManager::processData(int clientId, const std::string& tcpData)
 {
 
@@ -73,66 +52,77 @@ size_t ConnectionManager::processReqs(int clientId, const std::string& data)
 	std::cout << YELLOW << "DEBUG: processReqs: " << RESET  << std::endl;
 	auto it = m_clients.find(clientId);
 	if (it == m_clients.end())
-		return false;
+		return 0;
 
 	ClientState& clientState = it->second;
-	
-	ParsedRequest& req = clientState.getLatestRequest();
+		
+	RawRequest& rawReq = clientState.getLatestRawReq(); // single parser now
 	
 	// Append all incoming bytes to _tempBuffer
-	req.appendTempBuffer(data);
+	rawReq.appendTempBuffer(data);
 	
-	std::cout << "[processReqs] tempBuffer is |" << req.getTempBuffer() << "|\n";
+	std::cout << "[processReqs] tempBuffer is |" << rawReq.getTempBuffer() << "|\n";
 	
 	size_t parsedCount = 0;
 	while(true)
 	{
-		ParsedRequest& req = clientState.getLatestRequest();
+		RawRequest& rawReq = clientState.getLatestRawReq();
+		// RawRequest& rawReq = clientState.popRawReq();
 		
 		//if we don’t yet have headers for this request, try to parse them.
-		if (req.isHeadersDone() == false)
+		if (rawReq.isHeadersDone() == false)
 		{
-			req.separateHeadersFromBody();
-			if (req.isHeadersDone() == false)
+			rawReq.separateHeadersFromBody();
+			if (rawReq.isBadRequest())
+			{
+				std::cout << "[genRespsForReadyReqs] Bad request detected\n";
+			}
+			if (rawReq.isHeadersDone() == false)
 			{
 				std::cout << "[processReqs]: headers are not finished yet\n";
 				break; // Need more data for headers, exit loop until next call;
 				
 			}
 		}
-		
 		//If headers are done, append body bytes if needed.
-		if (req.isHeadersDone() && req.isBodyDone() == false)
+		if (!rawReq.isBadRequest() && rawReq.isHeadersDone() && rawReq.isBodyDone() == false)
 		{
-			req.appendBodyBytes(req.getTempBuffer());
-			if (req.isBodyDone() == false)
+			rawReq.appendBodyBytes(rawReq.getTempBuffer());
+			if (rawReq.isBodyDone() == false)
 			{
 				std::cout << "[processReqs]: body not finished yet\n";
 				break; // Need more data for body, exit loop until next call
 			}
 		}
 		
+		std::cout << "[DEBUG] headersDone=" << rawReq.isHeadersDone()
+          << " bodyDone=" << rawReq.isBodyDone()
+          << " isBad=" << rawReq.isBadRequest() << "\n";
+		  
 		//At this point headers and body are done = full request parsed
-		if (req.isHeadersDone() && req.isBodyDone())
+		if ((rawReq.isHeadersDone() && rawReq.isBodyDone()) || rawReq.isBadRequest())
 		{
-	
 			std::cout << "[processReqs]: setting request done" << "\n";
-			req.setRequestDone();
+			rawReq.setRequestDone();
 			parsedCount++;
 			
+			// --- Build RequestData for this fully parsed request ---
+			// RequestData requestData = rawReq.buildRequestData();
+			// clientState.addRequestData(requestData);
+			std::string forNextReq = rawReq.getTempBuffer();
+			// clientState.popRawReq();
+			
 			// Prepare for next request if leftover exists
-			if (req.getTempBuffer().empty() == false)
+			if (forNextReq.empty() == false)
 			{
 				//overwrite the buffer that store leftovers for next request
-				std::string forNextReq = req.getTempBuffer();
 				std::cout << RED << "[processReqs]: forNextReq: " << RESET << "|"
 					<< forNextReq << "|\n";
-				
-				req.setTempBuffer("");
+
 					
 				std::cout << "[processReqs]: adding request" << "\n";
-				ParsedRequest& newReq = clientState.addParsedRequest();
-				newReq.setTempBuffer(forNextReq);
+				RawRequest& newRawReq = clientState.addRawRequest();
+				newRawReq.setTempBuffer(forNextReq);
 				continue;
 				
 			}
@@ -152,79 +142,71 @@ size_t ConnectionManager::processReqs(int clientId, const std::string& data)
 
 void ConnectionManager::genRespsForReadyReqs(int clientId)
 {
-    auto it = m_clients.find(clientId);
-    if (it == m_clients.end())
-        return;
+	auto it = m_clients.find(clientId);
+	if (it == m_clients.end())
+		return;
 
-    ClientState& clientState = it->second;
+	ClientState& clientState = it->second;
 
-    while (clientState.getParsedRequestCount() > 0) 
-    {
-        ParsedRequest& req = clientState.getRequest(0);
-
-        if (!req.isRequestDone() || !req.needsResponse())
-            break; // stop at first incomplete request
+	// while (clientState.getRequestCount() > 0) 
+	// {
+		// RequestData req = clientState.popRequestData();
 		
-		RequestContext ctx = m_config.createRequestContext(req.getHost(), req.getUri());
-        printReqContext(ctx);
+		// RawRequest& rawReq = clientState.getLatestRawReq();
+    	
+		while (clientState.hasCompleteRawRequest())
+		{
+			RawRequest rawReq = clientState.popFirstCompleteRawRequest();
+		 	
+			// Check if request was marked as bad
+			if (rawReq.isBadRequest()) 
+			{
+				std::cout << "[genRespsForReadyReqs] Bad request detected, generating 400 response\n";
+				Response resp;
+				resp.setStatusCode(400);
+				//resp.setBody("Bad Request: " + rawReq.getErrorMessage() + "\n"); // store msg in RawRequest
+				clientState.enqueueResponse(resp);
+				continue; // skip normal response generation
+			}
+			
+			// Only for valid requests:
+			RequestData reqData = rawReq.buildRequestData();
+			// Build context using the host and URI from the request
+			RequestContext ctx = m_config.createRequestContext(reqData.getHeader("Host"), reqData.uri);
+			printReqContext(ctx);
 		
-		Response resp(req, ctx);
-		
-		std::string output = resp.genResp();
-		clientState.enqueueResponse(resp);
-
-        req.setResponseAdded();
-	
-		// popFinishedReq(clientId);
-
+			// Generate and enqueue response
+			Response resp(reqData, ctx);
+			std::string output = resp.genResp();
+			clientState.enqueueResponse(resp);
 	}
 }
 
-// ParsedRequest ConnectionManager::popFinishedReq(int clientId)
-// {
-// 	auto it = m_clients.find(clientId);
-// 	if (it == m_clients.end())
-// 		throw std::runtime_error("Client not found");
-
-// 	return it->second.popFirstFinishedReq();
-// }
-
-bool ConnectionManager::isPathInsideRoot(const std::string& root, const std::string& resolved)
+RawRequest ConnectionManager::popRawReq(int clientId)
 {
-    try
-	{
-        std::filesystem::path rootPath = std::filesystem::canonical(root);
-        std::filesystem::path filePath = std::filesystem::weakly_canonical(std::filesystem::path(root) / resolved);
-
-        return std::mismatch(rootPath.begin(), rootPath.end(), filePath.begin()).first == rootPath.end();
-    }
-    catch (const std::filesystem::filesystem_error&)
-	{
-        return false;
-    }
+	auto it = m_clients.find(clientId);
+	if (it == m_clients.end())
+		throw std::runtime_error("Client not found");
+	
+		
+	return it->second.popRawReq();
 }
 
-std::string ConnectionManager::getNextResponseString(int clientId)
+
+
+Response ConnectionManager::popNextResponse(int clientId)
 {
     auto it = m_clients.find(clientId);
     if (it == m_clients.end())
-        return "";
+        throw std::runtime_error("No such client");
 
-    ClientState& clientState = it->second;
-
-    if (clientState.hasPendingResponses())
-    {
-        const Response& resp = clientState.popNextResponse();
-        return resp.toString();
-    }
-
-    return "";
+    return it->second.popNextResponse(); // calls ClientState method
 }
 
 bool ConnectionManager::hasPendingResponses(int clientId) const
 {
-    std::unordered_map<int, ClientState>::const_iterator it = m_clients.find(clientId);
-    if (it == m_clients.end())
-        return false;
-    return it->second.hasPendingResponses();
+	std::unordered_map<int, ClientState>::const_iterator it = m_clients.find(clientId);
+	if (it == m_clients.end())
+		return false;
+	return it->second.hasPendingResponses();
 }

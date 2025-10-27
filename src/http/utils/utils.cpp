@@ -1,5 +1,4 @@
-#include "ReqContextPrinter.hpp"
-#include <iostream>
+#include "utils.hpp"
 
 void printReqContext(const RequestContext& ctx)
 {
@@ -40,5 +39,6 @@ void printReqContext(const RequestContext& ctx)
         std::cout << "redirection: " << static_cast<int>(ctx.redirection.statusCode) << " " << ctx.redirection.url << "\n";
 
     std::cout << "matched_location: " << ctx.matched_location << "\n";
-    std::cout << "------------------------\n";
+    std::cout << TEAL << "------------------------" << RESET "\n";
 }
+
