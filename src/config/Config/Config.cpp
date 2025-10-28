@@ -129,8 +129,6 @@ std::map<HttpStatusCode, std::string> Config::constructErrorPages(
 //     return config.alias + "/" + uri.substr(config.matchedLocation.size());
 // }
 
-#include <string>
-
 std::string Config::resolvePath(const EffectiveConfig& config,
                                 const std::string& uri)
 {
@@ -226,6 +224,12 @@ ServerBlock Config::buildServerBlock(
         else if (name == Directives::RETURN)
             assign(serverBlock.httpRedirection, args);
     }
+
+    if (serverBlock.listen->empty())
+        serverBlock.listen->emplace_back("8080");
+
+    if (serverBlock.serverName->empty())
+        serverBlock.serverName->emplace_back("");
 
     return serverBlock;
 }

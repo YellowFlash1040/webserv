@@ -33,7 +33,7 @@ void Validator::validateChildren(const BlockDirective* block)
 
     if (block->name() == Directives::SERVER)
     {
-        expectRequiredDirective(Directives::LISTEN, block);
+        // expectRequiredDirective(Directives::LISTEN, block);
         checkForDuplicateListen(block);
         checkForDuplicateLocationPaths(block);
     }
@@ -439,6 +439,9 @@ void Validator::validateStatusCode(const std::string& s)
     if (s.empty())
         throw std::invalid_argument("status code can not be empty");
 
+    if (s.find_first_not_of("1234567890") != std::string::npos)
+        throw std::invalid_argument("status code has to be a valid number");
+
     int code = std::stoi(s);
     if (code < 100 || code > 599)
         throw std::invalid_argument("Invalid status code: " + s);
@@ -530,20 +533,23 @@ void Validator::validateUri(const std::string& s)
 
 void Validator::validateName(const std::string& s)
 {
-    if (s.empty())
-        throw std::invalid_argument("Argument cannot be empty");
+    (void)s;
+    return;
+    // if (s.empty())
+    //     throw std::invalid_argument("Argument cannot be empty");
 
-    if (s.find_first_of("/\\") != std::string::npos)
-        throw std::invalid_argument(
-            "Name cannot contain '/' or '\\'. Invalid name: '" + s + "'");
+    // if (s.find_first_of("/\\") != std::string::npos)
+    //     throw std::invalid_argument(
+    //         "Name cannot contain '/' or '\\'. Invalid name: '" + s + "'");
 
-    for (char c : s)
-    {
-        if (!(std::isalnum(c) || c == '.'))
-            throw std::invalid_argument("Name can only contain alphanumeric "
-                                        "characters and dots. Invalid name: '"
-                                        + s + "'");
-    }
+    // for (char c : s)
+    // {
+    //     if (!(std::isalnum(c) || c == '.'))
+    //         throw std::invalid_argument("Name can only contain alphanumeric "
+    //                                     "characters and dots. Invalid name:
+    //                                     '"
+    //                                     + s + "'");
+    // }
 }
 
 void Validator::validateFile(const std::string& s)
