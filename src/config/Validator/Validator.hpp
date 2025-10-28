@@ -39,6 +39,15 @@ class Validator
     static void validateChildren(const BlockDirective* block);
     static void makeDuplicateCheck(std::set<std::string>& seenDirectives,
                                    const std::unique_ptr<Directive>& directive);
+    static void checkBasicPreconditions(
+        const std::unique_ptr<Directive>& directive,
+        const std::vector<Directives::ArgumentSpec>& argSpecs);
+    static void checkIfArgumentsAreAllowed(
+        const std::unique_ptr<Directive>& directive,
+        const std::vector<Directives::ArgumentSpec>& argSpecs);
+    static void checkTotalMinArgCount(
+        const std::unique_ptr<Directive>& directive,
+        const std::vector<Directives::ArgumentSpec>& argSpecs);
     static void makeDuplicateCheck(const std::vector<Argument>& args);
     static void makeConflictsCheck(std::set<std::string>& seenDirectives,
                                    const std::unique_ptr<Directive>& directive);
@@ -50,6 +59,10 @@ class Validator
     static void checkIfAllowedDirective(
         const std::unique_ptr<Directive>& directive,
         const std::string& context);
+    static void processArgumentsWithSpec(
+        const std::unique_ptr<Directive>& directive,
+        const std::vector<Directives::ArgumentSpec>& argSpecs, size_t& i,
+        size_t& specIdx);
     static void validateArguments(const std::unique_ptr<Directive>& directive);
     static void validateArgument(const std::vector<ArgumentType>& possibleTypes,
                                  const std::string& value);

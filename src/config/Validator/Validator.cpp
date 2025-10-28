@@ -201,73 +201,98 @@ void Validator::validateArguments(const std::unique_ptr<Directive>& directive)
     const auto& args = directive->args();
     const auto& argSpecs = Directives::getArgSpecs(directive->name());
 
-    if (argSpecs.empty())
-    {
-        if (!args.empty())
-            throw NoArgumentsAllowedException(directive);
+    if (argSpecs.empty() && args.empty())
         return;
-    }
 
-    makeDuplicateCheck(args);
-
-    size_t minCount = 0;
-    for (const auto& spec : argSpecs)
-        minCount += spec.minCount;
-
-    if (args.size() < minCount)
-        throw NotEnoughArgumentsException(directive);
+    checkBasicPreconditions(directive, argSpecs);
 
     size_t i = 0;
     for (size_t specIdx = 0; specIdx < argSpecs.size(); ++specIdx)
-    {
-        const auto& spec = argSpecs[specIdx];
-        size_t count = 0;
-
-        while (i < args.size() && count < spec.maxCount)
-        {
-            try
-            {
-                // Try to validate current arg with current group
-                validateArgument(spec.possibleTypes, args[i]);
-                // Success → consume it
-                ++count;
-                ++i;
-            }
-            catch (const std::exception&)
-            {
-                if (count < spec.minCount)
-                    throw InvalidArgumentException(args[i]);
-                // Invalid for current group
-                if (specIdx + 1 < argSpecs.size())
-                {
-                    // Next group exists, try it
-                    try
-                    {
-                        const auto& nextSpec = argSpecs[specIdx + 1];
-                        validateArgument(nextSpec.possibleTypes, args[i]);
-                        // Success → move to next group (break out of while
-                        // loop)
-                        break;
-                    }
-                    catch (const std::exception&)
-                    {
-                        // Fail → throw InvalidArgument
-                        throw InvalidArgumentException(args[i]);
-                    }
-                }
-                else
-                    // No next group → throw InvalidArgument
-                    throw InvalidArgumentException(args[i]);
-            }
-        }
-
-        if (count < spec.minCount)
-            throw NotEnoughArgumentsException(directive);
-    }
+        processArgumentsWithSpec(directive, argSpecs, i, specIdx);
 
     // If some args left → TooManyArguments
     if (i < args.size())
         throw TooManyArgumentsException(directive);
+}
+
+void Validator::processArgumentsWithSpec(
+    const std::unique_ptr<Directive>& directive,
+    const std::vector<Directives::ArgumentSpec>& argSpecs, size_t& i,
+    size_t& specIdx)
+{
+    const auto& args = directive->args();
+    const auto& spec = argSpecs[specIdx];
+    size_t count = 0;
+
+    while (i < args.size() && count < spec.maxCount)
+    {
+        try
+        {
+            // Try to validate current arg with current group
+            validateArgument(spec.possibleTypes, args[i]);
+            // Success → consume it
+            ++count;
+            ++i;
+        }
+        catch (const std::exception&)
+        {
+            if (count < spec.minCount)
+                throw InvalidArgumentException(args[i]);
+            // Invalid for current group
+            if (specIdx + 1 < argSpecs.size())
+            {
+                // Next group exists, try it
+                try
+                {
+                    const auto& nextSpec = argSpecs[specIdx + 1];
+                    validateArgument(nextSpec.possibleTypes, args[i]);
+                    // Success → move to next group (break out of while
+                    // loop)
+                    break;
+                }
+                catch (const std::exception&)
+                {
+                    // Fail → throw InvalidArgument
+                    throw InvalidArgumentException(args[i]);
+                }
+            }
+            else
+                // No next group → throw InvalidArgument
+                throw InvalidArgumentException(args[i]);
+        }
+    }
+
+    if (count < spec.minCount)
+        throw NotEnoughArgumentsException(directive);
+}
+
+void Validator::checkBasicPreconditions(
+    const std::unique_ptr<Directive>& directive,
+    const std::vector<Directives::ArgumentSpec>& argSpecs)
+{
+    checkIfArgumentsAreAllowed(directive, argSpecs);
+    makeDuplicateCheck(directive->args());
+    checkTotalMinArgCount(directive, argSpecs);
+}
+
+void Validator::checkIfArgumentsAreAllowed(
+    const std::unique_ptr<Directive>& directive,
+    const std::vector<Directives::ArgumentSpec>& argSpecs)
+{
+    if (argSpecs.empty() && !directive->args().empty())
+        throw NoArgumentsAllowedException(directive);
+}
+
+void Validator::checkTotalMinArgCount(
+    const std::unique_ptr<Directive>& directive,
+    const std::vector<Directives::ArgumentSpec>& argSpecs)
+{
+    size_t minCount = 0;
+    for (const auto& spec : argSpecs)
+        minCount += spec.minCount;
+
+    if (directive->args().size() < minCount)
+        throw NotEnoughArgumentsException(directive);
 }
 
 // void Validator::validateArguments(const std::unique_ptr<Directive>&
