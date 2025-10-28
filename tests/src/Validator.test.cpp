@@ -50,6 +50,7 @@ TEST(ValidatorTest, ValidatesServerDirectivesInServerBlock)
     auto listen = createSimpleDirective(Directives::LISTEN, {"8080"});
     server->addDirective(std::move(listen));
     http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
 
     std::unique_ptr<Directive>& rootNode
         = reinterpret_cast<std::unique_ptr<Directive>&>(global);

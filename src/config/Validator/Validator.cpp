@@ -22,8 +22,10 @@ void Validator::validateChildren(const BlockDirective* block)
     {
         makeDuplicateCheck(seenDirectives, directive);
         makeConflictsCheck(seenDirectives, directive);
-        validateDirective(directive, block->name());
     }
+
+    for (const auto& directive : block->directives())
+        validateDirective(directive, block->name());
 
     if (block->name() == Directives::GLOBAL_CONTEXT)
         expectRequiredDirective(Directives::HTTP, block);

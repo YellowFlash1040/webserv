@@ -9,7 +9,6 @@ static void expectToken(const Token& token, TokenType expectedType,
     EXPECT_EQ(token.value(), expectedValue);
 }
 
-// Your existing tests
 TEST(LexerTest, EmptyInputThrowsAnError)
 {
     EXPECT_THROW(Lexer::tokenize(""), std::logic_error);
@@ -71,8 +70,6 @@ TEST(LexerTest, WhitespaceShouldBeIgnored)
     expectToken(tokens[2], TokenType::SEMICOLON, ";");
     expectToken(tokens[3], TokenType::END, "");
 }
-
-// Extended tests below
 
 TEST(LexerTest, TabsAndNewlinesShouldBeIgnored)
 {
