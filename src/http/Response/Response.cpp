@@ -143,6 +143,10 @@ std::string Response::allowedMethodsToString(const std::vector<HttpMethod>& allo
 
 std::string Response::genResp()
 {
+	std::cout << "[genResp] _ctx.has_return = " << _ctx.has_return 
+              << ", _ctx.redirection.statusCode = " << static_cast<int>(_ctx.redirection.statusCode)
+              << ", _ctx.redirection.url = \"" << _ctx.redirection.url << "\"\n";
+
 	if (_ctx.has_return)
 		return handleRedirection();
 	if (isMethodAllowed(_req.method, _ctx.allowed_methods) == false)

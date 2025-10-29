@@ -1,12 +1,4 @@
-*
-!*/
-.*
-!.gitignore
-!.gitkeep
-!Makefile
-!*.cpp
-!*.hpp
-!*.tpp
-!**/tests/googletest/**/*.a
-!**/tests/googletest/**/*.h
-!.clang-format
+webserve
+.gitignore
+.vscode/
+build/
