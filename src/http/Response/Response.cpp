@@ -102,6 +102,7 @@ std::string Response::codeToText(int code) const
 		case 403: return "Forbidden";
 		case 404: return "Not Found";
 		case 405: return "Method Not Allowed";
+		case 413: return "Payload Too Large";
 		case 500: return "Internal Server Error";
 		case 501: return "Not Implemented";
 		case 502: return "Bad Gateway";
@@ -150,6 +151,13 @@ std::string Response::allowedMethodsToString(const std::vector<HttpMethod>& allo
 
 std::string Response::genResp()
 {
+	// Reject request if body is too large
+    if (_req.body.size() > _ctx.client_max_body_size)
+	{
+        setStatusCode(413); // Payload Too Large
+        setErrorPageBody(HttpStatusCode::PayloadTooLarge, _ctx.error_pages);
+        return toString();
+    }
 	if (_ctx.has_return)
 		return handleRedirection();
 	if (!isMethodAllowed(_req.method, _ctx.allowed_methods))
