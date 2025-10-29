@@ -22,6 +22,8 @@ private:
 	std::unordered_map<std::string, std::string> _headers;
 	std::string _body;
 	
+	
+	
 
 	
 public:
@@ -72,6 +74,8 @@ public:
 	
 	CgiRequestData createCgiRequest();
 	std::string handleStatic();
+	std::string resolveErrorPagePath(const std::string& errorPath) const;
+	std::filesystem::path resolveBasePath() const;
 	
 	};
 

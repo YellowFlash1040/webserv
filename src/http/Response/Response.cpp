@@ -1,9 +1,10 @@
 #include "Response.hpp"
 
 Response::Response(const RequestData& req, const RequestContext& ctx)
-	: _req(req), _ctx(ctx), _statusCode(200), _statusText("OK"), _body("")
+    : _req(req), _ctx(ctx), _body("")
 {
-	setDefaultHeaders();
+    setStatus(static_cast<int>(HttpStatusCode::Ok));
+    setDefaultHeaders();
 }
 
 std::string getCurrentHttpDate()
@@ -160,14 +161,14 @@ std::string Response::genResp()
 	if (!_ctx.cgi_pass.empty())
 		return handleCgiScript();
 	{	
-		std::cout << "static\n";
+		std::cout << "[genResp] static\n";
 		return handleStatic();
 	}
 }
 
 std::string Response::handleRedirection()
 {
-	setStatus(static_cast<int>(HttpStatusCode::MovedPermanently));
+	setStatus(static_cast<int>(_ctx.redirection.statusCode));
 	addHeader("Location", _ctx.redirection.url);
 	setBody("Redirection in progress\n");
 	return toString();
@@ -229,7 +230,7 @@ std::string Response::handleStatic()
     std::string resolvedPath;
     try
     {
-        resolvedPath = fileHandler.resolveFilePath(_req.uri);
+        resolvedPath = fileHandler.resolveFilePath(_req.uri, _ctx);
     }
     catch (const std::exception& e)
     {
@@ -284,36 +285,50 @@ std::string Response::getErrorPageFilePath(
 
 void Response::setErrorPageBody(HttpStatusCode code, const std::vector<ErrorPage>& errorPages)
 {
-	std::string errorBodyPath = getErrorPageFilePath(code, errorPages);
-	std::string htmlBody;
+    std::string errorBodyPath = getErrorPageFilePath(code, errorPages);
+    std::cout << "[DEBUG] Requested error page path: " << errorBodyPath << "\n";
 
-	if (!errorBodyPath.empty())
-	{
-		std::ifstream file(errorBodyPath);
-		if (file)
-		{
-			std::ostringstream ss;
-			ss << file.rdbuf();
-			htmlBody = ss.str();
-		}
-	}
+    std::string htmlBody;
 
-	// Fallback if file not found or no custom error page
-	if (htmlBody.empty())
-	{
-		htmlBody =
-			"<html>\n"
-			"<head><title>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</title></head>\n"
-			"<body>\n"
-			"<center><h1>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</h1></center>\n"
-			"<hr><center>APT-Server/1.0</center>\n"
-			"</body>\n"
-			"</html>\n";
-	}
+    if (!errorBodyPath.empty())
+    {
+        std::string resolvedPath = resolveErrorPagePath(errorBodyPath);
+        std::cout << "[DEBUG] Resolved file path: " << resolvedPath << "\n";
 
-	setBody(htmlBody);
-	addHeader("Content-Type", "text/html");
-	addHeader("Content-Length", std::to_string(_body.size()));
+        std::ifstream file(resolvedPath);
+        if (file)
+        {
+            std::ostringstream ss;
+            ss << file.rdbuf();
+            htmlBody = ss.str();
+        }
+        else
+        {
+            std::cout << "[setErrorPageBody] could not open error page file: " << resolvedPath
+                      << " (exists=" << std::filesystem::exists(resolvedPath)
+                      << ", perm ok=" << ((std::filesystem::exists(resolvedPath) &&
+                        (std::filesystem::status(resolvedPath).permissions() &
+                         std::filesystem::perms::owner_read) != std::filesystem::perms::none) ? "yes" : "no")
+                      << ")\n";
+        }
+    }
+
+    // fallback
+    if (htmlBody.empty())
+    {
+        htmlBody =
+            "<html>\n"
+            "<head><title>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</title></head>\n"
+            "<body>\n"
+            "<center><h1>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</h1></center>\n"
+            "<hr><center>APT-Server/1.0</center>\n"
+            "</body>\n"
+            "</html>\n";
+    }
+
+    setBody(htmlBody);
+    addHeader("Content-Type", "text/html");
+    addHeader("Content-Length", std::to_string(_body.size()));
 }
 
 bool Response::shouldClose() const
@@ -322,3 +337,35 @@ bool Response::shouldClose() const
 	return it != _headers.end() && it->second == "close";
 }
 
+std::string Response::resolveErrorPagePath(const std::string& errorPath) const
+{ 
+	if (errorPath.empty())
+        return "";
+
+    std::filesystem::path p(errorPath);
+	std::filesystem::path base = resolveBasePath();
+
+    // Treat paths starting with '/' as relative to base
+    if (p.is_absolute() == false || errorPath.front() == '/')
+    {
+        std::string rel = errorPath;
+        if (rel.empty() ==false && rel.front() == '/')
+            rel.erase(0, 1); // remove leading slash
+
+        p = base / rel;
+    }
+
+    std::cout << "[resolveErrorPagePath] final path: " << p.string() 
+              << ", exists: " << std::filesystem::exists(p) << "\n";
+
+    return p.string();
+}
+
+std::filesystem::path Response::resolveBasePath() const
+{
+    if (!_ctx.alias.empty())
+        return _ctx.alias;
+    if (!_ctx.root.empty())
+        return _ctx.root;
+    return std::filesystem::current_path();
+}

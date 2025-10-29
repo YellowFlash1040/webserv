@@ -150,28 +150,22 @@ void ConnectionManager::genRespsForReadyReqs(int clientId)
 	while (clientState.hasCompleteRawRequest())
 	{
 		RawRequest rawReq = clientState.popFirstCompleteRawRequest();
-		
-		std::cout << "[ConnectionManager::genRespsForReadyReqs] rawReq.isBadRequest() = " << rawReq.isBadRequest() << "\n";
-		// Check if request was marked as bad
-		if (rawReq.isBadRequest()) 
-		{
-			std::cout << "[ConnectionManager::genRespsForReadyReqs] Bad request detected, generating 400 response\n";
-			Response resp;
-			
-			resp.setStatus(static_cast<int>(HttpStatusCode::BadRequest)); //check code
-			clientState.enqueueResponse(resp);
-			continue; // skip normal response generation
-		}
-		
-		// Only for valid requests:
 		RequestData reqData = rawReq.buildRequestData();
 		// Build context using the host and URI from the request
 		RequestContext ctx = m_config.createRequestContext(reqData.getHeader("Host"), reqData.uri);
 		printReqContext(ctx);
-	
-		// Generate and enqueue response
+		
 		Response resp(reqData, ctx);
-		std::string output = resp.genResp();
+		
+		if (rawReq.isBadRequest()) 
+		{
+			std::cout << "[ConnectionManager::genRespsForReadyReqs] Bad request detected, generating 400 response\n";
+			resp.setStatus(static_cast<int>(HttpStatusCode::BadRequest)); //check code
+			resp.setErrorPageBody(HttpStatusCode::BadRequest, ctx.error_pages);
+		}
+		
+		else
+			resp.genResp();
 		clientState.enqueueResponse(resp);
 	}
 }

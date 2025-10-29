@@ -447,7 +447,7 @@ void RawRequest::appendBodyBytes(const std::string& data)
 	
 }
 
-void RawRequest::separateHeadersFromBody()
+void RawRequest::separateHeadersFromBody()  // TODO: handle malformed requests safely and support error pages without URI
 {
 	std::cout << YELLOW << "DEBUG: separateHeadersFromBody: " << RESET << std::endl;
 	//std::cout << "[separateHeadersFromBody] tempBuffer = |" << _tempBuffer << "|\n";
@@ -473,12 +473,12 @@ void RawRequest::separateHeadersFromBody()
 
 	// Keep leftover (after headers) in tempBuffer
 	_tempBuffer = _tempBuffer.substr(headerEnd + 4);
-	//std::cout << "Temp buffer after headers removed = |" << _tempBuffer << "|\n";
+	std::cout << "Temp buffer after headers removed = |" << _tempBuffer << "|\n";
 	
-	//std::cout << "Temp buffer length after header removal = " << _tempBuffer.size() << std::endl;
+	std::cout << "Temp buffer length after header removal = " << _tempBuffer.size() << std::endl;
 	try
 	{
-    	_uri = normalizePath(_uri);
+    	_uri = normalizePath(_uri);  // validate path AFTER leftovers are handled
 	}
 	catch (const std::exception& e)
 	{

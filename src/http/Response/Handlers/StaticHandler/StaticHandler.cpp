@@ -7,7 +7,7 @@ namespace StaticHandler
 	try
 	{
 		std::cout << "[StaticHandler::serve] req.uri = " << req.uri << std::endl;
-		std::string resolvedPath = fileHandler.resolveFilePath(req.uri);
+		std::string resolvedPath = fileHandler.resolveFilePath(req.uri, ctx);
 
 		if (fileHandler.isDirectory(resolvedPath))
 			return handleStaticDirectory(fileHandler, ctx, resolvedPath);
@@ -61,7 +61,7 @@ std::string serveStaticFile(FileHandler& fileHandler, const RequestContext& /*ct
 
 	std::string handleStaticError(FileHandler& /*fileHandler*/, const RequestContext& ctx, const std::exception& e)
 	{
-		std::cerr << "[StaticHandler] File error: " << e.what() << "\n";
+		std::cout << "[StaticHandler] File error: " << e.what() << "\n";
 
 		// Example: catch path escape explicitly
 		if (std::string(e.what()).find("Access outside root") != std::string::npos)

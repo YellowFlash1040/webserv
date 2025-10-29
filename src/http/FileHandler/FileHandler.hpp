@@ -11,6 +11,8 @@
 #include <iostream>
 #include <filesystem>
 
+#include "../../config/RequestContext/RequestContext.hpp"
+
 class FileHandler
 {
 	public:
@@ -22,7 +24,7 @@ class FileHandler
 		~FileHandler() = default;
 		
 		// Resolve a URI to an absolute filesystem path under a given root.
-		std::string resolveFilePath(const std::string &uri) const;
+		std::string resolveFilePath(const std::string &uri, const RequestContext &ctx) const;
 
 		// Filesystem checks
 		static bool isDirectory(const std::string &path);
