@@ -45,10 +45,10 @@ class Validator
     static void checkIfArgumentsAreAllowed(
         const std::unique_ptr<Directive>& directive,
         const std::vector<Directives::ArgumentSpec>& argSpecs);
-    static void checkTotalMinArgCount(
+    static void checkIfEnoughArguments(
         const std::unique_ptr<Directive>& directive,
         const std::vector<Directives::ArgumentSpec>& argSpecs);
-    static void makeDuplicateCheck(const std::vector<Argument>& args);
+    static void checkForDuplicateArguments(const std::vector<Argument>& args);
     static void makeConflictsCheck(std::set<std::string>& seenDirectives,
                                    const std::unique_ptr<Directive>& directive);
     static void checkForDuplicateLocationPaths(
@@ -59,12 +59,11 @@ class Validator
     static void checkIfAllowedDirective(
         const std::unique_ptr<Directive>& directive,
         const std::string& context);
-    static void processArgumentsWithSpec(
-        const std::unique_ptr<Directive>& directive,
-        const std::vector<Directives::ArgumentSpec>& argSpecs, size_t& i,
-        size_t& specIdx);
+    static void processArgumentsWithSpec(const Directives::ArgumentSpec& spec,
+                                         const std::vector<Argument>& args,
+                                         size_t& i);
     static void validateArguments(const std::unique_ptr<Directive>& directive);
-    static void validateArgument(const std::vector<ArgumentType>& possibleTypes,
+    static bool validateArgument(const std::vector<ArgumentType>& possibleTypes,
                                  const std::string& value);
 
     static void validateInteger(const std::string& s);
@@ -88,9 +87,6 @@ class Validator
     static const std::map<ArgumentType,
                           std::function<void(const std::string&)>>&
     validators();
-
-    // static bool tryValidateArgument(
-    //     const std::vector<ArgumentType>& possibleTypes, const Argument& arg);
 };
 
 #endif

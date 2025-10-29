@@ -23,6 +23,7 @@ int main(int argc, char** argv)
             = config.createRequestContext("server.com", "/kapouet/file");
         // RequestContext context
         // = config.createRequestContext("server.com", "/images/file");
+        // RequestContext context = config.createRequestContext("", "");
 
         std::cout << "Well done :)"
                   << "\n";

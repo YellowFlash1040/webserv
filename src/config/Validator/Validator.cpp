@@ -207,63 +207,11 @@ void Validator::validateArguments(const std::unique_ptr<Directive>& directive)
     checkBasicPreconditions(directive, argSpecs);
 
     size_t i = 0;
-    for (size_t specIdx = 0; specIdx < argSpecs.size(); ++specIdx)
-        processArgumentsWithSpec(directive, argSpecs, i, specIdx);
+    for (const auto& spec : argSpecs)
+        processArgumentsWithSpec(spec, args, i);
 
-    // If some args left → TooManyArguments
     if (i < args.size())
         throw TooManyArgumentsException(directive);
-}
-
-void Validator::processArgumentsWithSpec(
-    const std::unique_ptr<Directive>& directive,
-    const std::vector<Directives::ArgumentSpec>& argSpecs, size_t& i,
-    size_t& specIdx)
-{
-    const auto& args = directive->args();
-    const auto& spec = argSpecs[specIdx];
-    size_t count = 0;
-
-    while (i < args.size() && count < spec.maxCount)
-    {
-        try
-        {
-            // Try to validate current arg with current group
-            validateArgument(spec.possibleTypes, args[i]);
-            // Success → consume it
-            ++count;
-            ++i;
-        }
-        catch (const std::exception&)
-        {
-            if (count < spec.minCount)
-                throw InvalidArgumentException(args[i]);
-            // Invalid for current group
-            if (specIdx + 1 < argSpecs.size())
-            {
-                // Next group exists, try it
-                try
-                {
-                    const auto& nextSpec = argSpecs[specIdx + 1];
-                    validateArgument(nextSpec.possibleTypes, args[i]);
-                    // Success → move to next group (break out of while
-                    // loop)
-                    break;
-                }
-                catch (const std::exception&)
-                {
-                    // Fail → throw InvalidArgument
-                    throw InvalidArgumentException(args[i]);
-                }
-            }
-            else
-                // No next group → throw InvalidArgument
-                throw InvalidArgumentException(args[i]);
-        }
-    }
-
-    if (count < spec.minCount)
-        throw NotEnoughArgumentsException(directive);
 }
 
 void Validator::checkBasicPreconditions(
@@ -271,9 +219,38 @@ void Validator::checkBasicPreconditions(
     const std::vector<Directives::ArgumentSpec>& argSpecs)
 {
     checkIfArgumentsAreAllowed(directive, argSpecs);
-    makeDuplicateCheck(directive->args());
-    checkTotalMinArgCount(directive, argSpecs);
+    checkForDuplicateArguments(directive->args());
+    checkIfEnoughArguments(directive, argSpecs);
 }
+
+void Validator::processArgumentsWithSpec(const Directives::ArgumentSpec& spec,
+                                         const std::vector<Argument>& args,
+                                         size_t& i)
+{
+    size_t count = 0;
+    while (i < args.size() && count < spec.maxCount
+           && validateArgument(spec.possibleTypes, args[i]))
+    {
+        ++count;
+        ++i;
+    }
+
+    if (count < spec.minCount)
+        throw InvalidArgumentException(args[i]);
+}
+
+// void Validator::consumeArgumentsWhileCan(const Directives::ArgumentSpec&
+// spec,
+//                                          const std::vector<Argument>& args,
+//                                          size_t& i, size_t& count)
+// {
+//     while (i < args.size() && count < spec.maxCount
+//            && validateArgument(spec.possibleTypes, args[i]))
+//     {
+//         ++count;
+//         ++i;
+//     }
+// }
 
 void Validator::checkIfArgumentsAreAllowed(
     const std::unique_ptr<Directive>& directive,
@@ -283,7 +260,7 @@ void Validator::checkIfArgumentsAreAllowed(
         throw NoArgumentsAllowedException(directive);
 }
 
-void Validator::checkTotalMinArgCount(
+void Validator::checkIfEnoughArguments(
     const std::unique_ptr<Directive>& directive,
     const std::vector<Directives::ArgumentSpec>& argSpecs)
 {
@@ -389,7 +366,7 @@ Otherwise - it's invalid.
 But for now I decided to treat both situations as "Invalid argument"
 */
 
-void Validator::makeDuplicateCheck(const std::vector<Argument>& args)
+void Validator::checkForDuplicateArguments(const std::vector<Argument>& args)
 {
     std::set<std::string> seenArguments;
 
@@ -403,7 +380,7 @@ void Validator::makeDuplicateCheck(const std::vector<Argument>& args)
     }
 }
 
-void Validator::validateArgument(const std::vector<ArgumentType>& possibleTypes,
+bool Validator::validateArgument(const std::vector<ArgumentType>& possibleTypes,
                                  const std::string& value)
 {
     for (ArgumentType type : possibleTypes)
@@ -416,7 +393,7 @@ void Validator::validateArgument(const std::vector<ArgumentType>& possibleTypes,
         {
             const auto& validateValue = it->second;
             validateValue(value); // if this succeeds, we're done
-            return;
+            return true;
         }
         catch (const std::exception& ex)
         {
@@ -425,8 +402,9 @@ void Validator::validateArgument(const std::vector<ArgumentType>& possibleTypes,
         }
     }
 
-    throw std::invalid_argument("Argument '" + value
-                                + "' does not match any allowed type");
+    return false;
+    // throw std::invalid_argument("Argument '" + value
+    //                             + "' does not match any allowed type");
 }
 
 ///----------------///
@@ -530,9 +508,6 @@ void Validator::validateNetworkEndpoint(const std::string& s)
     if (s.empty())
         throw std::invalid_argument(
             "argument for 'listen' directive can not be empty");
-
-    (void)s;
-    return;
 }
 
 void Validator::validateHttpMethod(const std::string& s)
@@ -567,13 +542,16 @@ void Validator::validateName(const std::string& s)
 
     // if (s.find_first_of("/\\") != std::string::npos)
     //     throw std::invalid_argument(
-    //         "Name cannot contain '/' or '\\'. Invalid name: '" + s + "'");
+    //         "Name cannot contain '/' or '\\'. Invalid name: '" + s +
+    //         "'");
 
     // for (char c : s)
     // {
     //     if (!(std::isalnum(c) || c == '.'))
-    //         throw std::invalid_argument("Name can only contain alphanumeric "
-    //                                     "characters and dots. Invalid name:
+    //         throw std::invalid_argument("Name can only contain
+    //         alphanumeric "
+    //                                     "characters and dots. Invalid
+    //                                     name:
     //                                     '"
     //                                     + s + "'");
     // }
