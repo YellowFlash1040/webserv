@@ -1,10 +1,10 @@
 #ifndef CLIENTSTATE
 #define CLIENTSTATE
 
-#include "../RawRequest/RawRequest.hpp"
-#include "../../Response/Response.hpp"
+#include "../../Request/RawRequest/RawRequest.hpp"
+#include "../../Request/RequestData/RequestData.hpp"
 #include "../../HttpMethod/HttpMethod.hpp"
-#include "../../RequestData/RequestData.hpp"
+#include "../../Response/Response.hpp"
 
 #include <string>
 #include <iostream>

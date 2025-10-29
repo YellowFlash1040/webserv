@@ -6,10 +6,10 @@
 #include <chrono>
 #include <iomanip>
 #include <fstream>
-#include "../RawRequest/RawRequest.hpp"
-#include "../config/RequestContext/RequestContext.hpp"
-#include "../Cgi/CgiRequest/CgiRequest.hpp"
-#include "../FileHandler/FileHandler.hpp"
+#include "../Request/RawRequest/RawRequest.hpp"
+#include "../../config/RequestContext/RequestContext.hpp"
+#include "Handlers/CgiHandler/CgiRequestData.hpp"
+#include "Handlers/StaticHandler/StaticHandler.hpp"
 
 class Response
 {
@@ -21,6 +21,8 @@ private:
 	std::string _statusText;
 	std::unordered_map<std::string, std::string> _headers;
 	std::string _body;
+	
+
 	
 public:
 
@@ -67,10 +69,10 @@ public:
 	
 	std::string handleMethodNotAllowed();
 	std::string handleCgiScript();
-	std::string handleStaticFile();
 	std::string handleRedirection();
 	
-	CgiRequest createCgiRequest();
+	CgiRequestData createCgiRequest();
+	std::string handleStatic();
 	
 	};
 

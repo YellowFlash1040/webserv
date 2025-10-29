@@ -1,7 +1,4 @@
 #include "Response.hpp"
-#include <sstream>     // for ostringstream
-#include <stdexcept>   // for invalid_argument
-
 
 Response::Response(const RequestData& req, const RequestContext& ctx)
 	: _req(req), _ctx(ctx), _statusCode(200), _statusText("OK"), _body("")
@@ -129,6 +126,28 @@ void Response::setDefaultHeaders()
 	addHeader("Connection", "keep-alive");
 }
 
+bool Response::isMethodAllowed(HttpMethodEnum method, const std::vector<HttpMethod>& allowed_methods)
+{
+	for (std::vector<HttpMethod>::const_iterator it = allowed_methods.begin(); it != allowed_methods.end(); ++it)
+	{
+		if (it->value() == method)
+			return true;
+	}
+	return false;
+}
+
+std::string Response::allowedMethodsToString(const std::vector<HttpMethod>& allowed_methods)
+{
+	std::ostringstream oss;
+	for (size_t i = 0; i < allowed_methods.size(); ++i)
+	{
+		oss << allowed_methods[i].toString();
+		if (i + 1 < allowed_methods.size())
+			oss << ", ";
+	}
+	return oss.str();
+}
+
 std::string Response::genResp()
 {
 	if (_ctx.has_return)
@@ -139,7 +158,7 @@ std::string Response::genResp()
 		return handleCgiScript();
 	{	
 		std::cout << "static\n";
-		return handleStaticFile();
+		return handleStatic();
 	}
 }
 
@@ -152,69 +171,9 @@ std::string Response::handleRedirection()
 	return toString();
 }
 
-std::string Response::handleStaticFile()
-{
-	std::cout << "[DEBUG] Entered handleStaticFile\n";
-	FileHandler fileHandler(_ctx.root, _ctx.autoindex_enabled, _ctx.index_files);
-	 std::cout << "[DEBUG] Root = '" << _ctx.root << "', URI = '" << _req.uri << "'\n";
-
-	try
-	{
-		std::string path = fileHandler.resolveFilePath(_req.uri);
-		std::cout << "[DEBUG] Resolved file path = '" << path << "'\n";
-
-		if (fileHandler.isDirectory(path))
-		{
-			std::cout << "[DEBUG] Path is a directory\n";
-			std::string dirResp = fileHandler.handleDirectory(path);
-			std::cout << "[DEBUG] Directory response generated:\n" << dirResp << "\n";
-			return dirResp;
-		}
-
-		if (!fileHandler.fileExists(path))
-		if (!fileHandler.fileExists(path))
-		{
-			std::cout << "[DEBUG] File does not exist\n";
-			std::string notFoundResp = fileHandler.handleNotFound();
-			std::cout << "[DEBUG] Not Found response generated:\n" << notFoundResp << "\n";
-			return notFoundResp;
-		}
-
-		std::string body = fileHandler.serveFile(path);
-		std::cout << "[DEBUG] Serving file with length " << body.size() << " bytes\n";
-		std::string mime = fileHandler.detectMimeType(path);
-		std::cout << "[DEBUG] Detected MIME type = " << mime << "\n";
-
-		addHeader("Content-Length", std::to_string(body.size()));
-		addHeader("Content-Type", mime);
-		setBody(body);
-
-		std::string finalResp = toString();
-		std::cout << "[DEBUG] Final response generated:\n" << finalResp << "\n";
-
-		return finalResp;
-	}
-	catch(const std::exception& e)
-	{
-        std::cerr << "[Response] File error: " << e.what() << "\n";
-        if (std::string(e.what()).find("path escapes root") != std::string::npos)
-        {
-            setStatusCode(403);
-            setStatusText("Forbidden");
-        }
-        else
-        {
-            setStatusCode(404);
-            setStatusText("Not Found");
-        }
-        setBody(fileHandler.handleNotFound());
-        return toString();
-    }
-}
-
 std::string Response::handleCgiScript()
 {
-	CgiRequest cgiReq = createCgiRequest();
+	CgiRequestData cgiReq = createCgiRequest();
 	// TODO: integrate with CGI handler
 
 	setStatusCode(static_cast<int>(HttpStatusCode::Ok));
@@ -226,9 +185,9 @@ std::string Response::handleCgiScript()
 }
 
 
-CgiRequest Response::createCgiRequest()
+CgiRequestData Response::createCgiRequest()
 {
-	CgiRequest cgiReq;
+	CgiRequestData cgiReq;
 
 	// Script path is the CGI executable
 	cgiReq.scriptPath = _ctx.cgi_pass;
@@ -253,7 +212,6 @@ CgiRequest Response::createCgiRequest()
 		"Accept"
 	};
 	
-	
 	for (const std::string& h : hdrs)
 	{
 		std::string value = _req.getHeader(h);
@@ -263,27 +221,51 @@ CgiRequest Response::createCgiRequest()
 	return cgiReq;
 }
 
-bool Response::isMethodAllowed(HttpMethodEnum method, const std::vector<HttpMethod>& allowed_methods)
+std::string Response::handleStatic()
 {
-	for (std::vector<HttpMethod>::const_iterator it = allowed_methods.begin(); it != allowed_methods.end(); ++it)
+    FileHandler fileHandler(_ctx.root, _ctx.autoindex_enabled, _ctx.index_files);
+
+    std::string resolvedPath;
+    try
+    {
+        resolvedPath = fileHandler.resolveFilePath(_req.uri);
+    }
+    catch (const std::exception& e)
+    {
+        return StaticHandler::handleStaticError(fileHandler, _ctx, e);
+    }
+
+    if (fileHandler.isDirectory(resolvedPath))
+    {
+        if (_ctx.autoindex_enabled)
+        {
+            std::string dirHtml = fileHandler.handleDirectory(resolvedPath);
+            setBody(dirHtml);
+            addHeader("Content-Type", "text/html");
+            return toString();
+        }
+        else
+        {
+			setStatusCode(404);
+            setErrorPageBody(HttpStatusCode::NotFound, _ctx.error_pages);
+			return toString();
+		}
+    }
+
+    if (!fileHandler.fileExists(resolvedPath))
 	{
-		if (it->value() == method)
-			return true;
+		setStatusCode(404);
+        setErrorPageBody(HttpStatusCode::NotFound, _ctx.error_pages);
+		return toString();
 	}
-	return false;
+
+    std::string fileContents = fileHandler.serveFile(resolvedPath);
+    setBody(fileContents);
+    addHeader("Content-Type", fileHandler.detectMimeType(resolvedPath));
+
+    return toString();
 }
 
-std::string Response::allowedMethodsToString(const std::vector<HttpMethod>& allowed_methods)
-{
-	std::ostringstream oss;
-	for (size_t i = 0; i < allowed_methods.size(); ++i)
-	{
-		oss << allowed_methods[i].toString();
-		if (i + 1 < allowed_methods.size())
-			oss << ", ";
-	}
-	return oss.str();
-}
 
 std::string Response::getErrorPageFilePath(
 	HttpStatusCode status, const std::vector<ErrorPage>& errorPages)
@@ -338,3 +320,4 @@ bool Response::shouldClose() const
 	auto it = _headers.find("Connection");
 	return it != _headers.end() && it->second == "close";
 }
+

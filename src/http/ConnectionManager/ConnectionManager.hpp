@@ -44,7 +44,7 @@ class ConnectionManager
 		const RawRequest& getRawRequest(int clientId, size_t index = SIZE_MAX) const;
 		
 		void addClient(int clientId);
-		bool clientSentClose(int clientId) const;
+		// bool clientSentClose(int clientId) const;
 		void removeClient(int clientId);
 		ClientState& getClientStateForTest(int clientId);
 		

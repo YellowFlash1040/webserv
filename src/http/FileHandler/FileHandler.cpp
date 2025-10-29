@@ -5,29 +5,14 @@ FileHandler::FileHandler(const std::string &root, bool autoindex, const std::vec
 
 std::string FileHandler::resolveFilePath(const std::string &uri) const
 {
-    // std::string cleanUri = uri;
-
-    // // If URI is just "/", look for configured index file(s)
-    // if (cleanUri == "/")
-    // {
-    //     for (std::vector<std::string>::const_iterator it = _indexFiles.begin(); it != _indexFiles.end(); ++it)
-    //     {
-    //         std::string candidate = _root + "/" + *it;
-    //         if (fileExists(candidate))
-    //             return candidate;
-    //     }
-    //     // fallback to index.html
-    //     cleanUri = "/index.html";
-    // }
-
-    // return _root + cleanUri;
-	// Percent-decoding done already in RawRequest, uri is clean
     std::filesystem::path path = std::filesystem::path(uri).lexically_normal();
     std::filesystem::path fullPath = _root / path.relative_path();
 	
-	std::cout << "[DEBUG] Input to resolveFilePath: '" << uri << "'" << std::endl;
-	std::cout << "[DEBUG] Lexically normalized path: '" << path.string() << "'" << std::endl;
-	std::cout << "[DEBUG] Full path (_root + path): '" << fullPath.string() << "'" << std::endl;
+	std::cout << "[FileHandler::resolveFilePath] Input URI: \"" << uri << "\"\n";
+    std::cout << "[FileHandler::resolveFilePath] Lexically normalized path: \"" 
+              << path.string() << "\"\n";
+    std::cout << "[FileHandler::resolveFilePath] Full path (_root + path): \"" 
+              << fullPath.string() << "\"\n";
 	
     if (isDirectory(fullPath))
 	{
@@ -43,7 +28,7 @@ std::string FileHandler::resolveFilePath(const std::string &uri) const
     if (!inside)
 		throw std::runtime_error("Access outside root forbidden");
 	
-	std::cout << "[DEBUG] isPathInsideRoot = " << inside << std::endl;
+	std::cout << "[FileHandler::resolveFilePath] isPathInsideRoot = " << inside << std::endl;
     return fullPath.string();
 }
 

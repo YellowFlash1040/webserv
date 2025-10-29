@@ -147,6 +147,8 @@ void Server::processClient(int clientId)
 			{
 				Response resp = m_connMgr.popNextResponse(clientId);	
 				std::string respStr = resp.toString();
+				std::cout << "[Server::processClient] sending " << respStr.size() <<  "bytes\n";
+				
 				write(clientId, respStr.c_str(), respStr.size());
 				
 				// Only remove client if last request indicates Connection: close

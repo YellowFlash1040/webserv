@@ -450,7 +450,7 @@ void RawRequest::appendBodyBytes(const std::string& data)
 void RawRequest::separateHeadersFromBody()
 {
 	std::cout << YELLOW << "DEBUG: separateHeadersFromBody: " << RESET << std::endl;
-	std::cout << "[separateHeadersFromBody] tempBuffer = |" << _tempBuffer << "|\n";
+	//std::cout << "[separateHeadersFromBody] tempBuffer = |" << _tempBuffer << "|\n";
 
 	size_t headerEnd = _tempBuffer.find("\r\n\r\n");
 	if (headerEnd == std::string::npos)
@@ -460,18 +460,9 @@ void RawRequest::separateHeadersFromBody()
 	}
 
 	std::string headerPart = _tempBuffer.substr(0, headerEnd + 4);
-	std::cout << "[separateHeadersFromBody] Header part = |" << headerPart << "|\n";
+	//std::cout << "[separateHeadersFromBody] Header part = |" << headerPart << "|\n";
 
 	parseRequestLineAndHeaders(headerPart);
-	
-	// catch (...)
-	// {
-	// 	std::cout << "[separateHeadersFromBody] Unknown exception parsing headers\n";
-	// 	_bodyType = BodyType::ERROR;
-	// 	_bodyDone = true;
-	// 	_tempBuffer.clear();
-	// 	throw;
-	// }
 	
 	if (_bodyType == BodyType::NO_BODY)
 	{
@@ -482,12 +473,12 @@ void RawRequest::separateHeadersFromBody()
 
 	// Keep leftover (after headers) in tempBuffer
 	_tempBuffer = _tempBuffer.substr(headerEnd + 4);
-	std::cout << "Temp buffer after headers removed = |" << _tempBuffer << "|\n";
+	//std::cout << "Temp buffer after headers removed = |" << _tempBuffer << "|\n";
 	
-	std::cout << "Temp buffer length after header removal = " << _tempBuffer.size() << std::endl;
+	//std::cout << "Temp buffer length after header removal = " << _tempBuffer.size() << std::endl;
 	try
 	{
-    	_uri = normalizePath(_uri);  // validate path AFTER leftovers are handled
+    	_uri = normalizePath(_uri);
 	}
 	catch (const std::exception& e)
 	{
@@ -604,7 +595,11 @@ std::string RawRequest::normalizePath(const std::string& rawUri)
 		if (segment == "..")
 		{
 			if (stack.empty())
+			{
+				std::cout << "[DEBUG][RawRequest::normalizePath] Bad request: path escapes root: '" 
+					<< rawUri << "'\n";
 				throw std::runtime_error("Bad request: path escapes root");
+			}
 			stack.pop_back();
 		}
 		else

@@ -61,13 +61,12 @@ size_t ConnectionManager::processReqs(int clientId, const std::string& data)
 	// Append all incoming bytes to _tempBuffer
 	rawReq.appendTempBuffer(data);
 	
-	std::cout << "[processReqs] tempBuffer is |" << rawReq.getTempBuffer() << "|\n";
+	//std::cout << "[processReqs] tempBuffer is |" << rawReq.getTempBuffer() << "|\n";
 	
 	size_t parsedCount = 0;
 	while(true)
 	{
 		RawRequest& rawReq = clientState.getLatestRawReq();
-		// RawRequest& rawReq = clientState.popRawReq();
 		
 		//if we don’t yet have headers for this request, try to parse them.
 		if (rawReq.isHeadersDone() == false)
@@ -90,14 +89,14 @@ size_t ConnectionManager::processReqs(int clientId, const std::string& data)
 			rawReq.appendBodyBytes(rawReq.getTempBuffer());
 			if (rawReq.isBodyDone() == false)
 			{
-				std::cout << "[processReqs]: body not finished yet\n";
+				//std::cout << "[processReqs]: body not finished yet\n";
 				break; // Need more data for body, exit loop until next call
 			}
 		}
 		
-		std::cout << "[DEBUG] headersDone=" << rawReq.isHeadersDone()
-          << " bodyDone=" << rawReq.isBodyDone()
-          << " isBad=" << rawReq.isBadRequest() << "\n";
+		//std::cout << "[DEBUG] headersDone=" << rawReq.isHeadersDone()
+          //<< " bodyDone=" << rawReq.isBodyDone()
+          //<< " isBad=" << rawReq.isBadRequest() << "\n";
 		  
 		//At this point headers and body are done = full request parsed
 		if ((rawReq.isHeadersDone() && rawReq.isBodyDone()) || rawReq.isBadRequest())
@@ -158,10 +157,11 @@ void ConnectionManager::genRespsForReadyReqs(int clientId)
 		{
 			RawRequest rawReq = clientState.popFirstCompleteRawRequest();
 		 	
+			std::cout << "[ConnectionManager::genRespsForReadyReqs] rawReq.isBadRequest() = " << rawReq.isBadRequest() << "\n";
 			// Check if request was marked as bad
 			if (rawReq.isBadRequest()) 
 			{
-				std::cout << "[genRespsForReadyReqs] Bad request detected, generating 400 response\n";
+				std::cout << "[ConnectionManager::genRespsForReadyReqs] Bad request detected, generating 400 response\n";
 				Response resp;
 				resp.setStatusCode(400);
 				//resp.setBody("Bad Request: " + rawReq.getErrorMessage() + "\n"); // store msg in RawRequest
