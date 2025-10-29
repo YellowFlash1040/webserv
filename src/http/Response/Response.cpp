@@ -41,7 +41,7 @@ bool Response::hasHeader(const std::string& key) const
 	return _headers.find(key) != _headers.end();
 }
 
-void Response::setStatusCode(int code)
+void Response::setStatus(int code)
 {
 	if (code < 100 || code > 599)
 		throw std::invalid_argument("Invalid HTTP status code");
@@ -111,15 +111,6 @@ std::string Response::codeToText(int code) const
 	}
 }
 
-std::string Response::handleMethodNotAllowed()
-{
-	setStatusCode(static_cast<int>(HttpStatusCode::MethodNotAllowed));
-	setStatusText("Method Not Allowed");
-	addHeader("Allow", allowedMethodsToString(_ctx.allowed_methods));
-	setErrorPageBody(HttpStatusCode::MethodNotAllowed, _ctx.error_pages);
-	return toString();
-}
-
 void Response::setDefaultHeaders()
 {
 	addHeader("Date", getCurrentHttpDate());
@@ -151,17 +142,21 @@ std::string Response::allowedMethodsToString(const std::vector<HttpMethod>& allo
 
 std::string Response::genResp()
 {
-	// Reject request if body is too large
-    if (_req.body.size() > _ctx.client_max_body_size)
-	{
-        setStatusCode(413); // Payload Too Large
-        setErrorPageBody(HttpStatusCode::PayloadTooLarge, _ctx.error_pages);
-        return toString();
-    }
 	if (_ctx.has_return)
 		return handleRedirection();
-	if (!isMethodAllowed(_req.method, _ctx.allowed_methods))
-		return handleMethodNotAllowed();
+	if (isMethodAllowed(_req.method, _ctx.allowed_methods) == false)
+	{
+    	setStatus(static_cast<int>(HttpStatusCode::MethodNotAllowed));
+        setErrorPageBody(HttpStatusCode::MethodNotAllowed, _ctx.error_pages);    
+		addHeader("Allow", allowedMethodsToString(_ctx.allowed_methods));
+		return toString();
+	}
+    if (_req.body.size() > _ctx.client_max_body_size)
+	{
+        setStatus(static_cast<int>(HttpStatusCode::PayloadTooLarge));
+        setErrorPageBody(HttpStatusCode::PayloadTooLarge, _ctx.error_pages);
+		return toString();
+    }
 	if (!_ctx.cgi_pass.empty())
 		return handleCgiScript();
 	{	
@@ -172,8 +167,7 @@ std::string Response::genResp()
 
 std::string Response::handleRedirection()
 {
-	setStatusCode(static_cast<int>(HttpStatusCode::MovedPermanently));
-	setStatusText("Moved Permanently");
+	setStatus(static_cast<int>(HttpStatusCode::MovedPermanently));
 	addHeader("Location", _ctx.redirection.url);
 	setBody("Redirection in progress\n");
 	return toString();
@@ -184,8 +178,7 @@ std::string Response::handleCgiScript()
 	CgiRequestData cgiReq = createCgiRequest();
 	// TODO: integrate with CGI handler
 
-	setStatusCode(static_cast<int>(HttpStatusCode::Ok));
-	setStatusText("OK");
+	setStatus(static_cast<int>(HttpStatusCode::Ok));
 	addHeader("Transfer-Encoding", "chunked");
 	addHeader("Content-Type", "?");
 	setBody("CGI script would be executed\n");
@@ -254,7 +247,7 @@ std::string Response::handleStatic()
         }
         else
         {
-			setStatusCode(404);
+			setStatus(static_cast<int>(HttpStatusCode::NotFound));
             setErrorPageBody(HttpStatusCode::NotFound, _ctx.error_pages);
 			return toString();
 		}
@@ -262,7 +255,7 @@ std::string Response::handleStatic()
 
     if (!fileHandler.fileExists(resolvedPath))
 	{
-		setStatusCode(404);
+		setStatus(static_cast<int>(HttpStatusCode::NotFound));
         setErrorPageBody(HttpStatusCode::NotFound, _ctx.error_pages);
 		return toString();
 	}

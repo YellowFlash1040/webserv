@@ -3,6 +3,16 @@
 FileHandler::FileHandler(const std::string &root, bool autoindex, const std::vector<std::string> &indexFiles)
     : _root(root), _autoindex(autoindex), _indexFiles(indexFiles) {}
 
+/**
+ * @brief Construct a candidate path for a potential index file in a directory.
+ *
+ * The / operator for std::filesystem::path performs path concatenation
+ * in a platform-aware way (e.g., uses / on Unix-like systems and \ on Windows).
+ *
+ * @param fullPath The directory path in which to look for an index file.
+ * @param index The index filename (e.g., "index.html").
+ * @return std::filesystem::path The full candidate path (directory + index file).
+ */
 std::string FileHandler::resolveFilePath(const std::string &uri) const
 {
     std::filesystem::path path = std::filesystem::path(uri).lexically_normal();
@@ -20,7 +30,7 @@ std::string FileHandler::resolveFilePath(const std::string &uri) const
 		{
             std::filesystem::path candidate = fullPath / index;
             if (fileExists(candidate.string()))
-                fullPath = candidate;
+                 return candidate.string();  // return first found
         }
     }
 	

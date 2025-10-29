@@ -45,7 +45,7 @@ public:
 	bool hasHeader(const std::string& key) const;
 
 	// Setters
-	void setStatusCode(int code);
+	void setStatus(int code);
 	void setStatusText(const std::string& text);
 	void setDefaultHeaders();
 	void addHeader(const std::string& key, const std::string& value);
@@ -67,7 +67,6 @@ public:
 	void setErrorPageBody(HttpStatusCode code, const std::vector<ErrorPage>& errorPages);
 	bool shouldClose() const;
 	
-	std::string handleMethodNotAllowed();
 	std::string handleCgiScript();
 	std::string handleRedirection();
 	

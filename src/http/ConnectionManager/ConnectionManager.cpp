@@ -146,39 +146,33 @@ void ConnectionManager::genRespsForReadyReqs(int clientId)
 		return;
 
 	ClientState& clientState = it->second;
-
-	// while (clientState.getRequestCount() > 0) 
-	// {
-		// RequestData req = clientState.popRequestData();
+	
+	while (clientState.hasCompleteRawRequest())
+	{
+		RawRequest rawReq = clientState.popFirstCompleteRawRequest();
 		
-		// RawRequest& rawReq = clientState.getLatestRawReq();
-    	
-		while (clientState.hasCompleteRawRequest())
+		std::cout << "[ConnectionManager::genRespsForReadyReqs] rawReq.isBadRequest() = " << rawReq.isBadRequest() << "\n";
+		// Check if request was marked as bad
+		if (rawReq.isBadRequest()) 
 		{
-			RawRequest rawReq = clientState.popFirstCompleteRawRequest();
-		 	
-			std::cout << "[ConnectionManager::genRespsForReadyReqs] rawReq.isBadRequest() = " << rawReq.isBadRequest() << "\n";
-			// Check if request was marked as bad
-			if (rawReq.isBadRequest()) 
-			{
-				std::cout << "[ConnectionManager::genRespsForReadyReqs] Bad request detected, generating 400 response\n";
-				Response resp;
-				resp.setStatusCode(400);
-				//resp.setBody("Bad Request: " + rawReq.getErrorMessage() + "\n"); // store msg in RawRequest
-				clientState.enqueueResponse(resp);
-				continue; // skip normal response generation
-			}
+			std::cout << "[ConnectionManager::genRespsForReadyReqs] Bad request detected, generating 400 response\n";
+			Response resp;
 			
-			// Only for valid requests:
-			RequestData reqData = rawReq.buildRequestData();
-			// Build context using the host and URI from the request
-			RequestContext ctx = m_config.createRequestContext(reqData.getHeader("Host"), reqData.uri);
-			printReqContext(ctx);
-		
-			// Generate and enqueue response
-			Response resp(reqData, ctx);
-			std::string output = resp.genResp();
+			resp.setStatus(static_cast<int>(HttpStatusCode::BadRequest)); //check code
 			clientState.enqueueResponse(resp);
+			continue; // skip normal response generation
+		}
+		
+		// Only for valid requests:
+		RequestData reqData = rawReq.buildRequestData();
+		// Build context using the host and URI from the request
+		RequestContext ctx = m_config.createRequestContext(reqData.getHeader("Host"), reqData.uri);
+		printReqContext(ctx);
+	
+		// Generate and enqueue response
+		Response resp(reqData, ctx);
+		std::string output = resp.genResp();
+		clientState.enqueueResponse(resp);
 	}
 }
 
