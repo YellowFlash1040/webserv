@@ -25,8 +25,6 @@ class BlockDirective : public Directive
     const std::vector<std::unique_ptr<Directive>>& directives() const;
     // Methods
     void addDirective(std::unique_ptr<Directive>&& directive);
-    // void setDirectives(std::vector<std::unique_ptr<Directive>>&&
-    // directives);
 
   private:
     // Properties

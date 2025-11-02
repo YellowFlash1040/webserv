@@ -10,12 +10,15 @@
 # include "ConfigBlock.hpp"
 # include "LocationBlock.hpp"
 
+# include "Property.hpp"
+
 # include "ErrorPage.hpp"
 # include "HttpRedirection.hpp"
 # include "RequestContext.hpp"
 // # include "NetworkEndpoint.hpp"
 
-# include "Property.hpp"
+# include "EffectiveConfig.hpp"
+# include "DirectiveAppliers.hpp"
 
 struct ServerBlock : public ConfigBlock
 {

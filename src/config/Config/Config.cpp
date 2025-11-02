@@ -45,6 +45,10 @@ Config Config::fromFile(const std::string& filepath)
     return Config(std::move(ast));
 }
 
+///----------------------------///
+///----------------------------///
+///----------------------------///
+
 std::vector<std::string> Config::getAllEnpoints()
 {
     std::vector<std::string> endpoints;
@@ -61,6 +65,10 @@ std::vector<std::string> Config::getAllEnpoints()
 
     return endpoints;
 }
+
+///----------------------------///
+///----------------------------///
+///----------------------------///
 
 RequestContext Config::createRequestContext(const std::string& host,
                                             const std::string& uri)
@@ -110,24 +118,11 @@ std::map<HttpStatusCode, std::string> Config::constructErrorPages(
 {
     std::map<HttpStatusCode, std::string> result;
     for (const auto& errorPage : errorPages)
-    {
         for (const auto& statusCode : errorPage.statusCodes)
             result[statusCode] = errorPage.filePath;
-    }
 
     return result;
 }
-
-// std::string Config::resolvePath(const EffectiveConfig& config,
-//                                 const std::string& uri)
-// {
-//     if (config.alias.empty())
-//         return config.root + uri;
-
-//     if (config.alias.back() == '/')
-//         return config.alias + uri.substr(config.matchedLocation.size());
-//     return config.alias + "/" + uri.substr(config.matchedLocation.size());
-// }
 
 std::string Config::resolvePath(const EffectiveConfig& config,
                                 const std::string& uri)
@@ -138,18 +133,14 @@ std::string Config::resolvePath(const EffectiveConfig& config,
     if (!config.alias.empty())
     {
         base = &config.alias;
-        // remove the matched location part from the URI for alias
-        if (uri.size() >= config.matchedLocation.size())
-            subpath = uri.substr(config.matchedLocation.size());
-        else
-            subpath.clear();
+        subpath = uri.substr(config.matched_location.size());
     }
     else
         subpath = uri;
 
     // Ensure exactly one slash between base and subpath
-    bool baseEndsWithSlash = !base->empty() && base->back() == '/';
-    bool subpathStartsWithSlash = !subpath.empty() && subpath.front() == '/';
+    bool baseEndsWithSlash = base->back() == '/';
+    bool subpathStartsWithSlash = subpath.front() == '/';
 
     if (baseEndsWithSlash && subpathStartsWithSlash)
         return *base + subpath.substr(1); // remove duplicate slash
@@ -278,12 +269,6 @@ LocationBlock Config::buildLocationBlock(
     return locationBlock;
 }
 
-/*
-    Maybe it makes sense to create somewhere in the code an
-    array of function pointers and choose which function to
-    apply
-*/
-
 ///----------------///
 ///----------------///
 ///----------------///
@@ -319,33 +304,6 @@ void Config::assign(Property<std::vector<ErrorPage>>& errorPages,
 
     errorPages.isSet() = true;
 }
-
-// void Config::assign(Property<std::map<HttpStatusCode, std::string>>&
-// errorPages,
-//                     const std::vector<Argument>& args)
-// {
-//     std::vector<HttpStatusCode> statusCodes;
-
-//     for (size_t i = 0; i < args.size() - 1; ++i)
-//     {
-//         try
-//         {
-//             statusCodes.push_back(Converter::toHttpStatusCode(args[i]));
-//         }
-//         catch (const std::exception& ex)
-//         {
-//             const Argument& arg = args[i];
-//             throw ConfigException(arg.line(), arg.column(), ex.what());
-//         }
-//     }
-
-//     const std::string& filePath = args.back();
-
-//     for (auto statusCode : statusCodes)
-//         errorPages[statusCode] = filePath;
-
-//     errorPages.isSet() = true;
-// }
 
 void Config::assign(Property<std::vector<HttpMethod>>& httpMethods,
                     const std::vector<Argument>& args)

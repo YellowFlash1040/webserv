@@ -8,8 +8,10 @@
 
 # include "ConfigBlock.hpp"
 # include "ServerBlock.hpp"
-
+# include "Property.hpp"
 # include "ErrorPage.hpp"
+# include "EffectiveConfig.hpp"
+# include "DirectiveAppliers.hpp"
 
 struct HttpBlock : public ConfigBlock
 {

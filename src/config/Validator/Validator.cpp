@@ -129,73 +129,6 @@ void Validator::checkIfAllowedDirective(
         throw DirectiveContextException(directive, context);
 }
 
-// void Validator::validateArguments(const std::unique_ptr<Directive>&
-// directive)
-// {
-//     const auto& args = directive->args();
-//     const auto& argSpecs = Directives::getArgSpecs(directive->name());
-
-//     if (argSpecs.empty())
-//     {
-//         if (!args.empty())
-//             throw NoArgumentsAllowedException(directive);
-//         return;
-//     }
-
-//     makeDuplicateCheck(args);
-
-//     size_t argIdx = 0;
-
-//     for (const auto& spec : argSpecs)
-//     {
-//         size_t matchedCount = 0;
-
-//         // Consume all arguments that match this group (up to maxCount)
-//         while (argIdx < args.size() && matchedCount < spec.maxCount
-//                && tryValidateArgument(spec.possibleTypes, args[argIdx]))
-//         {
-//             ++matchedCount;
-//             ++argIdx;
-//         }
-
-//         // Check if we got enough for this group
-//         if (matchedCount < spec.minCount)
-//         {
-//             // If we still have args but they don't match, they're invalid
-//             if (argIdx < args.size())
-//                 throw InvalidArgumentException(args[argIdx]);
-//             // Otherwise we simply don't have enough args
-//             throw NotEnoughArgumentsException(directive);
-//         }
-//     }
-
-//     // Any leftover arguments?
-//     if (argIdx < args.size())
-//         throw TooManyArgumentsException(directive);
-// }
-
-// bool Validator::tryValidateArgument(
-//     const std::vector<ArgumentType>& possibleTypes, const Argument& arg)
-// {
-//     for (ArgumentType type : possibleTypes)
-//     {
-//         auto it = validators().find(type);
-//         if (it == validators().end())
-//             throw std::logic_error("No validator found");
-
-//         try
-//         {
-//             it->second(arg.value());
-//             return true;
-//         }
-//         catch (const std::exception&)
-//         {
-//             continue;
-//         }
-//     }
-//     return false;
-// }
-
 void Validator::validateArguments(const std::unique_ptr<Directive>& directive)
 {
     const auto& args = directive->args();
@@ -272,56 +205,7 @@ void Validator::checkIfEnoughArguments(
         throw NotEnoughArgumentsException(directive);
 }
 
-// void Validator::validateArguments(const std::unique_ptr<Directive>&
-// directive)
-// {
-//     const auto& args = directive->args();
-//     const auto& argSpecs = Directives::getArgSpecs(directive->name());
-
-//     if (argSpecs.empty())
-//     {
-//         if (args.empty())
-//             return;
-//         throw NoArgumentsAllowedException(directive);
-//     }
-
-//     makeDuplicateCheck(args);
-
-//     size_t i = 0;
-//     for (const auto& spec : argSpecs)
-//     {
-//         size_t count = 0;
-//         bool hasThrown = false;
-//         while (i < args.size() && (!hasThrown || count > spec.maxCount))
-//         {
-//             try
-//             {
-//                 validateArgument(spec.possibleTypes, args[i]);
-//                 ++count;
-//                 ++i;
-//             }
-//             catch (const std::exception&)
-//             {
-//                 hasThrown = true;
-//             }
-//         }
-
-//         if (count < spec.minCount)
-//         {
-//             if (i < args.size())
-//                 throw InvalidArgumentException(args[i]);
-//             throw NotEnoughArgumentsException(directive);
-//         }
-
-//         if (count > spec.maxCount)
-//             throw TooManyArgumentsException(directive);
-//     }
-
-//     if (i < args.size())
-//         throw InvalidArgumentException(args[i]);
-// }
-
-// ***** Thoughts 3 ******
+// ***** Thoughts ******
 /*
 for each group:
     while (more args and under maxCount):
@@ -336,34 +220,6 @@ for each group:
                 throw InvalidArgument
 
     if count < minCount → NotEnoughArguments
-*/
-
-// ***** Thoughts 2 ******
-// If argument is valid, :
-// - but we've found enough,
-// - and there are no more groups - too many arguments
-// - and there is one more group,
-// - and it throws - too many arguments
-
-// If the argument has thrown,
-// - it's either invalid,
-// - or it's next group
-
-// If there is no next group - argument is invalid
-// otherwise
-// if we haven't found enough arguments for the current - not enought
-// arguments otherwise go and check with next group If it's valid - continue
-// If it's invalid - invalid argument
-
-// ***** Thoughts 1 ******
-/*
-Technically it's possible to tell if there is an argument missing, or if
-it's invalid, by trying to convert it to the next type. So in other words:
-if argument failed to convert into group_1 types, but it succeded to convert
-into one of the group_2 types, then it means - argument is missing.
-Otherwise - it's invalid.
-
-But for now I decided to treat both situations as "Invalid argument"
 */
 
 void Validator::checkForDuplicateArguments(const std::vector<Argument>& args)
@@ -403,8 +259,6 @@ bool Validator::validateArgument(const std::vector<ArgumentType>& possibleTypes,
     }
 
     return false;
-    // throw std::invalid_argument("Argument '" + value
-    //                             + "' does not match any allowed type");
 }
 
 ///----------------///
