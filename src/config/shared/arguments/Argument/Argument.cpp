@@ -1,0 +1,116 @@
+#include "Argument.hpp"
+
+// -----------------------CONSTRUCTION AND DESTRUCTION-------------------------
+
+// Default constructor
+Argument::Argument(const std::string& value)
+  : m_value(value)
+{
+    // if ()
+}
+
+Argument::Argument(const std::string& value, size_t line, size_t column)
+  : m_value(value)
+  , m_line(line)
+  , m_column(column)
+{
+}
+
+// Copy constructor
+Argument::Argument(const Argument& other)
+  : m_value(other.m_value)
+  , m_type(other.m_type)
+  , m_line(other.m_line)
+  , m_column(other.m_column)
+{
+}
+
+// Copy assignment operator
+Argument& Argument::operator=(const Argument& other)
+{
+    if (this != &other)
+    {
+        m_value = other.m_value;
+        m_type = other.m_type;
+        m_line = other.m_line;
+        m_column = other.m_column;
+    }
+    return (*this);
+}
+
+// Move constructor
+Argument::Argument(Argument&& other) noexcept
+  : m_value(std::move(other.m_value))
+  , m_type(other.m_type)
+  , m_line(other.m_line)
+  , m_column(other.m_column)
+{
+}
+
+// Move assignment operator
+Argument& Argument::operator=(Argument&& other) noexcept
+{
+    if (this != &other)
+    {
+        m_value = std::move(other.m_value);
+        m_type = other.m_type;
+        m_line = other.m_line;
+        m_column = other.m_column;
+    }
+    return (*this);
+}
+
+// Destructor
+Argument::~Argument() {}
+
+// ---------------------------ACCESSORS-----------------------------
+
+const std::string& Argument::value() const
+{
+    return m_value;
+}
+
+ArgumentType Argument::type() const
+{
+    return m_type;
+}
+
+size_t Argument::line() const
+{
+    return m_line;
+}
+
+size_t Argument::column() const
+{
+    return m_column;
+}
+
+// ---------------------------METHODS-----------------------------
+
+ArgumentType Argument::getArgumentType(const Argument& arg)
+{
+    (void)arg;
+    return (ArgumentType::Integer);
+}
+
+// --------------------------OPERATORS----------------------------
+
+Argument::operator std::string&()
+{
+    return m_value;
+}
+
+Argument::operator const std::string&() const
+{
+    return m_value;
+}
+
+bool Argument::operator==(const std::string& other) const
+{
+    return m_value == other;
+}
+
+bool Argument::operator!=(const std::string& other) const
+{
+    return m_value != other;
+}

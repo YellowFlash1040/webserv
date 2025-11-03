@@ -13,8 +13,6 @@ Parser::Parser(std::vector<Token>& tokens)
 // Copy constructor
 Parser::Parser(const Parser& other)
   : m_tokens(other.m_tokens)
-  , m_errorLine(other.m_errorLine)
-  , m_errorColumn(other.m_errorColumn)
 {
 }
 
@@ -24,8 +22,6 @@ Parser& Parser::operator=(const Parser& other)
     if (this != &other)
     {
         m_tokens = other.m_tokens;
-        m_errorLine = other.m_errorLine;
-        m_errorColumn = other.m_errorColumn;
     }
     return (*this);
 }
@@ -33,8 +29,6 @@ Parser& Parser::operator=(const Parser& other)
 // Move constructor
 Parser::Parser(Parser&& other) noexcept
   : m_tokens(other.m_tokens)
-  , m_errorLine(other.m_errorLine)
-  , m_errorColumn(other.m_errorColumn)
 {
 }
 
@@ -44,8 +38,6 @@ Parser& Parser::operator=(Parser&& other) noexcept
     if (this != &other)
     {
         m_tokens = other.m_tokens;
-        m_errorLine = other.m_errorLine;
-        m_errorColumn = other.m_errorColumn;
     }
     return (*this);
 }
@@ -55,7 +47,7 @@ Parser::~Parser() {}
 
 // ---------------------------METHODS-----------------------------
 
-std::unique_ptr<ADirective> Parser::parse(std::vector<Token>& tokens)
+std::unique_ptr<Directive> Parser::parse(std::vector<Token>& tokens)
 {
     return Parser(tokens).parse();
 }
@@ -67,14 +59,12 @@ Token Parser::advance()
 
     Token token = std::move(m_tokens.back());
     m_tokens.pop_back();
-
-    m_errorLine = token.line();
-    m_errorColumn = token.column() + token.value().length();
+    m_prevToken = token;
 
     return token;
 }
 
-Token& Parser::peek()
+const Token& Parser::peek()
 {
     if (m_tokens.empty())
         throw std::logic_error("Unexpected end of input while peeking");
@@ -85,7 +75,7 @@ Token& Parser::peek()
 // PARSING LOGIC
 // ------------------------
 
-std::unique_ptr<ADirective> Parser::parse()
+std::unique_ptr<Directive> Parser::parse()
 {
     auto global = std::make_unique<BlockDirective>();
     global->setName(Directives::GLOBAL_CONTEXT);
@@ -94,41 +84,26 @@ std::unique_ptr<ADirective> Parser::parse()
     return global;
 }
 
-std::unique_ptr<ADirective> Parser::parseDirective()
+std::unique_ptr<Directive> Parser::parseDirective()
 {
     Token token = advance();
     std::string directiveName = expectDirectiveToken(token);
-    DirectiveType directiveType = expectKnownDirective(directiveName);
-    m_prevDirectiveType = directiveType;
+    Directives::Type directiveType = expectKnownDirective(token);
+    m_currentDirectiveType = directiveType;
 
     std::vector<Argument> args;
     consumeArguments(args);
 
-    std::unique_ptr<ADirective> directive
-        = createDirectiveBasedOnType(directiveType, directiveName, args);
+    expectClosingToken(directiveType);
+
+    std::unique_ptr<Directive> directive
+        = createDirective(directiveType, directiveName, args);
     directive->setPosition(token.line(), token.column());
+
+    if (directiveType == Directives::Type::BLOCK)
+        parseAndFillBlockDirective(directive);
+
     return directive;
-}
-
-std::string Parser::expectDirectiveToken(const Token& token)
-{
-    if (token.type() != TokenType::DIRECTIVE)
-    {
-        if (token.type() == TokenType::CLOSE_BRACE)
-            throw ExtraTokenException(token.line(), token.column(), "}");
-        throw ParserException(token.line(), token.column(),
-                              "expected a directive");
-    }
-    return token.value();
-}
-
-DirectiveType Parser::expectKnownDirective(const std::string& directiveName)
-{
-    DirectiveType directiveType = Directives::getDirectiveType(directiveName);
-    if (directiveType == DirectiveType::UNKNOWN)
-        throw UnknownDirectiveException(peek().line(), peek().column(),
-                                        directiveName);
-    return directiveType;
 }
 
 void Parser::consumeArguments(std::vector<Argument>& args)
@@ -136,7 +111,7 @@ void Parser::consumeArguments(std::vector<Argument>& args)
     Token token = peek();
     while (token.type() == TokenType::VALUE)
     {
-        expectNotDirective(token.value());
+        expectNotDirective(token);
 
         token = advance();
         args.emplace_back(token.value(), token.line(), token.column());
@@ -144,44 +119,85 @@ void Parser::consumeArguments(std::vector<Argument>& args)
     }
 }
 
-std::unique_ptr<ADirective> Parser::createDirectiveBasedOnType(
-    DirectiveType directiveType, std::string& directiveName,
-    std::vector<Argument>& args)
+void Parser::expectClosingToken(Directives::Type directiveType)
 {
-    if (directiveType == DirectiveType::BLOCK)
-        return parseBlockDirective(directiveName, args);
-    return parseSimpleDirective(directiveName, args);
+    if (directiveType == Directives::Type::BLOCK)
+        expectToken(TokenType::OPEN_BRACE, "{");
+    else
+        expectToken(TokenType::SEMICOLON, ";");
+    advance(); // consume '{' or ';'
 }
 
-std::unique_ptr<ADirective> Parser::parseBlockDirective(
-    std::string& directiveName, std::vector<Argument>& args)
+void Parser::expectToken(TokenType expectedType,
+                         const std::string& expectedValue)
 {
     Token token = peek();
-    if (token.type() != TokenType::OPEN_BRACE)
-        throw MissingTokenException(m_errorLine, m_errorColumn, "{");
+    if (token.type() == expectedType)
+        return;
 
-    advance(); // consume the '{'
-    return parseAndCreateBlockDirective(directiveName, args);
+    size_t line = m_prevToken.line();
+    size_t column = m_prevToken.column() + m_prevToken.value().length();
+    throw MissingTokenException(line, column, expectedValue);
 }
 
-std::unique_ptr<ADirective> Parser::parseSimpleDirective(
-    std::string& directiveName, std::vector<Argument>& args)
+std::string Parser::expectDirectiveToken(const Token& token)
 {
-    Token token = peek();
-    if (token.type() != TokenType::SEMICOLON)
-        throw MissingTokenException(m_errorLine, m_errorColumn, ";");
+    if (token.type() == TokenType::DIRECTIVE)
+        return token.value();
 
-    advance(); // consume the ';'
-    return createSimpleDirective(directiveName, args);
+    if (token.type() == TokenType::CLOSE_BRACE)
+        throw ExtraTokenException(token.line(), token.column(), "}");
+
+    throw ParserException(token.line(), token.column(), "expected a directive");
 }
 
-std::unique_ptr<BlockDirective> Parser::parseAndCreateBlockDirective(
-    std::string& name, std::vector<Argument>& args)
+Directives::Type Parser::expectKnownDirective(const Token& token)
 {
-    auto blockDir = std::make_unique<BlockDirective>();
-    blockDir->setName(std::move(name));
-    blockDir->setArgs(std::move(args));
-    // blockDir->setPosition();
+    Directives::Type directiveType
+        = Directives::getDirectiveType(token.value());
+    if (directiveType == Directives::Type::UNKNOWN)
+        throw UnknownDirectiveException(token);
+    return directiveType;
+}
+
+void Parser::expectNotDirective(const Token& token)
+{
+    if (!Directives::isKnownDirective(token.value()))
+        return;
+
+    const char* separator{};
+    if (m_currentDirectiveType == Directives::Type::SIMPLE)
+        separator = ";";
+    else if (m_currentDirectiveType == Directives::Type::BLOCK)
+        separator = "{";
+
+    size_t line = m_prevToken.line();
+    size_t column = m_prevToken.column() + m_prevToken.value().length();
+    throw MissingTokenException(line, column, separator);
+}
+
+std::unique_ptr<Directive> Parser::createDirective(Directives::Type type,
+                                                   std::string& name,
+                                                   std::vector<Argument>& args)
+{
+    std::unique_ptr<Directive> directive;
+
+    if (type == Directives::Type::BLOCK)
+        directive = std::make_unique<BlockDirective>();
+    else
+        directive = std::make_unique<Directive>();
+    directive->setName(std::move(name));
+    directive->setArgs(std::move(args));
+
+    return directive;
+}
+
+void Parser::parseAndFillBlockDirective(
+    const std::unique_ptr<Directive>& directive)
+{
+    auto* blockDir = dynamic_cast<BlockDirective*>(directive.get());
+    if (!blockDir)
+        throw std::invalid_argument("Expected BlockDirective");
 
     Token token = peek();
     while (!(token.type() == TokenType::END
@@ -193,32 +209,6 @@ std::unique_ptr<BlockDirective> Parser::parseAndCreateBlockDirective(
 
     if (token.type() != TokenType::CLOSE_BRACE)
         throw MissingTokenException(token.line(), token.column(), "}");
-    advance(); // consume CLOSE_BRACE
 
-    return blockDir;
-}
-
-std::unique_ptr<SimpleDirective> Parser::createSimpleDirective(
-    std::string& name, std::vector<Argument>& args)
-{
-    auto simpleDir = std::make_unique<SimpleDirective>();
-    simpleDir->setName(std::move(name));
-    simpleDir->setArgs(std::move(args));
-
-    return simpleDir;
-}
-
-void Parser::expectNotDirective(const std::string& tokenValue)
-{
-    DirectiveType directiveType = Directives::getDirectiveType(tokenValue);
-    if (directiveType == DirectiveType::UNKNOWN)
-        return;
-
-    const char* separator{};
-    if (m_prevDirectiveType == DirectiveType::SIMPLE)
-        separator = ";";
-    else if (m_prevDirectiveType == DirectiveType::BLOCK)
-        separator = "{";
-
-    throw MissingTokenException(m_errorLine, m_errorColumn, separator);
+    advance(); // consume '}'
 }

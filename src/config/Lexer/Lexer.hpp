@@ -27,6 +27,8 @@ class Lexer
     static std::vector<Token> tokenize(const std::string& input);
 
   private:
+    // Constants
+    static const int DEFAULT_STRING_LENGTH = 20; // number 20 is chosen randomly
     // Properties:
     const std::string& m_input;
     std::vector<Token> m_tokens;

@@ -8,7 +8,7 @@
 
 struct RequestData
 {
-	HttpMethodEnum method{};
+	HttpMethod method{};
 	std::string uri{};
 	std::string query{};
 	std::string httpVersion{};

@@ -8,7 +8,7 @@
 #include "../../FileHandler/FileHandler.hpp"
 #include "ErrorHandler.hpp"
 #include "../../../Request/RequestData/RequestData.hpp"
-#include "../../../config/RequestContext/RequestContext.hpp"
+#include "../../../../config/shared/RequestContext/RequestContext.hpp"
 
 namespace StaticHandler
 {

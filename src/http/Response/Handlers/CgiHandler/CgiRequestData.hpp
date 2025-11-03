@@ -7,7 +7,7 @@
 struct CgiRequestData
 {
     std::string scriptPath{};	// Path to CGI script
-    HttpMethodEnum method{};	// GET, POST, etc.
+    HttpMethod method{};	// GET, POST, etc.
     std::string queryString{};	// URL query string
     std::string body{};			// POST body
     std::unordered_map<std::string, std::string> headers{}; // HTTP headers

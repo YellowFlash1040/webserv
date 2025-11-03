@@ -51,7 +51,7 @@ class RawRequest
 		bool _isBadRequest;
 	
 		// Helpers
-		static HttpMethodEnum stringToHttpMethod(const std::string& method);
+		static HttpMethod stringToHttpMethod(const std::string& method);
 		static std::string bodyTypeToString(BodyType t);
 		static std::string fullyDecodePercent(const std::string& rawUri);
 		static std::string decodePercentOnce(const std::string& s);

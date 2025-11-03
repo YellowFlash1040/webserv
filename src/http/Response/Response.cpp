@@ -119,35 +119,48 @@ void Response::setDefaultHeaders()
 	addHeader("Connection", "keep-alive");
 }
 
-bool Response::isMethodAllowed(HttpMethodEnum method, const std::vector<HttpMethod>& allowed_methods)
+bool Response::isMethodAllowed(HttpMethod method, const std::vector<HttpMethod>& allowed_methods)
 {
-	for (std::vector<HttpMethod>::const_iterator it = allowed_methods.begin(); it != allowed_methods.end(); ++it)
-	{
-		if (it->value() == method)
-			return true;
-	}
-	return false;
+    for (std::vector<HttpMethod>::const_iterator it = allowed_methods.begin(); it != allowed_methods.end(); ++it)
+    {
+        if (*it == method)
+            return true;
+    }
+    return false;
+}
+
+std::string Response::httpMethodToString(HttpMethod method)
+{
+    switch (method)
+    {
+        case HttpMethod::GET:    return "GET";
+        case HttpMethod::POST:   return "POST";
+        case HttpMethod::PUT:    return "PUT";
+        case HttpMethod::DELETE: return "DELETE";
+        default:                 return "NONE";
+    }
 }
 
 std::string Response::allowedMethodsToString(const std::vector<HttpMethod>& allowed_methods)
 {
-	std::ostringstream oss;
-	for (size_t i = 0; i < allowed_methods.size(); ++i)
-	{
-		oss << allowed_methods[i].toString();
-		if (i + 1 < allowed_methods.size())
-			oss << ", ";
-	}
-	return oss.str();
+    std::ostringstream oss;
+    for (size_t i = 0; i < allowed_methods.size(); ++i)
+    {
+        oss << httpMethodToString(allowed_methods[i]);
+        if (i < allowed_methods.size() - 1)
+            oss << ", ";
+    }
+    return oss.str();
 }
 
 std::string Response::genResp()
 {
-	std::cout << "[genResp] _ctx.has_return = " << _ctx.has_return 
-              << ", _ctx.redirection.statusCode = " << static_cast<int>(_ctx.redirection.statusCode)
-              << ", _ctx.redirection.url = \"" << _ctx.redirection.url << "\"\n";
-
-	if (_ctx.has_return)
+	std::cout << "[genResp] !_ctx.redirection.url.empty() = " << !_ctx.redirection.url.empty()
+          << ", _ctx.redirection.statusCode = " << static_cast<int>(_ctx.redirection.statusCode)
+          << ", _ctx.redirection.url = \"" << _ctx.redirection.url << "\""
+          << ", _ctx.resolved_path = \"" << _ctx.resolved_path << "\"\n";
+	
+	if (!_ctx.redirection.url.empty())
 		return handleRedirection();
 	if (isMethodAllowed(_req.method, _ctx.allowed_methods) == false)
 	{
@@ -195,51 +208,58 @@ CgiRequestData Response::createCgiRequest()
 {
 	CgiRequestData cgiReq;
 
-	// Script path is the CGI executable
-	cgiReq.scriptPath = _ctx.cgi_pass;
+    // Determine the file extension of the requested URI
+    std::filesystem::path reqPath(_req.uri);
+    std::string ext = reqPath.extension().string();  // includes the dot, e.g., ".php"
 
-	// HTTP method
-	cgiReq.method = _req.method; // or req.method if you have a string already
+    // Look up the CGI executable based on extension
+    auto it = _ctx.cgi_pass.find(ext);
+    if (it != _ctx.cgi_pass.end())
+    {
+        cgiReq.scriptPath = it->second;
+    }
+    else
+    {
+        // No CGI mapping for this extension
+        cgiReq.scriptPath = "";
+        std::cerr << "[createCgiRequest] No CGI mapping for extension: " << ext << "\n";
+    }
 
-	// Query string (from URL)
-	cgiReq.queryString = _req.query; // implement/get it from RawRequest
+    // HTTP method
+    cgiReq.method = _req.method;
 
-	// POST body
-	cgiReq.body = _req.body;
+    // Query string
+    cgiReq.queryString = _req.query;
 
-	// Fill headers
-	const std::string hdrs[] =
-	{
-		"Content-Type",
-		"Content-Length",
-		"Authorization",
-		"Cookie",
-		"User-Agent",
-		"Accept"
-	};
-	
-	for (const std::string& h : hdrs)
-	{
-		std::string value = _req.getHeader(h);
-		if (!value.empty())
-			cgiReq.headers[h] = value;
-	}
-	return cgiReq;
+    // POST body
+    cgiReq.body = _req.body;
+
+    // Copy selected headers explicitly
+    const std::string hdrs[] =
+    {
+        "Content-Type",
+        "Content-Length",
+        "Authorization",
+        "Cookie",
+        "User-Agent",
+        "Accept"
+    };
+
+    for (const std::string& h : hdrs)
+    {
+        std::string value = _req.getHeader(h);
+        if (!value.empty())
+            cgiReq.headers[h] = value;
+    }
+
+    return cgiReq;
 }
 
 std::string Response::handleStatic()
 {
-    FileHandler fileHandler(_ctx.root, _ctx.autoindex_enabled, _ctx.index_files);
+    FileHandler fileHandler(_ctx.autoindex_enabled, _ctx.index_files);
 
-    std::string resolvedPath;
-    try
-    {
-        resolvedPath = fileHandler.resolveFilePath(_req.uri, _ctx);
-    }
-    catch (const std::exception& e)
-    {
-        return StaticHandler::handleStaticError(fileHandler, _ctx, e);
-    }
+    std::string& resolvedPath = _ctx.resolved_path;
 
     if (fileHandler.isDirectory(resolvedPath))
     {
@@ -272,52 +292,31 @@ std::string Response::handleStatic()
     return toString();
 }
 
-
-std::string Response::getErrorPageFilePath(
-	HttpStatusCode status, const std::vector<ErrorPage>& errorPages)
+void Response::setErrorPageBody(HttpStatusCode code, const std::map<HttpStatusCode, std::string>& errorPages)
 {
-	for (std::vector<ErrorPage>::const_iterator it = errorPages.begin();
-		it != errorPages.end(); ++it)
-		{
-			if (std::find(it->statusCodes.begin(), it->statusCodes.end(), status) != it->statusCodes.end())
-			{
-				return it->filePath;
-			}
-		}
-	return "";
-}
-
-void Response::setErrorPageBody(HttpStatusCode code, const std::vector<ErrorPage>& errorPages)
-{
-    std::string errorBodyPath = getErrorPageFilePath(code, errorPages);
-    std::cout << "[DEBUG] Requested error page path: " << errorBodyPath << "\n";
-
     std::string htmlBody;
-
-    if (!errorBodyPath.empty())
+    auto it = errorPages.find(code);
+    if (it != errorPages.end())
     {
-        std::string resolvedPath = resolveErrorPagePath(errorBodyPath);
-        std::cout << "[DEBUG] Resolved file path: " << resolvedPath << "\n";
-
-        std::ifstream file(resolvedPath);
+        std::ifstream file(it->second);
         if (file)
         {
             std::ostringstream ss;
             ss << file.rdbuf();
             htmlBody = ss.str();
         }
-        else
-        {
-            std::cout << "[setErrorPageBody] could not open error page file: " << resolvedPath
-                      << " (exists=" << std::filesystem::exists(resolvedPath)
-                      << ", perm ok=" << ((std::filesystem::exists(resolvedPath) &&
-                        (std::filesystem::status(resolvedPath).permissions() &
-                         std::filesystem::perms::owner_read) != std::filesystem::perms::none) ? "yes" : "no")
-                      << ")\n";
-        }
     }
+	else
+	{
+		 std::cout << "[setErrorPageBody] could not open error page file: " << it->second
+              << " (exists=" << std::filesystem::exists(it->second)
+              << ", perm ok=" << ((std::filesystem::exists(it->second) &&
+                  (std::filesystem::status(it->second).permissions() &
+                   std::filesystem::perms::owner_read) != std::filesystem::perms::none) ? "yes" : "no")
+              << ")\n";
+	}
 
-    // fallback
+    // fallback if file missing
     if (htmlBody.empty())
     {
         htmlBody =
@@ -339,37 +338,4 @@ bool Response::shouldClose() const
 {
 	auto it = _headers.find("Connection");
 	return it != _headers.end() && it->second == "close";
-}
-
-std::string Response::resolveErrorPagePath(const std::string& errorPath) const
-{ 
-	if (errorPath.empty())
-        return "";
-
-    std::filesystem::path p(errorPath);
-	std::filesystem::path base = resolveBasePath();
-
-    // Treat paths starting with '/' as relative to base
-    if (p.is_absolute() == false || errorPath.front() == '/')
-    {
-        std::string rel = errorPath;
-        if (rel.empty() ==false && rel.front() == '/')
-            rel.erase(0, 1); // remove leading slash
-
-        p = base / rel;
-    }
-
-    std::cout << "[resolveErrorPagePath] final path: " << p.string() 
-              << ", exists: " << std::filesystem::exists(p) << "\n";
-
-    return p.string();
-}
-
-std::filesystem::path Response::resolveBasePath() const
-{
-    if (!_ctx.alias.empty())
-        return _ctx.alias;
-    if (!_ctx.root.empty())
-        return _ctx.root;
-    return std::filesystem::current_path();
 }

@@ -488,12 +488,12 @@ void RawRequest::separateHeadersFromBody()  // TODO: handle malformed requests s
 }
 
 
-HttpMethodEnum RawRequest::stringToHttpMethod(const std::string& method) {
-	if (method == "GET") return HttpMethodEnum::GET;
-	if (method == "POST") return HttpMethodEnum::POST;
-	if (method == "PUT") return HttpMethodEnum::PUT;
-	if (method == "DELETE") return HttpMethodEnum::DELETE;
-	return HttpMethodEnum::NONE; // fallback
+HttpMethod RawRequest::stringToHttpMethod(const std::string& method) {
+	if (method == "GET") return HttpMethod::GET;
+	if (method == "POST") return HttpMethod::POST;
+	if (method == "PUT") return HttpMethod::PUT;
+	if (method == "DELETE") return HttpMethod::DELETE;
+	return HttpMethod::NONE; // fallback
 }
 
 void RawRequest::parseRequestLine(const std::string& firstLine)
@@ -504,7 +504,7 @@ void RawRequest::parseRequestLine(const std::string& firstLine)
 	if (_method.empty() || _rawUri.empty() || _httpVersion.empty())
 		throw std::runtime_error("Invalid request line");
 
-	if (stringToHttpMethod(_method) == HttpMethodEnum::NONE)
+	if (stringToHttpMethod(_method) == HttpMethod::NONE)
 		throw std::invalid_argument("Unsupported HTTP method: " + _method);
 
 	if (_httpVersion != "HTTP/1.0" && _httpVersion != "HTTP/1.1")

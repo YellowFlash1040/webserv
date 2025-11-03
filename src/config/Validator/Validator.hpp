@@ -4,46 +4,89 @@
 #define VALIDATOR_HPP
 
 #include <utility>
-#include <vector>
 #include <memory>
-
-#include "Directives.hpp"
+#include <vector>
+#include <functional>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "ConfigExceptions.hpp"
+#include "Directives.hpp"
+#include "Converter.hpp"
+#include "HttpBlock.hpp"
 
 class Validator
 {
     // Construction and destruction
   public:
-    explicit Validator(const std::unique_ptr<ADirective>& rootNode);
+    Validator() = delete;
     Validator(const Validator& other) = delete;
     Validator& operator=(const Validator& other) = delete;
     Validator(Validator&& other) noexcept = delete;
     Validator& operator=(Validator&& other) noexcept = delete;
-    ~Validator();
+    ~Validator() = delete;
 
     // Class specific features
   public:
     // Methods
-    static void validate(const std::unique_ptr<ADirective>& node);
-    void validate();
-    void validateNode(const std::unique_ptr<ADirective>& node,
-                      const std::string& parentContext);
+    static void validate(const std::unique_ptr<Directive>& node);
+    static void validate(const HttpBlock& httpBlock);
 
   private:
-    // Properties
-    const std::unique_ptr<ADirective>& m_rootNode;
-    size_t m_errorLine = static_cast<size_t>(-1);
-    size_t m_errorColumn = static_cast<size_t>(-1);
     // Methods
-    void validateChildren(const BlockDirective& block,
-                          const std::string& parentContext);
-    void checkParentConstraint(const std::string& name,
-                               const std::string& parentContext);
-    void checkIfAllowedDirective(const std::string& name,
-                                 const std::string& context);
-    void checkArguments(const std::string& name,
-                        const std::vector<Argument>& args);
+    static void validateDirective(const std::unique_ptr<Directive>& directive,
+                                  const std::string& parentContext);
+    static void validateChildren(const BlockDirective* block);
+    static void makeDuplicateCheck(std::set<std::string>& seenDirectives,
+                                   const std::unique_ptr<Directive>& directive);
+    static void checkBasicPreconditions(
+        const std::unique_ptr<Directive>& directive,
+        const std::vector<Directives::ArgumentSpec>& argSpecs);
+    static void checkIfArgumentsAreAllowed(
+        const std::unique_ptr<Directive>& directive,
+        const std::vector<Directives::ArgumentSpec>& argSpecs);
+    static void checkIfEnoughArguments(
+        const std::unique_ptr<Directive>& directive,
+        const std::vector<Directives::ArgumentSpec>& argSpecs);
+    static void checkForDuplicateArguments(const std::vector<Argument>& args);
+    static void makeConflictsCheck(std::set<std::string>& seenDirectives,
+                                   const std::unique_ptr<Directive>& directive);
+    static void checkForDuplicateLocationPaths(
+        const BlockDirective* serverBlock);
+    static void checkForDuplicateListen(const BlockDirective* serverBlock);
+    static void expectRequiredDirective(const std::string& requiredDirective,
+                                        const BlockDirective* context);
+    static void checkIfAllowedDirective(
+        const std::unique_ptr<Directive>& directive,
+        const std::string& context);
+    static void processArgumentsWithSpec(const Directives::ArgumentSpec& spec,
+                                         const std::vector<Argument>& args,
+                                         size_t& i);
+    static void validateArguments(const std::unique_ptr<Directive>& directive);
+    static bool validateArgument(const std::vector<ArgumentType>& possibleTypes,
+                                 const std::string& value);
+
+    static void validateInteger(const std::string& s);
+    static void validateString(const std::string& s);
+    static void validateUrl(const std::string& s);
+    static void validateStatusCode(const std::string& s);
+    static void validateDataSize(const std::string& s);
+    static void validateOnOff(const std::string& s);
+    static void validateFolderPath(const std::string& s);
+    static void validateFilePath(const std::string& s);
+    static void validateNetworkEndpoint(const std::string& s);
+    static void validateIp(const std::string& s);
+    static void validatePort(const std::string& s);
+    static void validateHttpMethod(const std::string& s);
+    static void validateUri(const std::string& s);
+    static void validateName(const std::string& s);
+    static void validateFile(const std::string& s);
+    static void validateFileExtension(const std::string& s);
+    static void validateBinaryPath(const std::string& s);
+    // Accessors
+    static const std::map<ArgumentType,
+                          std::function<void(const std::string&)>>&
+    validators();
 };
 
 #endif

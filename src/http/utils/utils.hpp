@@ -1,11 +1,11 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#include "../config/RequestContext/RequestContext.hpp"
+#include "../config/shared/RequestContext/RequestContext.hpp"
 #include "../ConnectionManager/ClientState/ClientState.hpp"
 #include "../RawRequest/RawRequest.hpp"
+#include "../Response/Response.hpp"
 #include <iostream>
-
 
 #define GREEN "\033[0;32m"
 #define YELLOW "\033[0;33m"

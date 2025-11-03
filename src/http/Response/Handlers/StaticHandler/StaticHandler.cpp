@@ -7,7 +7,7 @@ namespace StaticHandler
 	try
 	{
 		std::cout << "[StaticHandler::serve] req.uri = " << req.uri << std::endl;
-		std::string resolvedPath = fileHandler.resolveFilePath(req.uri, ctx);
+		std::string resolvedPath = ctx.resolved_path;
 
 		if (fileHandler.isDirectory(resolvedPath))
 			return handleStaticDirectory(fileHandler, ctx, resolvedPath);

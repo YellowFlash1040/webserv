@@ -11,14 +11,15 @@
 #include <iostream>
 #include <filesystem>
 
-#include "../../config/RequestContext/RequestContext.hpp"
+#include "../../config/shared/RequestContext/RequestContext.hpp"
+
 
 class FileHandler
 {
 	public:
 
 		FileHandler() = delete;
-		FileHandler(const std::string &root, bool autoindex, const std::vector<std::string> &indexFiles);
+		FileHandler(bool autoindex, const std::vector<std::string> &indexFiles);
 		FileHandler(const FileHandler &) = default;
 		FileHandler &operator=(const FileHandler &) = default;
 		~FileHandler() = default;

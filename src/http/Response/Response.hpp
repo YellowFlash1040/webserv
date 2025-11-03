@@ -7,7 +7,8 @@
 #include <iomanip>
 #include <fstream>
 #include "../Request/RawRequest/RawRequest.hpp"
-#include "../../config/RequestContext/RequestContext.hpp"
+#include "../../config/shared/RequestContext/RequestContext.hpp"
+
 #include "Handlers/CgiHandler/CgiRequestData.hpp"
 #include "Handlers/StaticHandler/StaticHandler.hpp"
 
@@ -21,10 +22,6 @@ private:
 	std::string _statusText;
 	std::unordered_map<std::string, std::string> _headers;
 	std::string _body;
-	
-	
-	
-
 	
 public:
 
@@ -62,11 +59,10 @@ public:
 	
 	// CgiRequest createCgiRequest();
 	
-	bool isMethodAllowed(HttpMethodEnum method, const std::vector<HttpMethod>& allowed_methods);
+	bool isMethodAllowed(HttpMethod method, const std::vector<HttpMethod>& allowed_methods);
 	std::string allowedMethodsToString(const std::vector<HttpMethod>& allowed_methods);
-	std::string getErrorPageFilePath(
-    	HttpStatusCode status, const std::vector<ErrorPage>& errorPages);
-	void setErrorPageBody(HttpStatusCode code, const std::vector<ErrorPage>& errorPages);
+
+	void setErrorPageBody(HttpStatusCode code, const std::map<HttpStatusCode, std::string>& errorPages);
 	bool shouldClose() const;
 	
 	std::string handleCgiScript();
@@ -74,8 +70,9 @@ public:
 	
 	CgiRequestData createCgiRequest();
 	std::string handleStatic();
-	std::string resolveErrorPagePath(const std::string& errorPath) const;
-	std::filesystem::path resolveBasePath() const;
+	// std::filesystem::path resolveBasePath() const;
+	
+	static std::string httpMethodToString(HttpMethod method);
 	
 	};
 
