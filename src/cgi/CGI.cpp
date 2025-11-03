@@ -51,7 +51,6 @@ std::string getShebangInterpreter(const std::string& path)
     return interpreter;
 }
 
-// Проверка пути + shebang
 std::string validateScriptPath(const std::string& scriptPath, const std::string& rootDir)
 {
     struct stat st;
@@ -61,7 +60,6 @@ std::string validateScriptPath(const std::string& scriptPath, const std::string&
     if (S_ISDIR(st.st_mode))
         throw std::runtime_error("CGI script is a directory: " + scriptPath);
 
-    // Защита от path traversal
     char realScript[PATH_MAX];
     char realRoot[PATH_MAX];
     if (!realpath(scriptPath.c_str(), realScript) || !realpath(rootDir.c_str(), realRoot))
@@ -72,14 +70,12 @@ std::string validateScriptPath(const std::string& scriptPath, const std::string&
     if (realScriptStr.find(realRootStr) != 0)
         throw std::runtime_error("Path traversal detected: " + scriptPath);
 
-    // Если файл исполняемый, возвращаем путь к скрипту
     if (st.st_mode & S_IXUSR)
         return scriptPath;
 
-    // Если не исполняемый, проверяем shebang
     std::string interpreter = getShebangInterpreter(scriptPath);
     if (!interpreter.empty())
-        return interpreter; // будем вызывать через интерпретатор
+        return interpreter;
 
     throw std::runtime_error("CGI script is not executable and has no shebang: " + scriptPath);
 }
@@ -123,7 +119,6 @@ std::string CGI::execute(const std::string& scriptPath,
         std::vector<char*> c_args;
         if (execPath != scriptPath)
         {
-            // запускаем через интерпретатор
             c_args.push_back(const_cast<char*>(execPath.c_str()));
             c_args.push_back(const_cast<char*>(scriptPath.c_str()));
         }
@@ -159,7 +154,6 @@ std::string CGI::execute(const std::string& scriptPath,
                 if (n <= 0) throw std::runtime_error("write failed");
                 total += n;
             }
-
         }
 
         close(pipe_in[1]);
@@ -195,4 +189,52 @@ std::string CGI::execute(const std::string& scriptPath,
 
         return cgi_output;
     }
+}
+
+std::string methodToString(HttpMethodEnum method)
+{
+    switch (method)
+    {
+        case HttpMethodEnum::GET:    return "GET";
+        case HttpMethodEnum::POST:   return "POST";
+        case HttpMethodEnum::PUT:    return "PUT";
+        case HttpMethodEnum::DELETE: return "DELETE";
+        default:                     return "NONE";
+    }
+}
+
+std::vector<std::string> CGI::buildEnvFromRequest(const RequestData& req)
+{
+    std::vector<std::string> env;
+
+    env.push_back("REQUEST_METHOD=" + methodToString(req.method));
+    env.push_back("QUERY_STRING=" + req.query);
+    env.push_back("CONTENT_LENGTH=" + std::to_string(req.body.size()));
+
+    if (auto it = req.headers.find("content-type"); it != req.headers.end())
+        env.push_back("CONTENT_TYPE=" + it->second);
+
+    env.push_back("SCRIPT_NAME=" + req.uri);
+    env.push_back("SERVER_PROTOCOL=" + req.httpVersion);
+    env.push_back("GATEWAY_INTERFACE=CGI/1.1");
+
+    if (!req.clientIP.empty())
+        env.push_back("REMOTE_ADDR=" + req.clientIP);
+    if (!req.serverName.empty())
+        env.push_back("SERVER_NAME=" + req.serverName);
+    if (req.serverPort)
+        env.push_back("SERVER_PORT=" + std::to_string(req.serverPort));
+
+    for (auto const& [key, value] : req.headers)
+    {
+        std::string headerName = "HTTP_" + key;
+        for (char& c : headerName)
+        {
+            if (c == '-') c = '_';
+            else c = std::toupper(c);
+        }
+        env.push_back(headerName + "=" + value);
+    }
+
+    return env;
 }

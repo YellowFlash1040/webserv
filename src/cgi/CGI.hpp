@@ -6,6 +6,33 @@
 #include <string>
 #include <vector>
 
+//From Tamar, remove it later
+# include <unordered_map>
+
+enum class HttpMethodEnum
+{
+    NONE,
+    GET,
+    POST,
+    PUT,
+    DELETE
+};
+
+struct RequestData
+{
+    HttpMethodEnum method{};
+    std::string uri{};
+    std::string query{};
+    std::string httpVersion{};
+    std::unordered_map<std::string, std::string> headers{};
+    std::string body{};
+    std::string clientIP{};
+    std::string serverName{};
+    int serverPort{};
+};
+
+//From Tamar, remove it later 
+
 class CGI
 {
 public:
@@ -14,6 +41,8 @@ public:
                     const std::vector<std::string>& env,
                     const std::string& input = "",
                     const std::string& rootDir = "/var/www/cgi-bin/");
+
+    static std::vector<std::string> buildEnvFromRequest(const RequestData& req);
 };
 
 #endif
