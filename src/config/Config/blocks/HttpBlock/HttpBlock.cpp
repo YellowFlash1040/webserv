@@ -24,7 +24,7 @@ const ServerBlock& HttpBlock::matchServerBlock(const std::string& host) const
     return servers->front();
 }
 
-const ServerBlock& HttpBlock::matchServerBlock(const std::string& endpoint,
+const ServerBlock& HttpBlock::matchServerBlock(const NetworkEndpoint& endpoint,
                                                const std::string& host) const
 {
     std::vector<const ServerBlock*> matchedServers;
@@ -32,7 +32,7 @@ const ServerBlock& HttpBlock::matchServerBlock(const std::string& endpoint,
     // Try match by endpoint
     for (const ServerBlock& server : servers)
     {
-        for (const std::string& listen : server.listen)
+        for (const NetworkEndpoint& listen : server.listen)
         {
             if (listen == endpoint)
             {

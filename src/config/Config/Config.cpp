@@ -49,9 +49,9 @@ Config Config::fromFile(const std::string& filepath)
 ///----------------------------///
 ///----------------------------///
 
-std::vector<std::string> Config::getAllEnpoints()
+std::vector<NetworkEndpoint> Config::getAllEnpoints()
 {
-    std::vector<std::string> endpoints;
+    std::vector<NetworkEndpoint> endpoints;
 
     size_t totalListens = 0;
     for (const auto& server : m_httpBlock.servers)
@@ -339,6 +339,12 @@ void Config::assign(Property<std::map<std::string, std::string>>& cgiPass,
     cgiPass[args[0]] = args[1];
 
     cgiPass.isSet() = true;
+}
+
+void Config::assign(Property<std::vector<NetworkEndpoint>>& property,
+                    const std::vector<Argument>& args)
+{
+    property->emplace_back(Converter::toNetworkEndpoint(args[0]));
 }
 
 void Config::setDefaultHttpMethods(std::vector<HttpMethod>& httpMethods)

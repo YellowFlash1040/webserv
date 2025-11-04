@@ -156,35 +156,6 @@ void Validator::checkBasicPreconditions(
     checkIfEnoughArguments(directive, argSpecs);
 }
 
-void Validator::processArgumentsWithSpec(const Directives::ArgumentSpec& spec,
-                                         const std::vector<Argument>& args,
-                                         size_t& i)
-{
-    size_t count = 0;
-    while (i < args.size() && count < spec.maxCount
-           && validateArgument(spec.possibleTypes, args[i]))
-    {
-        ++count;
-        ++i;
-    }
-
-    if (count < spec.minCount)
-        throw InvalidArgumentException(args[i]);
-}
-
-// void Validator::consumeArgumentsWhileCan(const Directives::ArgumentSpec&
-// spec,
-//                                          const std::vector<Argument>& args,
-//                                          size_t& i, size_t& count)
-// {
-//     while (i < args.size() && count < spec.maxCount
-//            && validateArgument(spec.possibleTypes, args[i]))
-//     {
-//         ++count;
-//         ++i;
-//     }
-// }
-
 void Validator::checkIfArgumentsAreAllowed(
     const std::unique_ptr<Directive>& directive,
     const std::vector<Directives::ArgumentSpec>& argSpecs)
@@ -205,23 +176,6 @@ void Validator::checkIfEnoughArguments(
         throw NotEnoughArgumentsException(directive);
 }
 
-// ***** Thoughts ******
-/*
-for each group:
-    while (more args and under maxCount):
-        try validate(arg) for current group
-            success → consume it
-        catch (invalid):
-            if next group exists:
-                try validate(arg) with next group
-                    success → move to next group
-                    fail → throw InvalidArgument
-            else:
-                throw InvalidArgument
-
-    if count < minCount → NotEnoughArguments
-*/
-
 void Validator::checkForDuplicateArguments(const std::vector<Argument>& args)
 {
     std::set<std::string> seenArguments;
@@ -234,6 +188,22 @@ void Validator::checkForDuplicateArguments(const std::vector<Argument>& args)
         if (!inserted)
             throw DuplicateArgumentException(arg);
     }
+}
+
+void Validator::processArgumentsWithSpec(const Directives::ArgumentSpec& spec,
+                                         const std::vector<Argument>& args,
+                                         size_t& i)
+{
+    size_t count = 0;
+    while (i < args.size() && count < spec.maxCount
+           && validateArgument(spec.possibleTypes, args[i]))
+    {
+        ++count;
+        ++i;
+    }
+
+    if (count < spec.minCount)
+        throw InvalidArgumentException(args[i]);
 }
 
 bool Validator::validateArgument(const std::vector<ArgumentType>& possibleTypes,
@@ -260,6 +230,23 @@ bool Validator::validateArgument(const std::vector<ArgumentType>& possibleTypes,
 
     return false;
 }
+
+// ***** Thoughts ******
+/*
+for each group:
+    while (more args and under maxCount):
+        try validate(arg) for current group
+            success → consume it
+        catch (invalid):
+            if next group exists:
+                try validate(arg) with next group
+                    success → move to next group
+                    fail → throw InvalidArgument
+            else:
+                throw InvalidArgument
+
+    if count < minCount → NotEnoughArguments
+*/
 
 ///----------------///
 ///----------------///
@@ -362,6 +349,31 @@ void Validator::validateNetworkEndpoint(const std::string& s)
     if (s.empty())
         throw std::invalid_argument(
             "argument for 'listen' directive can not be empty");
+
+    Converter::toNetworkEndpoint(s);
+}
+
+void Validator::validateIp(const std::string& s)
+{
+    if (s.empty())
+        throw std::invalid_argument(
+            "argument for 'listen' directive can not be empty");
+
+    NetworkInterface ip(s);
+
+    return;
+}
+
+void Validator::validatePort(const std::string& s)
+{
+    if (s.empty())
+        throw std::invalid_argument(
+            "argument for 'listen' directive can not be empty");
+
+    int number = std::stoi(s);
+    if (number < 0 || number > 65535)
+        throw std::invalid_argument(
+            "Valid port has to be an integer value between 0 and 65535");
 }
 
 void Validator::validateHttpMethod(const std::string& s)
@@ -432,28 +444,6 @@ void Validator::validateFile(const std::string& s)
     }
 }
 
-void Validator::validateIp(const std::string& s)
-{
-    if (s.empty())
-        throw std::invalid_argument(
-            "argument for 'listen' directive can not be empty");
-
-    (void)s;
-    return;
-}
-
-void Validator::validatePort(const std::string& s)
-{
-    if (s.empty())
-        throw std::invalid_argument(
-            "argument for 'listen' directive can not be empty");
-
-    int number = std::stoi(s);
-    if (number < 0 || number > 65535)
-        throw std::invalid_argument(
-            "Valid port has to be an integer value between 0 and 65535");
-}
-
 void Validator::validateFileExtension(const std::string& s)
 {
     if (s[0] != '.')
@@ -490,7 +480,7 @@ void Validator::validate(const HttpBlock& httpBlock)
         {
             for (auto& name : server.serverName)
             {
-                auto& names = listen_map[listen];
+                auto& names = listen_map[static_cast<std::string>(listen)];
                 if (!names.insert(name).second)
                     throw DuplicateServerIdException(name, listen);
             }
