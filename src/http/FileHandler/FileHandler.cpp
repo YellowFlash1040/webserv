@@ -120,3 +120,22 @@ bool FileHandler::isPathInsideRoot(const std::string& root, const std::string& r
 		return false;
 	}
 }
+
+// Returns the first existing index file path in the directory, or empty string if none exist
+std::string FileHandler::getIndexFilePath(const std::string &dirPath) const
+{
+    if (!isDirectory(dirPath))
+        return "";
+
+    for (const auto &idx : _indexFiles)
+    {
+        std::string indexPath = dirPath;
+        if (dirPath.back() != '/') indexPath += '/';
+        indexPath += idx;
+
+        if (fileExists(indexPath))
+            return indexPath;
+    }
+
+    return "";
+}

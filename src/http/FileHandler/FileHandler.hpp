@@ -42,11 +42,14 @@ class FileHandler
 		// MIME type detection
 		static std::string detectMimeType(const std::string &path);
 		
+		std::string getIndexFilePath(const std::string &dirPath) const;
+		
 		private:
 		std::string _root;
 		bool _autoindex;
 		std::vector<std::string> _indexFiles;
 		bool isPathInsideRoot(const std::string& root, const std::string& resolved) const;
-};
+		
+	};
 
 #endif

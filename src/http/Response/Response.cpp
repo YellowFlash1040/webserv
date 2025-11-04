@@ -284,11 +284,21 @@ CgiRequestData Response::createCgiRequest()
 std::string Response::handleStatic()
 {
 	FileHandler fileHandler(_ctx.autoindex_enabled, _ctx.index_files);
-
 	std::string& resolvedPath = _ctx.resolved_path;
 
 	if (fileHandler.isDirectory(resolvedPath))
 	{
+		// Serve index file if exists
+        std::string indexPath = fileHandler.getIndexFilePath(resolvedPath);
+        if (!indexPath.empty())
+        {
+            std::string fileContents = fileHandler.serveFile(indexPath);
+            setBody(fileContents);
+            addHeader("Content-Type", fileHandler.detectMimeType(indexPath));
+            return toString();
+        }
+		
+		// No index file: autoindex or 404
 		if (_ctx.autoindex_enabled)
 		{
 			std::string dirHtml = fileHandler.handleDirectory(resolvedPath);

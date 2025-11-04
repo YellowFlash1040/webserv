@@ -143,21 +143,12 @@ void Server::processClient(int clientId)
 		
 		if (anyRequestDone)
 		{
-			int respCount = 0;
 			while (m_connMgr.hasPendingResponses(clientId))
 			{
 				Response resp = m_connMgr.popNextResponse(clientId);	
 				std::string respStr = resp.toString();
-				++respCount;
-
-				std::cout << "\n[Server::processClient] --- Sending response #" << respCount
-						<< " for client " << clientId << " ---\n";
-				std::cout << "[Server::processClient] Status: "
-						<< static_cast<int>(resp.getStatusCode())
-						<< " " << resp.getStatusText() << "\n";
-				std::cout << "[Server::processClient] Body size: " << respStr.size() << " bytes\n";
-				std::cout << "[Server::processClient] Body preview:\n"
-						<< respStr.substr(0, std::min<size_t>(200, respStr.size())) << "\n";
+				std::cout << "[Server::processClient] sending " << respStr.size() << " bytes\n";
+				
 				write(clientId, respStr.c_str(), respStr.size());
 				
 				// Only remove client if last request indicates Connection: close
