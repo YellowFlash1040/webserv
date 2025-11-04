@@ -18,7 +18,7 @@ private:
 	RequestData _req;
     RequestContext _ctx;
 	
-	int _statusCode;
+	HttpStatusCode _statusCode;
 	std::string _statusText;
 	std::unordered_map<std::string, std::string> _headers;
 	std::string _body;
@@ -37,15 +37,14 @@ public:
 	void reset();
 
 	// Getters
-	int getStatusCode() const;
+	HttpStatusCode getStatusCode() const;
 	const std::string& getStatusText() const;
 	const std::unordered_map<std::string, std::string>& getHeaders() const;
 	const std::string& getBody() const;
 	bool hasHeader(const std::string& key) const;
 
 	// Setters
-	void setStatus(int code);
-	void setStatusText(const std::string& text);
+	void setStatus(HttpStatusCode code);
 	void setDefaultHeaders();
 	void addHeader(const std::string& key, const std::string& value);
 	void setBody(const std::string& body);
@@ -54,15 +53,15 @@ public:
 	std::string toString() const;
 
 	// Map HTTP status code to default text
-	std::string codeToText(int code) const;
-	std::string genResp();
+	std::string codeToText(HttpStatusCode code);
+	std::string genResp(bool isInternalRedirect = false);
 	
 	// CgiRequest createCgiRequest();
 	
 	bool isMethodAllowed(HttpMethod method, const std::vector<HttpMethod>& allowed_methods);
 	std::string allowedMethodsToString(const std::vector<HttpMethod>& allowed_methods);
 
-	void setErrorPageBody(HttpStatusCode code, const std::map<HttpStatusCode, std::string>& errorPages);
+	void setErrorPageBody(HttpStatusCode code);
 	bool shouldClose() const;
 	
 	std::string handleCgiScript();
@@ -73,6 +72,8 @@ public:
 	// std::filesystem::path resolveBasePath() const;
 	
 	static std::string httpMethodToString(HttpMethod method);
+	
+
 	
 	};
 

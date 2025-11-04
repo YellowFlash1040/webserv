@@ -130,25 +130,34 @@ void Server::processClient(int clientId)
 	if (n > 0)
 	{
 		buf[n] = '\0';
-		std::cout << GREEN << "\nDEBUG[SERVER]:" << RESET << " read " << n << " bytes: \n" << buf << "\n";
+		std::cout << GREEN << "\n[processClient]:" << RESET << " read " << n << " bytes: \n" << buf << "\n";
 		// Pass incoming data to ConnectionManager
 		std::string data(buf, n);
 		
 		bool anyRequestDone = m_connMgr.processData(clientId, data);
 
-		std::cout << GREEN << "DEBUG[SERVER]:" << RESET << " any request processed? " << anyRequestDone << "\n";
+		std::cout << GREEN << "[processClient]:" << RESET << " any request processed? " << anyRequestDone << "\n";
 		
 		//Send all ready responses
 		std::string respStr;
 		
 		if (anyRequestDone)
 		{
+			int respCount = 0;
 			while (m_connMgr.hasPendingResponses(clientId))
 			{
 				Response resp = m_connMgr.popNextResponse(clientId);	
 				std::string respStr = resp.toString();
-				std::cout << "[Server::processClient] sending " << respStr.size() <<  "bytes\n";
-				
+				++respCount;
+
+				std::cout << "\n[Server::processClient] --- Sending response #" << respCount
+						<< " for client " << clientId << " ---\n";
+				std::cout << "[Server::processClient] Status: "
+						<< static_cast<int>(resp.getStatusCode())
+						<< " " << resp.getStatusText() << "\n";
+				std::cout << "[Server::processClient] Body size: " << respStr.size() << " bytes\n";
+				std::cout << "[Server::processClient] Body preview:\n"
+						<< respStr.substr(0, std::min<size_t>(200, respStr.size())) << "\n";
 				write(clientId, respStr.c_str(), respStr.size());
 				
 				// Only remove client if last request indicates Connection: close

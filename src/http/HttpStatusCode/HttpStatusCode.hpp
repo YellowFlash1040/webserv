@@ -14,7 +14,7 @@ enum class HttpStatusCode
     EarlyHints = 103,
 
     // 2xx Success
-    Ok = 200,
+    OK = 200,
     Created = 201,
     Accepted = 202,
     NonAuthoritativeInformation = 203,

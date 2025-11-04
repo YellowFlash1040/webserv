@@ -1,0 +1,283 @@
+[33mcommit 4f2a4786e64d9529c9d2f0ce307df4746bdd732c[m[33m ([m[1;36mHEAD -> [m[1;32mtamar[m[33m)[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Mon Nov 3 18:12:04 2025 +0100
+
+    include Andrii's new version of config file
+
+[33mcommit 2e7c61ff34103fd3e556926efe54948f716bd53f[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Wed Oct 29 23:03:00 2025 +0100
+
+    I have nothing to say
+
+[33mcommit 84b8f7b9a27da350823676dd112cf535da57f211[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Wed Oct 29 19:58:47 2025 +0100
+
+    improve FileHandler to support alias; Did my best to handle edge cases for directory vs file alias
+
+[33mcommit 3560f4eb5e603311bc0908ff31beff5a918b8dce[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Wed Oct 29 02:29:52 2025 +0100
+
+    Check allowed HTTP methods before processing request
+
+[33mcommit 126f024a9c04f58f90d3e95dff5148ea074b6d2a[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Wed Oct 29 01:53:02 2025 +0100
+
+    feat: reject requests exceeding client_max_body_size
+
+[33mcommit 31b43fdc087e61a6266e3590c5a294bff0f966b0[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Wed Oct 29 01:21:59 2025 +0100
+
+    fix: improve static file handling with autoindex and multiple index files
+
+[33mcommit e7015979d7f3637763413392368b517e39ac345d[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Mon Oct 27 22:57:46 2025 +0100
+
+    Refactor RawRequest and processReqs so  static request serving handles pipelined GET requests
+
+[33mcommit 910b184db736449ad8120921803b543f17c66021[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Sun Oct 12 04:37:35 2025 +0200
+
+    Add initial logic for generating HTML error pages for responses; Started experimenting with limit_except behavior to restrict HTTP methods per location
+
+[33mcommit 732eddc0acd4e989cbf14577911f712d301329ac[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Fri Oct 10 03:54:53 2025 +0200
+
+    Remove old ConnectionManager::genResp(int)
+    
+    Update Response::genResp() to handle different types of resources:
+    - Redirection: uses _ctx.redirection
+    - CGI scripts: checks _ctx.cgi_pass
+    - Static files: default fallback
+    
+    Hardcoded responses are included for testing purposes
+
+[33mcommit 697e0a3edc24c41b4c2a021f815b3937faf2c369[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Fri Oct 10 03:00:38 2025 +0200
+
+    feat(http): improve normalizePath with full percent-decoding and add GTests, covering: Normal paths, Paths with '.', '..', Percent-encoded segments (%2F, %2E, %2F.., etc.), Root escape attempts
+
+[33mcommit 1f140871ec035a864cc9caa041989c438e674f57[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Thu Oct 9 05:04:55 2025 +0200
+
+    Split _uri into _path and _query to separate request path from query string; Normalize _path: . segments are skipped (current directory), .. segments move one directory up, but never above root, %XX sequences are percent-decoded; Fix ConnectionManager::clientSentClose crash: Now safely checks if there are any parsed requests before accessing the vector
+
+[33mcommit cd82553ed3ae75e6274f496e0486d584740bba1a[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Tue Oct 7 05:10:25 2025 +0200
+
+    printing RequestContext inside getRespsForReadyReqs
+
+[33mcommit 8bac4785b43df1358d259940a37f8276708a25f7[m
+Author: Tamar Feuer <tfeuer@f0r3s17.codam.nl>
+Date:   Sun Oct 5 17:07:49 2025 +0200
+
+    Link Config to ConnectionManager through main.cpp
+
+[33mcommit 03dc9dd1e3aec7e1c0059f515f313fe505aa7bd7[m
+Author: Tamar Feuer <tfeuer@f0r3s17.codam.nl>
+Date:   Sun Oct 5 15:40:46 2025 +0200
+
+    add ErrorPage, HttpMethod, HttpRedirection; add FileReader in utils
+
+[33mcommit e95fb3416bd944c02b610026868cd51c6679fc20[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Sun Oct 5 14:10:23 2025 +0200
+
+    localy added Configuration parser version 1 to my branch. There seems to be a misplacing of ErrorPage.hpp
+
+[33mcommit cfdae89439a7af2ac9b073575706b3901ba95a3c[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Sun Oct 5 06:09:25 2025 +0200
+
+    clean up
+
+[33mcommit 2e50d3897a4307cd8691bed849494cd948ab2a3b[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Sat Oct 4 01:07:40 2025 +0200
+
+    add PartialContentLengthAndChunkedPackets test
+
+[33mcommit 36e778458fb69ef2bdabfac96590168f5ff5fa50[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Fri Oct 3 20:35:33 2025 +0200
+
+    Fixe chunk decoding logic so that terminating  is consumed correctly; Decide on iterative (non-recursive) version of processReq for clarity and safety. With these changes, the PipelinedMixedRequests gtest now passes.
+
+[33mcommit ce4d1b43619ca122fd52f295c053948780518af9[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Wed Oct 1 21:00:19 2025 +0200
+
+    Fix handling of chunked HTTP requests and separate headers from body
+    
+    - Refactored ConnectionManager to separate headers from body into temp buffer
+    - Added debugging statements to ParsedRequest::decodeChunkedBody
+    - Updated appendToChunkedBuffer logic to correctly accumulate chunks
+    - Print request body and headers for easier debugging
+    - Ensured chunked requests pass ProcessDataTest.ChunkedRequest
+    - PipelinedRequestsRepeatedCalls test still failing; will address separately
+
+[33mcommit 200fcde45834954a46671c1768797e0a84fddcdf[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Wed Oct 1 05:11:57 2025 +0200
+
+    Refactor connection manager; remove old RequestParser
+
+[33mcommit f8db2a6641cceb8f254e0b9dae7bc6b7f91ca089[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Thu Sep 25 13:02:12 2025 +0200
+
+    add GTests for request body handling: chunked, content-length, and no-length cases
+
+[33mcommit f154842ce2dbbc41d5a5c99971ae396ed98c1268[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Thu Sep 25 12:06:10 2025 +0200
+
+    Add GTests: SplitRequestBuffers: checks a single HTTP request split across multiple buffers is correctly reconstructed, and InterleavedClients: checks that requests from two clients interleaved in time are correctly parsed without mixing states
+
+[33mcommit f73440ee526ffe358ac80dd90a49407e23db250b[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Thu Sep 25 02:49:37 2025 +0200
+
+    Fix ConnectionManager to correctly handle multiple sequential requests per client
+
+[33mcommit 5a32a58f8d6ef0faff07b3bc53a1cd824f0a9281[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Wed Sep 24 19:31:27 2025 +0200
+
+    change m_clients from std::map to std::unordered_map<int, ClientState> for faster lookups; Server now uses ConnectionManager::clientSentClose() instead of accessing ClientRequest; move ConnectionManager creation from main.cpp to Server constructor; add initial gtest for processData function; refactor processData
+
+[33mcommit 2a9a84231db169d55fbb78ed9038d8f036426ff9[m[33m ([m[1;31morigin/network_experiment_tamar[m[33m)[m
+Author: Tamar Feuer <tfeuer@f0r3s19.codam.nl>
+Date:   Tue Sep 23 18:05:11 2025 +0200
+
+    add gtest for partial data
+
+[33mcommit d6ebdfe554c36ad97bdd346f3d5bd5923375956f[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Tue Sep 23 15:11:34 2025 +0200
+
+    ClientRequest and ServerResponse - now for real
+
+[33mcommit ee64cc722b519db377f41d8c8e09c29683930be4[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Tue Sep 23 02:34:48 2025 +0200
+
+    rename Response with ServerResponse
+
+[33mcommit 3f4722457edb0106538ae616f808f1cf126018ae[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Tue Sep 23 02:13:49 2025 +0200
+
+    Rename Request to ClientRequest
+
+[33mcommit b1d67ed49e2acc66aacab5e748cdbef024cf26fc[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Tue Sep 23 01:33:25 2025 +0200
+
+    implement ClientState and ConnectionManager
+
+[33mcommit 7f3d5586c7dee5892e958cf9a7efac4535663d2f[m
+Author: Tamar Feuer <tfeuer@f1r3s5.codam.nl>
+Date:   Tue Sep 9 13:16:38 2025 +0200
+
+    hard code Content-Length header
+
+[33mcommit 2a74631587798f7ced5c42d6fd6d3135585e8500[m
+Author: Tamar Feuer <tamar2603@gmail.com>
+Date:   Mon Sep 8 13:34:36 2025 +0200
+
+    initial setup
+
+[33mcommit bea9ae09bfee9d370ad239adec7ea7af28a79862[m
+Author: Tamar Feuer <tfeuer@f0r6s2.codam.nl>
+Date:   Sat Sep 6 18:53:40 2025 +0200
+
+    add respose to client
+
+[33mcommit 866bcd3b7561e7805371beecffea3dcf96713ef3[m
+Author: Tamar Feuer <tfeuer@f0r6s2.codam.nl>
+Date:   Sat Sep 6 17:31:27 2025 +0200
+
+    Saved experiment code
+
+[33mcommit 1645018296e1757d3cc7035e185c4ec0f986bbeb[m
+Author: akovtune <akovtune@student.codam.nl>
+Date:   Fri Sep 5 18:44:39 2025 +0200
+
+    End of the day 05-09-2025
+
+[33mcommit 03ea1d6d2d94399291f3eb639094df1ce8f27e9c[m
+Author: akovtune <akovtune@student.codam.nl>
+Date:   Thu Sep 4 18:54:09 2025 +0200
+
+    End of the day 04-09-2025
+
+[33mcommit cc5c9b7483d866eba3ba1ac5d930b911767a29c0[m
+Author: akovtune <akovtune@student.codam.nl>
+Date:   Thu Sep 4 12:24:20 2025 +0200
+
+    Add to the previous 2 commits
+
+[33mcommit fbd0623c853ac758153212805392bb2c8e4a8a50[m
+Author: akovtune <akovtune@student.codam.nl>
+Date:   Thu Sep 4 12:23:11 2025 +0200
+
+    Add to the previous commit
+
+[33mcommit d8f287abf49291a0cd2371538af737c1f8bcd623[m
+Author: akovtune <akovtune@student.codam.nl>
+Date:   Thu Sep 4 12:22:44 2025 +0200
+
+    Start of the day 04-09-2025
+
+[33mcommit 6615676fb08e5c43c2ac6c82a45971cf4c3f6277[m
+Author: YellowFlash1040 <andrejkovtunec@gmail.com>
+Date:   Mon Sep 1 19:17:15 2025 +0200
+
+    End of the day 01-09-2025
+
+[33mcommit 4613e07a8351d16b94a380d6b416237e297742a7[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m
+Author: akovtune <akovtune@student.codam.nl>
+Date:   Fri Aug 29 17:31:33 2025 +0200
+
+    Added more folders to create project structure
+
+[33mcommit cfe2548846e424e8a72156d517e7bdaee3f9ebad[m
+Author: akovtune <akovtune@student.codam.nl>
+Date:   Tue Aug 26 16:42:52 2025 +0200
+
+    Added empty main.cpp
+
+[33mcommit 98bbbe87164e8e093ed1eb16e438f47b02d6374b[m
+Author: akovtune <akovtune@student.codam.nl>
+Date:   Tue Aug 26 16:41:32 2025 +0200
+
+    Added gtest for unit tests
+
+[33mcommit db0798dd805a3ab76b6eb1d97c9b0056dbaaefb0[m
+Author: akovtune <akovtune@student.codam.nl>
+Date:   Tue Aug 26 16:41:06 2025 +0200
+
+    Added Makefile
+
+[33mcommit 57f3c2edc15213b53c78614f1dc56ce679daf0a3[m
+Author: akovtune <akovtune@student.codam.nl>
+Date:   Tue Aug 26 16:40:57 2025 +0200
+
+    Added .clang-format
+
+[33mcommit 27a17bcddbec9f482f15516f21452108ec5fd9fd[m
+Author: akovtune <akovtune@student.codam.nl>
+Date:   Tue Aug 26 16:40:20 2025 +0200
+
+    Initial commit

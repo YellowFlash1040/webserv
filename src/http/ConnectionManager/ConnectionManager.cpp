@@ -95,8 +95,8 @@ size_t ConnectionManager::processReqs(int clientId, const std::string& data)
 		}
 		
 		//std::cout << "[DEBUG] headersDone=" << rawReq.isHeadersDone()
-          //<< " bodyDone=" << rawReq.isBodyDone()
-          //<< " isBad=" << rawReq.isBadRequest() << "\n";
+		  //<< " bodyDone=" << rawReq.isBodyDone()
+		  //<< " isBad=" << rawReq.isBadRequest() << "\n";
 		  
 		//At this point headers and body are done = full request parsed
 		if ((rawReq.isHeadersDone() && rawReq.isBodyDone()) || rawReq.isBadRequest())
@@ -156,19 +156,84 @@ void ConnectionManager::genRespsForReadyReqs(int clientId)
 		printReqContext(ctx);
 		
 		Response resp(reqData, ctx);
-		
+
+		// Handle Bad Request (400) first
 		if (rawReq.isBadRequest()) 
 		{
-			std::cout << "[ConnectionManager::genRespsForReadyReqs] Bad request detected, generating 400 response\n";
-			resp.setStatus(static_cast<int>(HttpStatusCode::BadRequest)); //check code
-			resp.setErrorPageBody(HttpStatusCode::BadRequest, ctx.error_pages);
+			std::cout << "[genRespsForReadyReqs] Bad request detected, generating 400 response\n";
+			HttpStatusCode status_code = HttpStatusCode::BadRequest;
+			resp.setStatus(status_code);
+			
+			auto itErr = ctx.error_pages.find(status_code);
+            if (itErr != ctx.error_pages.end() && !itErr->second.empty())
+			{
+				// internal redirect to error page
+				std::string errorPageUri = itErr->second;
+				RequestContext errorCtx = m_config.createRequestContext(reqData.getHeader("Host"), errorPageUri);
+			  	Response errorResp(reqData, errorCtx);
+				
+				std::string finalResp = errorResp.genResp(true);
+                if (finalResp.empty())
+                {
+					std::cout << "[genRespsForReadyReqs] finalResp is empty\n";
+                    errorResp.setErrorPageBody(status_code);
+                    finalResp = errorResp.toString();
+                }
+
+                clientState.enqueueResponse(errorResp);
+                continue; // skip normal processing
+			}
+			else
+            {
+                resp.setErrorPageBody(status_code);
+                clientState.enqueueResponse(resp);
+                continue;
+            }
 		}
+		// Normal request processing
+		std::string result = resp.genResp();
 		
+		 // Internal redirect for other errors (e.g., 405, 413, 500)
+		HttpStatusCode status_code = resp.getStatusCode();
+		
+		//There is a custom error page defined for this HTTP status code, and the file path is not empty
+		if (result.empty() && status_code != HttpStatusCode::OK)
+		{
+            auto itErr = ctx.error_pages.find(status_code);
+			if (itErr != ctx.error_pages.end() && !itErr->second.empty())
+            {
+				std::string errorPageUri = itErr->second;
+                std::cout << "[genRespsForReadyReqs] Internal redirect to custom error page: "
+                    << itErr->second << "\n";
+				RequestContext errorCtx = m_config.createRequestContext(reqData.getHeader("Host"), errorPageUri);
+				Response errorResp(reqData, errorCtx);
+				
+				std::string finalResp = errorResp.genResp();
+				if (finalResp.empty())
+				{
+					// Serve static file for custom error page
+    				std::cout << "[genRespsForReadyReqs] Serving custom error page statically\n";
+    				finalResp = errorResp.handleStatic(); // serve the file content
+				}
+
+				clientState.enqueueResponse(errorResp);
+				//continue; // skip normal enqueue of resp
+			}
+			  else
+            {
+                // No custom page, use default error page
+                resp.setErrorPageBody(status_code);
+                clientState.enqueueResponse(resp);
+            }
+		}
 		else
-			resp.genResp();
-		clientState.enqueueResponse(resp);
+        {
+            // 4. Normal 200 OK response
+            clientState.enqueueResponse(resp);
+        }
 	}
 }
+
 
 RawRequest ConnectionManager::popRawReq(int clientId)
 {
@@ -184,11 +249,11 @@ RawRequest ConnectionManager::popRawReq(int clientId)
 
 Response ConnectionManager::popNextResponse(int clientId)
 {
-    auto it = m_clients.find(clientId);
-    if (it == m_clients.end())
-        throw std::runtime_error("No such client");
+	auto it = m_clients.find(clientId);
+	if (it == m_clients.end())
+		throw std::runtime_error("No such client");
 
-    return it->second.popNextResponse(); // calls ClientState method
+	return it->second.popNextResponse(); // calls ClientState method
 }
 
 bool ConnectionManager::hasPendingResponses(int clientId) const
