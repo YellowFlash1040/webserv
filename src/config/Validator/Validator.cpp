@@ -147,6 +147,47 @@ void Validator::validateArguments(const std::unique_ptr<Directive>& directive)
         throw TooManyArgumentsException(directive);
 }
 
+void Validator::processArgumentsWithSpec(const Directives::ArgumentSpec& spec,
+                                         const std::vector<Argument>& args,
+                                         size_t& i)
+{
+    size_t count = 0;
+    while (i < args.size() && count < spec.maxCount
+           && validateArgument(spec.possibleTypes, args[i]))
+    {
+        ++count;
+        ++i;
+    }
+
+    if (count < spec.minCount)
+        throw InvalidArgumentException(args[i]);
+}
+
+bool Validator::validateArgument(const std::vector<ArgumentType>& possibleTypes,
+                                 const std::string& value)
+{
+    for (ArgumentType type : possibleTypes)
+    {
+        auto it = validators().find(type);
+        if (it == validators().end())
+            throw std::logic_error("No validator found");
+
+        try
+        {
+            const auto& validateValue = it->second;
+            validateValue(value); // if this succeeds, we're done
+            return true;
+        }
+        catch (const std::exception& ex)
+        {
+            // argument failed validation for this type, try next type
+            continue;
+        }
+    }
+
+    return false;
+}
+
 void Validator::checkBasicPreconditions(
     const std::unique_ptr<Directive>& directive,
     const std::vector<Directives::ArgumentSpec>& argSpecs)
@@ -188,47 +229,6 @@ void Validator::checkForDuplicateArguments(const std::vector<Argument>& args)
         if (!inserted)
             throw DuplicateArgumentException(arg);
     }
-}
-
-void Validator::processArgumentsWithSpec(const Directives::ArgumentSpec& spec,
-                                         const std::vector<Argument>& args,
-                                         size_t& i)
-{
-    size_t count = 0;
-    while (i < args.size() && count < spec.maxCount
-           && validateArgument(spec.possibleTypes, args[i]))
-    {
-        ++count;
-        ++i;
-    }
-
-    if (count < spec.minCount)
-        throw InvalidArgumentException(args[i]);
-}
-
-bool Validator::validateArgument(const std::vector<ArgumentType>& possibleTypes,
-                                 const std::string& value)
-{
-    for (ArgumentType type : possibleTypes)
-    {
-        auto it = validators().find(type);
-        if (it == validators().end())
-            throw std::logic_error("No validator found");
-
-        try
-        {
-            const auto& validateValue = it->second;
-            validateValue(value); // if this succeeds, we're done
-            return true;
-        }
-        catch (const std::exception& ex)
-        {
-            // argument failed validation for this type, try next type
-            continue;
-        }
-    }
-
-    return false;
 }
 
 // ***** Thoughts ******
@@ -366,14 +366,7 @@ void Validator::validateIp(const std::string& s)
 
 void Validator::validatePort(const std::string& s)
 {
-    if (s.empty())
-        throw std::invalid_argument(
-            "argument for 'listen' directive can not be empty");
-
-    int number = std::stoi(s);
-    if (number < 0 || number > 65535)
-        throw std::invalid_argument(
-            "Valid port has to be an integer value between 0 and 65535");
+    Converter::toNetworkPort(s);
 }
 
 void Validator::validateHttpMethod(const std::string& s)
@@ -389,8 +382,8 @@ void Validator::validateString(const std::string& s)
         return;
     if (s.front() == '\'' && s.back() == '\'')
         return;
-    if (s.find_first_not_of("0123456789") == std::string::npos)
-        throw std::invalid_argument("It looks like it's a number");
+    // if (s.find_first_not_of("1234567890") == std::string::npos)
+    //     throw std::invalid_argument("It looks like it's a number");
 }
 
 void Validator::validateUri(const std::string& s)

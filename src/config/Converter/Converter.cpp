@@ -58,12 +58,12 @@ NetworkEndpoint toNetworkEndpoint(const std::string& value)
     if (semicolonPos != std::string::npos)
     {
         parts[0] = value.substr(0, semicolonPos);
-        parts[1] = value.substr(semicolonPos + 1, value.size());
+        parts[1] = value.substr(semicolonPos + 1);
 
         if (!parts[0].empty())
             ip = NetworkInterface(parts[0]);
         if (!parts[1].empty())
-            port = std::stoi(parts[1]);
+            port = toNetworkPort(parts[1]);
 
         if (!parts[0].empty() && !parts[1].empty())
             endpoint = NetworkEndpoint(ip, port);
@@ -82,11 +82,28 @@ NetworkEndpoint toNetworkEndpoint(const std::string& value)
     }
     catch (const std::exception&)
     {
-        port = std::stoi(value);
+        port = toNetworkPort(value);
         endpoint = NetworkEndpoint(port);
     }
 
     return endpoint;
+}
+
+int toNetworkPort(const std::string& value)
+{
+    if (value.empty())
+        throw std::invalid_argument("value can not be empty");
+
+    if (value.find_first_not_of("1234567890") != std::string::npos)
+        throw std::invalid_argument(
+            "valid port has to consist only from digits");
+
+    int port = std::stoi(value);
+    if (port < 0 || port > 65535)
+        throw std::invalid_argument(
+            "Valid port has to be an integer value between 0 and 65535");
+
+    return (port);
 }
 
 } // namespace Converter

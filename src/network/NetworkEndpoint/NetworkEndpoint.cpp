@@ -38,6 +38,9 @@ NetworkEndpoint::NetworkEndpoint(const NetworkInterface& interface)
 NetworkEndpoint::NetworkEndpoint(int port)
   : m_port(port)
 {
+    if (port < 0 || port > 65535)
+        throw std::invalid_argument(
+            "valid port has to be an integer value between 0 and 65535");
 }
 
 NetworkEndpoint::NetworkEndpoint(NetworkInterface interface, int port)
