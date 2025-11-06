@@ -5,16 +5,9 @@
 
 # include <map>
 # include <vector>
-# include <string>
-
-# include "ErrorPage.hpp"
-# include "HttpStatusCode.hpp"
 
 namespace DirectiveAppliers
 {
-
-void applyErrorPages(const std::vector<ErrorPage>& errorPages,
-                     std::map<HttpStatusCode, std::string>& target);
 
 struct Replace
 {

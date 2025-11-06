@@ -19,13 +19,8 @@ int main(int argc, char** argv)
     {
         Config config = Config::fromFile(filepath);
 
-        RequestContext context
-            = config.createRequestContext("server.com", "/kapouet/file");
-        // RequestContext context
-        // = config.createRequestContext("server.com", "/images/file");
-        // RequestContext context = config.createRequestContext("", "");
-        // RequestContext context = config.createRequestContext(
-        //     NetworkEndpoint(8080), "pizza.com", "/");
+        RequestContext context = config.createRequestContext(
+            NetworkEndpoint(8080), "server.com", "/kapouet/file");
 
         std::cout << "Well done :)"
                   << "\n";

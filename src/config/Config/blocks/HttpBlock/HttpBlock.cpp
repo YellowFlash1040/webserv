@@ -13,17 +13,6 @@ void HttpBlock::applyTo(EffectiveConfig& config) const
     applyIfSet(index, config.index_files, Replace{});
 }
 
-const ServerBlock& HttpBlock::matchServerBlock(const std::string& host) const
-{
-    for (const ServerBlock& serverBlock : servers)
-    {
-        for (const std::string& serverName : serverBlock.serverName)
-            if (serverName == host)
-                return serverBlock;
-    }
-    return servers->front();
-}
-
 const ServerBlock& HttpBlock::matchServerBlock(const NetworkEndpoint& endpoint,
                                                const std::string& host) const
 {
