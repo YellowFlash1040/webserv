@@ -70,6 +70,33 @@ std::vector<NetworkEndpoint> Config::getAllEnpoints()
 ///----------------------------///
 ///----------------------------///
 
+RequestContext Config::createRequestContext(const NetworkEndpoint& endpoint,
+                                            const std::string& host,
+                                            const std::string& uri)
+{
+    EffectiveConfig config = createEffectiveConfig(endpoint, host, uri);
+
+    return createContext(config, uri);
+}
+
+EffectiveConfig Config::createEffectiveConfig(const NetworkEndpoint& endpoint,
+                                              const std::string& host,
+                                              const std::string& uri)
+{
+    EffectiveConfig config;
+
+    HttpBlock& httpBlock = m_httpBlock;
+    const ServerBlock& serverBlock = httpBlock.matchServerBlock(endpoint, host);
+    const LocationBlock* locationBlock = serverBlock.matchLocationBlock(uri);
+
+    httpBlock.applyTo(config);
+    serverBlock.applyTo(config);
+    if (locationBlock)
+        locationBlock->applyTo(config);
+
+    return config;
+}
+
 RequestContext Config::createRequestContext(const std::string& host,
                                             const std::string& uri)
 {

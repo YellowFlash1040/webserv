@@ -39,6 +39,9 @@ class Config
     std::vector<NetworkEndpoint> getAllEnpoints();
     RequestContext createRequestContext(const std::string& host,
                                         const std::string& uri);
+    RequestContext createRequestContext(const NetworkEndpoint& endpoint,
+                                        const std::string& host,
+                                        const std::string& uri);
 
   private:
     // Properties
@@ -71,6 +74,10 @@ class Config
                        const std::vector<Argument>& args);
 
     static void setDefaultHttpMethods(std::vector<HttpMethod>& httpMethods);
+
+    EffectiveConfig createEffectiveConfig(const NetworkEndpoint& endpoint,
+                                          const std::string& host,
+                                          const std::string& uri);
 
     EffectiveConfig createEffectiveConfig(const std::string& host,
                                           const std::string& uri);

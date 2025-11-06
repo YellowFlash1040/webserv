@@ -24,6 +24,8 @@ int main(int argc, char** argv)
         // RequestContext context
         // = config.createRequestContext("server.com", "/images/file");
         // RequestContext context = config.createRequestContext("", "");
+        // RequestContext context = config.createRequestContext(
+        //     NetworkEndpoint(8080), "pizza.com", "/");
 
         std::cout << "Well done :)"
                   << "\n";
