@@ -26,9 +26,6 @@ struct RequestData
     std::string httpVersion{};
     std::unordered_map<std::string, std::string> headers{};
     std::string body{};
-    std::string clientIP{};
-    std::string serverName{};
-    int serverPort{};
 };
 
 //From Tamar, remove it later 

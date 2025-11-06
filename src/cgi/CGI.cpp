@@ -10,6 +10,7 @@
 #include <iostream>
 #include <cstring>
 #include <stdexcept>
+#include <map>
 
 std::string cleanShebang(const std::string& line)
 {
@@ -211,29 +212,26 @@ std::vector<std::string> CGI::buildEnvFromRequest(const RequestData& req)
     env.push_back("QUERY_STRING=" + req.query);
     env.push_back("CONTENT_LENGTH=" + std::to_string(req.body.size()));
 
-    if (auto it = req.headers.find("content-type"); it != req.headers.end())
+    std::unordered_map<std::string, std::string>::const_iterator it = req.headers.find("content-type");
+    if (it != req.headers.end())
         env.push_back("CONTENT_TYPE=" + it->second);
 
     env.push_back("SCRIPT_NAME=" + req.uri);
     env.push_back("SERVER_PROTOCOL=" + req.httpVersion);
     env.push_back("GATEWAY_INTERFACE=CGI/1.1");
 
-    if (!req.clientIP.empty())
-        env.push_back("REMOTE_ADDR=" + req.clientIP);
-    if (!req.serverName.empty())
-        env.push_back("SERVER_NAME=" + req.serverName);
-    if (req.serverPort)
-        env.push_back("SERVER_PORT=" + std::to_string(req.serverPort));
-
-    for (auto const& [key, value] : req.headers)
+    for (std::unordered_map<std::string, std::string>::const_iterator it2 = req.headers.begin();
+         it2 != req.headers.end(); ++it2)
     {
-        std::string headerName = "HTTP_" + key;
-        for (char& c : headerName)
+        std::string headerName = "HTTP_" + it2->first;
+        for (std::string::iterator ch = headerName.begin(); ch != headerName.end(); ++ch)
         {
-            if (c == '-') c = '_';
-            else c = std::toupper(c);
+            if (*ch == '-')
+                *ch = '_';
+            else
+                *ch = static_cast<char>(std::toupper(*ch));
         }
-        env.push_back(headerName + "=" + value);
+        env.push_back(headerName + "=" + it2->second);
     }
 
     return env;
