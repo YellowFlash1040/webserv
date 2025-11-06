@@ -16,26 +16,18 @@ int main(int argc, char** argv)
     std::signal(SIGINT, handle_signal);
     std::signal(SIGTERM, handle_signal);
 
-    const char* filepath;
-    if (argc > 1)
-        filepath = argv[1];
-    else
-        filepath = "webserv.conf";
+    const char* filepath = (argc > 1) ? argv[1] : "webserv.conf";
 
     try
     {
         Config config = Config::fromFile(filepath);
-
-        std::vector<std::string> endpoints = config.getAllEnpoints();
+        std::vector<NetworkEndpoint> endpoints = config.getAllEnpoints();
 
         Server s;
 
-        for (std::vector<std::string>::const_iterator it = endpoints.begin();
-             it != endpoints.end(); ++it)
-        {
-            int port = std::atoi(it->c_str());
-            s.addEndpoint({std::string("127.0.0.1"), port});
-        }
+        for (const auto& endpoint : endpoints)
+            s.addEndpoint(endpoint);
+            
         s.run();
     }
     catch (const ConfigException& e)
@@ -55,9 +47,3 @@ int main(int argc, char** argv)
     }
     return 0;
 }
-
-// RequestContext context
-//     = config.createRequestContext("server.com", "/kapouet/file");
-// RequestContext context
-// = config.createRequestContext("server.com", "/images/file");
-// RequestContext context = config.createRequestContext("", "");

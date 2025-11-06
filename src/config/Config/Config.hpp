@@ -36,7 +36,7 @@ class Config
   public:
     // Methods
     static Config fromFile(const std::string& filepath);
-    std::vector<std::string> getAllEnpoints();
+    std::vector<NetworkEndpoint> getAllEnpoints();
     RequestContext createRequestContext(const std::string& host,
                                         const std::string& uri);
 
@@ -59,9 +59,6 @@ class Config
                        const std::vector<Argument>& args);
     static void assign(Property<std::vector<ErrorPage>>& property,
                        const std::vector<Argument>& args);
-    // static void assign(Property<std::map<HttpStatusCode, std::string>>&
-    // property,
-    //                    const std::vector<Argument>& args);
     static void assign(Property<std::vector<std::string>>& property,
                        const std::vector<Argument>& args);
     static void assign(Property<std::vector<HttpMethod>>& property,
@@ -69,6 +66,8 @@ class Config
     static void assign(Property<HttpRedirection>& property,
                        const std::vector<Argument>& args);
     static void assign(Property<std::map<std::string, std::string>>& cgiPass,
+                       const std::vector<Argument>& args);
+    static void assign(Property<std::vector<NetworkEndpoint>>& property,
                        const std::vector<Argument>& args);
 
     static void setDefaultHttpMethods(std::vector<HttpMethod>& httpMethods);

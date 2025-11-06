@@ -30,8 +30,6 @@ class FileSystem
 
     // Class specific features
   public:
-    // Constants
-    // Accessors
     // Methods
     static SourceType getSourceType(const std::string& sourcePath);
     static bool isFile(const std::string& path);
@@ -39,14 +37,6 @@ class FileSystem
     static bool exists(const std::string& Path);
     static bool canRead(const std::string& Path);
     static std::vector<std::string> listFilesIn(const std::string& dirPath);
-
-  protected:
-    // Properties
-    // Methods
-
-  private:
-    // Properties
-    // Methods
 };
 
 #endif

@@ -2,24 +2,15 @@
 
 // ---------------------------METHODS-----------------------------
 
-// void HttpBlock::applyTo(RequestContext& context) const
-// {
-//     applyIfSet(clientMaxBodySize, context.client_max_body_size,
-//                Rules::Replace{});
-//     applyIfSet(errorPages, context.error_pages, Rules::applyErrorPages);
-//     applyIfSet(root, context.resolved_path, Rules::Replace{});
-//     applyIfSet(autoindex, context.autoindex_enabled, Rules::Replace{});
-//     applyIfSet(index, context.index_files, Rules::AppendHead{});
-// }
-
-void HttpBlock::applyTo(EffectiveConfig& context) const
+void HttpBlock::applyTo(EffectiveConfig& config) const
 {
-    applyIfSet(clientMaxBodySize, context.client_max_body_size,
-               Rules::Replace{});
-    applyIfSet(errorPages, context.error_pages, Rules::AppendTail{});
-    applyIfSet(root, context.root, Rules::Replace{});
-    applyIfSet(autoindex, context.autoindex_enabled, Rules::Replace{});
-    applyIfSet(index, context.index_files, Rules::Replace{});
+    using namespace DirectiveAppliers;
+
+    applyIfSet(clientMaxBodySize, config.client_max_body_size, Replace{});
+    applyIfSet(errorPages, config.error_pages, AppendTail{});
+    applyIfSet(root, config.root, Replace{});
+    applyIfSet(autoindex, config.autoindex_enabled, Replace{});
+    applyIfSet(index, config.index_files, Replace{});
 }
 
 const ServerBlock& HttpBlock::matchServerBlock(const std::string& host) const
@@ -33,7 +24,7 @@ const ServerBlock& HttpBlock::matchServerBlock(const std::string& host) const
     return servers->front();
 }
 
-const ServerBlock& HttpBlock::matchServerBlock(const std::string& endpoint,
+const ServerBlock& HttpBlock::matchServerBlock(const NetworkEndpoint& endpoint,
                                                const std::string& host) const
 {
     std::vector<const ServerBlock*> matchedServers;
@@ -41,7 +32,7 @@ const ServerBlock& HttpBlock::matchServerBlock(const std::string& endpoint,
     // Try match by endpoint
     for (const ServerBlock& server : servers)
     {
-        for (const std::string& listen : server.listen)
+        for (const NetworkEndpoint& listen : server.listen)
         {
             if (listen == endpoint)
             {
@@ -56,13 +47,9 @@ const ServerBlock& HttpBlock::matchServerBlock(const std::string& endpoint,
 
     // If multiple matches → match by host
     for (const ServerBlock* server : matchedServers)
-    {
         for (const std::string& serverName : server->serverName)
-        {
             if (serverName == host)
                 return *server;
-        }
-    }
 
     // If none of the servers matched → return the first one
     return *matchedServers.front();

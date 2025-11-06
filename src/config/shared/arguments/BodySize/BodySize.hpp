@@ -32,10 +32,6 @@ class BodySize
     bool operator==(const size_t& other) const;
     bool operator!=(const size_t& other) const;
 
-  protected:
-    // Properties
-    // Methods
-
   private:
     // Properties
     size_t m_value = 0;

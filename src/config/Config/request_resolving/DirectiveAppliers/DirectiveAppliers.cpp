@@ -2,6 +2,7 @@
 
 namespace DirectiveAppliers
 {
+
 void applyErrorPages(const std::vector<ErrorPage>& errorPages,
                      std::map<HttpStatusCode, std::string>& target)
 {
@@ -11,7 +12,5 @@ void applyErrorPages(const std::vector<ErrorPage>& errorPages,
             target[statusCode] = errorPage.filePath;
     }
 }
-
-// void applyRoot(const std::string& root, const std::string target) {}
 
 } // namespace DirectiveAppliers

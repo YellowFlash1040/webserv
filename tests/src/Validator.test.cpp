@@ -183,6 +183,94 @@ TEST(ValidatorTest, InvalidArgumentsForListen)
     EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
 }
 
+TEST(ValidatorTest, InvalidArgumentsForListen2)
+{
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    auto server = createBlockDirective(Directives::SERVER);
+    auto simpleDirective
+        = createSimpleDirective(Directives::LISTEN, {"0/.0.9"});
+
+    server->addDirective(std::move(simpleDirective));
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
+}
+
+TEST(ValidatorTest, InvalidArgumentsForListen3)
+{
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    auto server = createBlockDirective(Directives::SERVER);
+    auto simpleDirective = createSimpleDirective(Directives::LISTEN, {"0.0.0"});
+
+    server->addDirective(std::move(simpleDirective));
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
+}
+
+TEST(ValidatorTest, InvalidArgumentsForListen4)
+{
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    auto server = createBlockDirective(Directives::SERVER);
+    auto simpleDirective
+        = createSimpleDirective(Directives::LISTEN, {"0,0.0.0:8080"});
+
+    server->addDirective(std::move(simpleDirective));
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
+}
+
+TEST(ValidatorTest, InvalidArgumentsForListen5)
+{
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    auto server = createBlockDirective(Directives::SERVER);
+    auto simpleDirective = createSimpleDirective(Directives::LISTEN, {"70000"});
+
+    server->addDirective(std::move(simpleDirective));
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
+}
+
+TEST(ValidatorTest, InvalidArgumentsForListen6)
+{
+    auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);
+    auto http = createBlockDirective(Directives::HTTP);
+    auto server = createBlockDirective(Directives::SERVER);
+    auto simpleDirective
+        = createSimpleDirective(Directives::LISTEN, {"127.0.0.0:70000"});
+
+    server->addDirective(std::move(simpleDirective));
+    http->addDirective(std::move(server));
+    global->addDirective(std::move(http));
+
+    std::unique_ptr<Directive>& rootNode
+        = reinterpret_cast<std::unique_ptr<Directive>&>(global);
+
+    EXPECT_THROW(Validator::validate(rootNode), InvalidArgumentException);
+}
+
 TEST(ValidatorTest, InvalidArgumentsForErrorPage)
 {
     auto global = createBlockDirective(Directives::GLOBAL_CONTEXT);

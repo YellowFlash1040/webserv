@@ -63,7 +63,6 @@ bool isBlockDirective(const std::string& name);
 bool isDirective(const std::string& name);
 bool isAllowedInContext(const std::string& name, const std::string& context);
 const std::set<std::string>& getAllowedContextsFor(const std::string& name);
-// bool hasRightAmountOfArguments(const std::string& name, size_t amount);
 const std::vector<ArgumentSpec>& getArgSpecs(const std::string& name);
 bool allowsDuplicates(const std::string& name);
 const std::vector<std::string>& getConflictingDirectives(

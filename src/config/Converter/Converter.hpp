@@ -9,6 +9,7 @@
 # include "HttpMethod.hpp"
 # include "BodySize.hpp"
 # include "HttpStatusCode.hpp"
+# include "NetworkEndpoint.hpp"
 
 namespace Converter
 {
@@ -17,6 +18,8 @@ HttpMethod toHttpMethod(const std::string& value);
 bool toBool(const std::string& value);
 BodySize toBodySize(const std::string& value);
 HttpStatusCode toHttpStatusCode(const std::string& value);
+NetworkEndpoint toNetworkEndpoint(const std::string& value);
+int toNetworkPort(const std::string& value);
 
 }; // namespace Converter
 
