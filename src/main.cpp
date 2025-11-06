@@ -20,7 +20,7 @@ int main(int argc, char** argv)
         Config config = Config::fromFile(filepath);
 
         RequestContext context = config.createRequestContext(
-            NetworkEndpoint(8080), "server.com", "/kapouet/file");
+            NetworkEndpoint(8080), "server.com", "/foo/file");
 
         std::cout << "Well done :)"
                   << "\n";

@@ -61,25 +61,27 @@ std::map<HttpStatusCode, std::string> RequestResolver::constructErrorPages(
 std::string RequestResolver::resolvePath(const EffectiveConfig& config,
                                          const std::string& uri)
 {
-    const std::string* base = &config.root; // default to root
-    std::string subpath;
-
     if (!config.alias.empty())
-    {
-        base = &config.alias;
-        subpath = uri.substr(config.matched_location.size());
-    }
-    else
-        subpath = uri;
+        return handleAlias(config.alias, config.matched_location, uri);
+    return handleRoot(config.root, uri);
+}
 
-    // Ensure exactly one slash between base and subpath
-    bool baseEndsWithSlash = base->back() == '/';
-    bool subpathStartsWithSlash = subpath.front() == '/';
+std::string RequestResolver::handleAlias(const std::string& alias,
+                                         const std::string& matched_location,
+                                         const std::string& uri)
+{
+    if (alias.back() == '/' && matched_location.back() == '/')
+        return alias + uri.substr(matched_location.size());
+    return alias;
+}
 
-    if (baseEndsWithSlash && subpathStartsWithSlash)
-        return *base + subpath.substr(1); // remove duplicate slash
-    else if (!baseEndsWithSlash && !subpathStartsWithSlash)
-        return *base + "/" + subpath; // add missing slash
+std::string RequestResolver::handleRoot(const std::string& root,
+                                        const std::string& uri)
+{
+    if (root.back() == '/' && uri.front() == '/')
+        return root + uri.substr(1); // remove duplicate slash
+    else if (root.back() != '/' && uri.front() != '/')
+        return root + "/" + uri; // add missing slash
     else
-        return *base + subpath; // exactly one slash already
+        return root + uri; // exactly one slash already
 }

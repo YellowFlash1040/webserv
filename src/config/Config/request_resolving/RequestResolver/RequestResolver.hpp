@@ -43,6 +43,11 @@ class RequestResolver
         const std::vector<ErrorPage>& errorPages);
     static std::string resolvePath(const EffectiveConfig& config,
                                    const std::string& uri);
+    static std::string handleAlias(const std::string& alias,
+                                   const std::string& matched_location,
+                                   const std::string& uri);
+    static std::string handleRoot(const std::string& root,
+                                  const std::string& uri);
 };
 
 #endif
