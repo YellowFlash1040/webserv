@@ -37,9 +37,9 @@ class ConnectionManager
 		ConnectionManager(Config& config);
 		~ConnectionManager() = default;
 		ConnectionManager(const ConnectionManager&) = default;
-		ConnectionManager& operator=(const ConnectionManager&) = default;
+		ConnectionManager& operator=(const ConnectionManager&) = delete;
 		ConnectionManager(ConnectionManager&&) noexcept = default;
-		ConnectionManager& operator=(ConnectionManager&&) noexcept = default;
+		ConnectionManager& operator=(ConnectionManager&&) noexcept = delete;
 
 		const RawRequest& getRawRequest(int clientId, size_t index = SIZE_MAX) const;
 		
@@ -56,6 +56,9 @@ class ConnectionManager
 		
 		Response popNextResponse(int clientId);
 		bool hasPendingResponses(int clientId) const;
+		
+		void handleErrorWithOptionalCustomPage(ClientState& clientState,
+		RequestData& reqData, RequestContext& ctx, Response& resp, HttpStatusCode code);
 	
 	};
 

@@ -36,7 +36,7 @@ class RawRequest
 		std::string _conLenBuffer;
 		std::string _method;
 		std::string _rawUri;
-		std::string _uri;   // path only, normalized and safe to use for filesystem mapping
+		std::string _uri;
 		std::string _query;  // optional query string (part after '?')
 		std::string _httpVersion;
 		std::unordered_map<std::string, std::string> _headers;
@@ -66,7 +66,7 @@ class RawRequest
 		void appendToConLenBuffer(const std::string& data);
 		void parseRequestLine(const std::string& firstLine);
 		void parseHeaders(std::istringstream& stream);
-		void printRequest(size_t idx = 0) const;
+		
 		void printAllBuffers() const;
 		void printHeaders() const;
 		void appendToBody(const std::string& data);
@@ -102,7 +102,8 @@ class RawRequest
 		
 		void markBadRequest(const std::string& msg);
 		bool isBadRequest() const;
-			
+		
+		void printRequest(size_t idx = 0) const;
 	};
 
 #endif

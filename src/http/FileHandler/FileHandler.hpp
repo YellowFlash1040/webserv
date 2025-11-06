@@ -10,6 +10,9 @@
 #include <sstream>
 #include <iostream>
 #include <filesystem>
+#include <unistd.h>
+#include <cerrno>   // for errno
+#include <cstring>  // for strerror
 
 #include "../../config/shared/RequestContext/RequestContext.hpp"
 

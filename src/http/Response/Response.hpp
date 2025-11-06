@@ -6,6 +6,7 @@
 #include <chrono>
 #include <iomanip>
 #include <fstream>
+
 #include "../Request/RawRequest/RawRequest.hpp"
 #include "../../config/shared/RequestContext/RequestContext.hpp"
 
@@ -54,7 +55,7 @@ public:
 
 	// Map HTTP status code to default text
 	std::string codeToText(HttpStatusCode code);
-	std::string genResp(bool isInternalRedirect = false);
+	std::string genResp();
 	
 	// CgiRequest createCgiRequest();
 	

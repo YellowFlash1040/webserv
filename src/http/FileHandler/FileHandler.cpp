@@ -1,109 +1,130 @@
 #include "FileHandler.hpp"
 
 FileHandler::FileHandler(bool autoindex, const std::vector<std::string> &indexFiles)
-    : _autoindex(autoindex), _indexFiles(indexFiles) {}
+	: _autoindex(autoindex), _indexFiles(indexFiles) {}
 
 bool FileHandler::fileExists(const std::string &path)
 {
     struct stat s;
-    return (stat(path.c_str(), &s) == 0);
+    if (stat(path.c_str(), &s) != 0)
+    {
+        std::cout << "[fileExists] stat failed for path: \"" << path 
+                  << "\" errno: " << errno << " (" << strerror(errno) << ")\n";
+        return false;
+    }
+    std::cout << "[fileExists] stat succeeded: \"" << path << "\", mode=" << s.st_mode
+              << ", S_ISREG=" << S_ISREG(s.st_mode) << "\n";
+    return S_ISREG(s.st_mode);
 }
 
 bool FileHandler::isDirectory(const std::string &path)
 {
-    struct stat s;
-    if (stat(path.c_str(), &s) == 0)
-        return S_ISDIR(s.st_mode);
-    return false;
+	struct stat s;
+	if (stat(path.c_str(), &s) == 0)
+		return S_ISDIR(s.st_mode);
+	return false;
 }
 
 std::string FileHandler::handleDirectory(const std::string &dirPath) const
 {
-    if (_autoindex)
-        return generateAutoindex(dirPath);
+	if (_autoindex)
+		return generateAutoindex(dirPath);
 
-    // Try each index file (index.html, etc.)
-    for (std::vector<std::string>::const_iterator it = _indexFiles.begin(); it != _indexFiles.end(); ++it)
-    {
-        std::string indexPath = dirPath + "/" + *it;
-        if (fileExists(indexPath))
-            return serveFile(indexPath);
-    }
+	// Try each index file (index.html, etc.)
+	for (std::vector<std::string>::const_iterator it = _indexFiles.begin(); it != _indexFiles.end(); ++it)
+	{
+		std::string indexPath = dirPath + "/" + *it;
+		if (fileExists(indexPath))
+			return serveFile(indexPath);
+	}
 
-    return handleNotFound();
+	return handleNotFound();
 }
 
 std::string FileHandler::generateAutoindex(const std::string &dirPath)
 {
-    DIR *dir = opendir(dirPath.c_str());
-    if (!dir)
-        return handleNotFound();
+	DIR *dir = opendir(dirPath.c_str());
+	if (!dir)
+		return handleNotFound();
 
-    std::ostringstream html;
-    html << "<html><head><title>Index of " << dirPath << "</title></head><body>\n";
-    html << "<h1>Index of " << dirPath << "</h1><ul>\n";
+	std::ostringstream html;
+	html << "<html><head><title>Index of " << dirPath << "</title></head><body>\n";
+	html << "<h1>Index of " << dirPath << "</h1><ul>\n";
 
-    struct dirent *entry;
-    while ((entry = readdir(dir)) != NULL)
-    {
-        std::string name = entry->d_name;
-        if (name == ".") continue;
-        html << "<li><a href=\"" << name << "\">" << name << "</a></li>\n";
-    }
+	struct dirent *entry;
+	while ((entry = readdir(dir)) != NULL)
+	{
+		std::string name = entry->d_name;
+		if (name == ".") continue;
+		html << "<li><a href=\"" << name << "\">" << name << "</a></li>\n";
+	}
 
-    closedir(dir);
-    html << "</ul></body></html>";
-    return html.str();
+	closedir(dir);
+	html << "</ul></body></html>";
+	return html.str();
 }
 
 std::string FileHandler::serveFile(const std::string &path)
 {
-    std::ifstream file(path.c_str(), std::ios::binary);
-    if (!file.is_open())
+	if (!fileExists(path))
 	{
-		std::cout << "serveFile: cannot open " << path << "\n";
-        return handleNotFound();
+		std::cout << "serveFile: not found " << path << "\n";
+		return handleNotFound(); // 404
 	}
 
-    std::ostringstream buffer;
-    buffer << file.rdbuf();
+	// Check read permissions
+	if (access(path.c_str(), R_OK) != 0)
+	{
+		std::cout << "serveFile: forbidden " << path << "\n";
+		return "__FORBIDDEN__"; // special signal
+	}
+
+	std::ifstream file(path.c_str(), std::ios::binary);
+	if (!file.is_open())
+	{
+		std::cout << "serveFile: cannot open " << path << "\n";
+		return handleNotFound(); // fallback
+	}
+
+	std::ostringstream buffer;
+	buffer << file.rdbuf();
 	std::cout << "serveFile: read " << buffer.str().size() << " bytes\n";
-    return buffer.str();
+	return buffer.str();
 }
 
 std::string FileHandler::handleNotFound()
 {
-    return "<html><body><h1>404 Not Found</h1></body></html>";
+	return "<html><body><h1>404 Not Found</h1></body></html>";
 }
 
 std::string FileHandler::detectMimeType(const std::string &path)
 {
-    size_t dot = path.find_last_of('.');
-    if (dot == std::string::npos)
-        return "application/octet-stream";
+	size_t dot = path.find_last_of('.');
+	if (dot == std::string::npos)
+		return "application/octet-stream";
 
-    std::string ext = path.substr(dot + 1);
-    static const std::unordered_map<std::string, std::string> mimeTypes =
+	std::string ext = path.substr(dot + 1);
+	static const std::unordered_map<std::string, std::string> mimeTypes =
 	{
-        {"html", "text/html"},
-        {"htm", "text/html"},
-        {"css", "text/css"},
-        {"js", "application/javascript"},
-        {"json", "application/json"},
-        {"jpg", "image/jpeg"},
-        {"jpeg", "image/jpeg"},
-        {"png", "image/png"},
-        {"gif", "image/gif"},
-        {"txt", "text/plain"},
-        {"pdf", "application/pdf"},
-        {"ico", "image/x-icon"}
-    };
+		{"html", "text/html"},
+		{"htm", "text/html"},
+		{"css", "text/css"},
+		{"js", "application/javascript"},
+		{"json", "application/json"},
+		{"jpg", "image/jpeg"},
+		{"jpeg", "image/jpeg"},
+		{"png", "image/png"},
+		{"gif", "image/gif"},
+		{"txt", "text/plain"},
+		{"pdf", "application/pdf"},
+		{"ico", "image/x-icon"}
+	};
 
-    std::unordered_map<std::string, std::string>::const_iterator it = mimeTypes.find(ext);
-    if (it != mimeTypes.end())
-        return it->second;
+	std::unordered_map<std::string, std::string>::const_iterator it = mimeTypes.find(ext);
+	if (it != mimeTypes.end())
+		return it->second;
 
-    return "application/octet-stream";
+	return "application/octet-stream";
 }
 
 bool FileHandler::isPathInsideRoot(const std::string& root, const std::string& resolved) const
@@ -124,18 +145,29 @@ bool FileHandler::isPathInsideRoot(const std::string& root, const std::string& r
 // Returns the first existing index file path in the directory, or empty string if none exist
 std::string FileHandler::getIndexFilePath(const std::string &dirPath) const
 {
-    if (!isDirectory(dirPath))
-        return "";
+	std::cout << "[getIndexFilePath] dirPath = \"" << dirPath << "\"\n";
 
-    for (const auto &idx : _indexFiles)
-    {
-        std::string indexPath = dirPath;
-        if (dirPath.back() != '/') indexPath += '/';
-        indexPath += idx;
+	if (!isDirectory(dirPath))
+	{
+		std::cout << "[getIndexFilePath] Not a directory\n";
+		return "";
+	}
 
-        if (fileExists(indexPath))
-            return indexPath;
-    }
+	for (const auto &idx : _indexFiles)
+	{
+		std::string indexPath = dirPath;
+		if (!indexPath.empty() && indexPath.back() != '/')
+			indexPath += '/';
+		indexPath += idx;
 
-    return "";
+		bool exists = fileExists(indexPath);
+		std::cout << "[getIndexFilePath] Checking index file: " << indexPath
+				  << " -> " << (exists ? "exists" : "not found") << "\n";
+
+		if (exists)
+			return indexPath;
+	}
+
+	std::cout << "[getIndexFilePath] No index file found\n";
+	return "";
 }

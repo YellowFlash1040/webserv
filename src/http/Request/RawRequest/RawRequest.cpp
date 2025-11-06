@@ -127,15 +127,25 @@ std::string RawRequest::bodyTypeToString(BodyType t)
 
 void RawRequest::parseRequestLineAndHeaders(const std::string& headerPart)
 {
-	std::istringstream stream(headerPart);
-	std::string line;
-	if (!std::getline(stream, line))
-		throw std::runtime_error("Malformed request: missing request line");
+	try
+	{
+		std::istringstream stream(headerPart);
+		std::string line;
+		if (!std::getline(stream, line))
+			throw std::runtime_error("Malformed request: missing request line");
 		
-	removeCarriageReturns(line);
+		removeCarriageReturns(line);
 
-	parseRequestLine(line); // throws invalid_argument if broken
-	parseHeaders(stream); // throws invalid_argument if broken
+		parseRequestLine(line);
+		parseHeaders(stream); 
+	}
+	catch(const std::exception& e)
+	{
+		std::cout << "[parseRequestLineAndHeaders] Bad request: " << e.what() << "\n";
+        markBadRequest(e.what()); // sets _requestDone and prepares 400 response
+	}
+	
+	
 
 }
 	
@@ -651,7 +661,6 @@ bool RawRequest::isBadRequest() const
 {
 	return _isBadRequest;
 }
-
 
 void RawRequest::printRequest(size_t idx) const
 {

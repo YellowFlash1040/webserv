@@ -92,11 +92,12 @@ std::string Response::codeToText(HttpStatusCode code)
 {
     switch (code)
     {
-        case HttpStatusCode::OK: return "OK";
-        case HttpStatusCode::BadRequest: return "Bad Request";
-        case HttpStatusCode::NotFound: return "Not Found";
-        case HttpStatusCode::MethodNotAllowed: return "Method Not Allowed";
-        case HttpStatusCode::Forbidden: return "Forbidden";
+        case HttpStatusCode::OK: return "OK"; //200
+        case HttpStatusCode::BadRequest: return "Bad Request"; //400
+        case HttpStatusCode::NotFound: return "Not Found"; //404
+        case HttpStatusCode::MethodNotAllowed: return "Method Not Allowed"; //405
+        case HttpStatusCode::Forbidden: return "Forbidden"; //403
+		case HttpStatusCode::PayloadTooLarge: return "Payload Too Large"; //413
         default: return "Unknown";
     }
 }
@@ -142,19 +143,20 @@ std::string Response::allowedMethodsToString(const std::vector<HttpMethod>& allo
 	return oss.str();
 }
 
-std::string Response::genResp(bool isInternalRedirect)
+std::string Response::genResp()
 {
-	std::cout << "[genResp] !_ctx.redirection.url.empty() = " << !_ctx.redirection.url.empty()
+	std::cout << "[genResp] _ctx.redirection.url.empty() = " << _ctx.redirection.url.empty()
 		  << ", _ctx.redirection.statusCode = " << static_cast<int>(_ctx.redirection.statusCode)
 		  << ", _ctx.redirection.url = \"" << _ctx.redirection.url << "\""
 		  << ", _ctx.resolved_path = \"" << _ctx.resolved_path << "\"\n";
 	
-	// 1. Redirection
+	//1. Handle external redirections
 	if (!_ctx.redirection.url.empty())
 		return handleRedirection();
 	
 	// 2. Method check (skip if internal redirect)
-	if (isInternalRedirect == false && isMethodAllowed(_req.method, _ctx.allowed_methods) == false)
+	// if (isInternalRedirect == false && isMethodAllowed(_req.method, _ctx.allowed_methods) == false)
+	if (isMethodAllowed(_req.method, _ctx.allowed_methods) == false)
 	{
 		HttpStatusCode code = HttpStatusCode::MethodNotAllowed;
 		setStatus(code);
@@ -283,49 +285,107 @@ CgiRequestData Response::createCgiRequest()
 
 std::string Response::handleStatic()
 {
-	FileHandler fileHandler(_ctx.autoindex_enabled, _ctx.index_files);
-	std::string& resolvedPath = _ctx.resolved_path;
+    FileHandler fileHandler(_ctx.autoindex_enabled, _ctx.index_files);
+    std::string& resolvedPath = _ctx.resolved_path;
 
-	if (fileHandler.isDirectory(resolvedPath))
-	{
-		// Serve index file if exists
+    std::cout << "[handleStatic] resolvedPath = \"" << resolvedPath << "\"\n";
+
+    if (fileHandler.isDirectory(resolvedPath))
+    {
+        std::cout << "[handleStatic] Path is a directory\n";
+
         std::string indexPath = fileHandler.getIndexFilePath(resolvedPath);
         if (!indexPath.empty())
         {
+            std::cout << "[handleStatic] Found index file: " << indexPath << "\n";
             std::string fileContents = fileHandler.serveFile(indexPath);
+            if (fileContents == "__FORBIDDEN__")
+            {
+                std::cout << "[handleStatic] Cannot read index file, returning 403\n";
+                setStatus(HttpStatusCode::Forbidden);
+                auto it = _ctx.error_pages.find(HttpStatusCode::Forbidden);
+                if (it != _ctx.error_pages.end() && !it->second.empty())
+                    return ""; // internal redirect to custom 403
+                setErrorPageBody(HttpStatusCode::Forbidden);
+                return toString();
+            }
             setBody(fileContents);
             addHeader("Content-Type", fileHandler.detectMimeType(indexPath));
             return toString();
         }
-		
-		// No index file: autoindex or 404
-		if (_ctx.autoindex_enabled)
-		{
-			std::string dirHtml = fileHandler.handleDirectory(resolvedPath);
-			setBody(dirHtml);
-			addHeader("Content-Type", "text/html");
-			return toString();
-		}
-		else
-		{
-			setStatus(HttpStatusCode::NotFound);
-			setErrorPageBody(HttpStatusCode::NotFound);
-			return toString();
-		}
-	}
+        else
+        {
+            std::cout << "[handleStatic] No index file found\n";
+        }
 
-	if (!fileHandler.fileExists(resolvedPath))
-	{
-		setStatus(HttpStatusCode::NotFound);
-		setErrorPageBody(HttpStatusCode::NotFound);
-		return toString();
-	}
+        if (_ctx.autoindex_enabled)
+        {
+            std::cout << "[handleStatic] Autoindex enabled, generating directory listing\n";
+            std::string dirHtml = fileHandler.handleDirectory(resolvedPath);
+            setBody(dirHtml);
+            addHeader("Content-Type", "text/html");
+            return toString();
+        }
+        else
+        {
+            std::cout << "[handleStatic] Autoindex disabled\n";
+            setStatus(HttpStatusCode::NotFound);
 
-	std::string fileContents = fileHandler.serveFile(resolvedPath);
-	setBody(fileContents);
-	addHeader("Content-Type", fileHandler.detectMimeType(resolvedPath));
+            auto it = _ctx.error_pages.find(HttpStatusCode::NotFound);
+            if (it != _ctx.error_pages.end() && !it->second.empty())
+            {
+                std::cout << "[handleStatic] Custom 404 page exists: " << it->second << "\n";
+                std::cout << "[handleStatic] Returning empty string to trigger internal redirect\n";
+                return "";
+            }
+            else
+            {
+                std::cout << "[handleStatic] No custom 404 page, using default\n";
+                setErrorPageBody(HttpStatusCode::NotFound);
+                return toString();
+            }
+        }
+    }
+	// File check
+    std::cout << "[handleStatic] Checking if file exists: " << resolvedPath << "\n";
 
-	return toString();
+    if (!fileHandler.fileExists(resolvedPath))
+    {
+        std::cout << "[handleStatic] File does not exist: " << resolvedPath << "\n";
+        setStatus(HttpStatusCode::NotFound);
+
+        auto it = _ctx.error_pages.find(HttpStatusCode::NotFound);
+        if (it != _ctx.error_pages.end() && !it->second.empty())
+        {
+            std::cout << "[handleStatic] Custom 404 page exists: " << it->second << "\n";
+            std::cout << "[handleStatic] Returning empty string to trigger internal redirect\n";
+            return "";
+        }
+        else
+        {
+            std::cout << "[handleStatic] No custom 404 page, using default\n";
+            setErrorPageBody(HttpStatusCode::NotFound);
+            return toString();
+        }
+    }
+
+    std::cout << "[handleStatic] Serving file: " << resolvedPath << "\n";
+    std::string fileContents = fileHandler.serveFile(resolvedPath);
+
+    if (fileContents == "__FORBIDDEN__")
+    {
+        std::cout << "[handleStatic] Cannot read file, returning 403\n";
+        setStatus(HttpStatusCode::Forbidden);
+        auto it = _ctx.error_pages.find(HttpStatusCode::Forbidden);
+        if (it != _ctx.error_pages.end() && !it->second.empty())
+            return ""; // internal redirect to custom 403
+        setErrorPageBody(HttpStatusCode::Forbidden);
+        return toString();
+    }
+
+    setBody(fileContents);
+    addHeader("Content-Type", fileHandler.detectMimeType(resolvedPath));
+    return toString();
 }
 
 void Response::setErrorPageBody(HttpStatusCode code)
