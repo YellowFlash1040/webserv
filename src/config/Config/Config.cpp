@@ -140,7 +140,7 @@ ServerBlock Config::buildServerBlock(
     }
 
     if (serverBlock.listen->empty())
-        serverBlock.listen->emplace_back("8080");
+        serverBlock.listen->emplace_back(":8080");
 
     if (serverBlock.serverName->empty())
         serverBlock.serverName->emplace_back("");
