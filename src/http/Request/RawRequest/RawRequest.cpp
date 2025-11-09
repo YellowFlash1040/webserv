@@ -378,7 +378,7 @@ void RawRequest::setChunkedBuffer(std::string&& newBuffer)
 
 void RawRequest::appendBodyBytes(const std::string& data)
 {
-	std::cout << YELLOW << "[DEBUG: appendBodyBytes]" << RESET << std::endl;
+	std::cout << YELLOW << "[appendBodyBytes]:" << RESET << std::endl;
 	
 
 	std::cout << GREEN << "[appendBodyBytes] before appending:" << RESET << "\n"
@@ -498,10 +498,10 @@ void RawRequest::separateHeadersFromBody()  // TODO: handle malformed requests s
 }
 
 
-HttpMethod RawRequest::stringToHttpMethod(const std::string& method) {
+HttpMethod RawRequest::stringToHttpMethod(const std::string& method)
+{
 	if (method == "GET") return HttpMethod::GET;
 	if (method == "POST") return HttpMethod::POST;
-	if (method == "PUT") return HttpMethod::PUT;
 	if (method == "DELETE") return HttpMethod::DELETE;
 	return HttpMethod::NONE; // fallback
 }
@@ -537,8 +537,8 @@ void RawRequest::parseRequestLine(const std::string& firstLine)
 		_uri = _rawUri;
 		_query.clear();
 	}
+	std::cout << "[parseRequestLine]: _uri is " << _uri << " \n";
 
-	// _uri = normalizePath(_uri);
 }
 
 
@@ -606,8 +606,8 @@ std::string RawRequest::normalizePath(const std::string& rawUri)
 		{
 			if (stack.empty())
 			{
-				std::cout << "[DEBUG][RawRequest::normalizePath] Bad request: path escapes root: '" 
-					<< rawUri << "'\n";
+				std::cout << "[normalizePath] Bad request: path escapes root: \""
+					<< rawUri << "\"\n";
 				throw std::runtime_error("Bad request: path escapes root");
 			}
 			stack.pop_back();
@@ -695,3 +695,5 @@ void RawRequest::printAllBuffers() const
 		<< "Content-Length Buffer: " << (_conLenBuffer.empty() ? "(empty)" : _conLenBuffer) << "\n"
 		<< "Body: " << (_body.empty() ? "(empty)" : _body) << "\n";
 }
+
+

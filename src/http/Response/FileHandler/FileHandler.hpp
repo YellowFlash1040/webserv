@@ -14,7 +14,7 @@
 #include <cerrno>   // for errno
 #include <cstring>  // for strerror
 
-#include "../../config/shared/RequestContext/RequestContext.hpp"
+#include "../../../config/Config/request_resolving/RequestContext/RequestContext.hpp"
 
 
 class FileHandler

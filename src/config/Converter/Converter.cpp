@@ -41,4 +41,69 @@ HttpStatusCode toHttpStatusCode(const std::string& value)
     return static_cast<HttpStatusCode>(std::stoi(value));
 }
 
+NetworkEndpoint toNetworkEndpoint(const std::string& value)
+{
+    std::array<std::string, 2> parts;
+    NetworkInterface ip;
+    int port;
+    NetworkEndpoint endpoint;
+
+    if (value.empty())
+        throw std::invalid_argument("value can not be empty");
+
+    if (std::count(value.begin(), value.end(), ':') > 1)
+        throw std::invalid_argument("too much ':'");
+
+    auto semicolonPos = value.find(':');
+    if (semicolonPos != std::string::npos)
+    {
+        parts[0] = value.substr(0, semicolonPos);
+        parts[1] = value.substr(semicolonPos + 1);
+
+        if (!parts[0].empty())
+            ip = NetworkInterface(parts[0]);
+        if (!parts[1].empty())
+            port = toNetworkPort(parts[1]);
+
+        if (!parts[0].empty() && !parts[1].empty())
+            endpoint = NetworkEndpoint(ip, port);
+        else if (!parts[0].empty())
+            endpoint = NetworkEndpoint(ip);
+        else if (!parts[1].empty())
+            endpoint = NetworkEndpoint(port);
+
+        return endpoint;
+    }
+
+    try
+    {
+        ip = NetworkInterface(value);
+        endpoint = NetworkEndpoint(ip);
+    }
+    catch (const std::exception&)
+    {
+        port = toNetworkPort(value);
+        endpoint = NetworkEndpoint(port);
+    }
+
+    return endpoint;
+}
+
+int toNetworkPort(const std::string& value)
+{
+    if (value.empty())
+        throw std::invalid_argument("value can not be empty");
+
+    if (value.find_first_not_of("1234567890") != std::string::npos)
+        throw std::invalid_argument(
+            "valid port has to consist only from digits");
+
+    int port = std::stoi(value);
+    if (port < 0 || port > 65535)
+        throw std::invalid_argument(
+            "Valid port has to be an integer value between 0 and 65535");
+
+    return (port);
+}
+
 } // namespace Converter

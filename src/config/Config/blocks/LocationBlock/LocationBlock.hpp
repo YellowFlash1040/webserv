@@ -9,12 +9,14 @@
 
 # include "ConfigBlock.hpp"
 
+# include "Property.hpp"
+
 # include "HttpMethod.hpp"
 # include "HttpRedirection.hpp"
 # include "RequestContext.hpp"
 # include "HttpStatusCode.hpp"
 
-# include "Property.hpp"
+# include "EffectiveConfig.hpp"
 # include "DirectiveAppliers.hpp"
 
 struct LocationBlock : public ConfigBlock

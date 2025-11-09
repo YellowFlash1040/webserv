@@ -2,40 +2,25 @@
 
 // ---------------------------METHODS-----------------------------
 
-// void LocationBlock::applyTo(RequestContext& context) const
-// {
-//     applyIfSet(errorPages, context.error_pages, Rules::applyErrorPages);
-//     applyIfSet(clientMaxBodySize, context.client_max_body_size,
-//                Rules::Replace{});
-//     applyIfSet(acceptedHttpMethods, context.allowed_methods,
-//     Rules::Replace{}); applyIfSet(httpRedirection, context.redirection,
-//     Rules::Replace{}); applyIfSet(root, context.resolved_path,
-//     Rules::Replace{}); applyIfSet(alias, context.resolved_path,
-//     Rules::Replace{}); applyIfSet(autoindex, context.autoindex_enabled,
-//     Rules::Replace{}); applyIfSet(index, context.index_files,
-//     Rules::AppendHead{}); applyIfSet(uploadStore, context.upload_store,
-//     Rules::Replace{}); applyIfSet(cgiPass, context.cgi_pass,
-//     Rules::MergeMap{});
-// }
-
-void LocationBlock::applyTo(EffectiveConfig& context) const
+void LocationBlock::applyTo(EffectiveConfig& config) const
 {
-    context.matchedLocation = path;
+    using namespace DirectiveAppliers;
 
-    applyIfSet(errorPages, context.error_pages, Rules::AppendTail{});
-    applyIfSet(clientMaxBodySize, context.client_max_body_size,
-               Rules::Replace{});
-    applyIfSet(acceptedHttpMethods, context.allowed_methods, Rules::Replace{});
-    applyIfSet(root, context.root, Rules::Replace{});
-    applyIfSet(alias, context.alias, Rules::Replace{});
-    applyIfSet(autoindex, context.autoindex_enabled, Rules::Replace{});
-    applyIfSet(index, context.index_files, Rules::Replace{});
-    applyIfSet(uploadStore, context.upload_store, Rules::Replace{});
-    applyIfSet(cgiPass, context.cgi_pass, Rules::MergeMap{});
+    config.matched_location = path;
 
-    if (httpRedirection.isSet() && !context.redirection.isSet)
+    applyIfSet(errorPages, config.error_pages, AppendTail{});
+    applyIfSet(clientMaxBodySize, config.client_max_body_size, Replace{});
+    applyIfSet(acceptedHttpMethods, config.allowed_methods, Replace{});
+    applyIfSet(root, config.root, Replace{});
+    applyIfSet(alias, config.alias, Replace{});
+    applyIfSet(autoindex, config.autoindex_enabled, Replace{});
+    applyIfSet(index, config.index_files, Replace{});
+    applyIfSet(uploadStore, config.upload_store, Replace{});
+    applyIfSet(cgiPass, config.cgi_pass, MergeMap{});
+
+    if (httpRedirection.isSet() && !config.redirection.isSet)
     {
-        context.redirection = httpRedirection;
-        context.redirection.isSet = true;
+        config.redirection = httpRedirection;
+        config.redirection.isSet = true;
     }
 }

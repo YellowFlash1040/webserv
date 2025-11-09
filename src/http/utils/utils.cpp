@@ -30,7 +30,7 @@ void printReqContext(const RequestContext& ctx)
 
     std::cout << "allowed_methods:\n";
     for (size_t i = 0; i < ctx.allowed_methods.size(); ++i)
-		std::cout << "  " << Response::httpMethodToString(ctx.allowed_methods[i]) << "\n";
+		std::cout << "  " << RawResponse::httpMethodToString(ctx.allowed_methods[i]) << "\n";
 
     std::cout << "redirection: " << static_cast<int>(ctx.redirection.statusCode) << " " << ctx.redirection.url << "\n";
 

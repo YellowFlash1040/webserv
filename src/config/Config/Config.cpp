@@ -45,9 +45,13 @@ Config Config::fromFile(const std::string& filepath)
     return Config(std::move(ast));
 }
 
-std::vector<std::string> Config::getAllEnpoints()
+///----------------------------///
+///----------------------------///
+///----------------------------///
+
+std::vector<NetworkEndpoint> Config::getAllEnpoints()
 {
-    std::vector<std::string> endpoints;
+    std::vector<NetworkEndpoint> endpoints;
 
     size_t totalListens = 0;
     for (const auto& server : m_httpBlock.servers)
@@ -62,102 +66,11 @@ std::vector<std::string> Config::getAllEnpoints()
     return endpoints;
 }
 
-RequestContext Config::createRequestContext(const std::string& host,
+RequestContext Config::createRequestContext(const NetworkEndpoint& endpoint,
+                                            const std::string& host,
                                             const std::string& uri)
 {
-    EffectiveConfig config = createEffectiveConfig(host, uri);
-
-    return createContext(config, uri);
-}
-
-EffectiveConfig Config::createEffectiveConfig(const std::string& host,
-                                              const std::string& uri)
-{
-    EffectiveConfig config;
-
-    HttpBlock& httpBlock = m_httpBlock;
-    const ServerBlock& serverBlock = httpBlock.matchServerBlock(host);
-    const LocationBlock* locationBlock = serverBlock.matchLocationBlock(uri);
-
-    httpBlock.applyTo(config);
-    serverBlock.applyTo(config);
-    if (locationBlock)
-        locationBlock->applyTo(config);
-
-    return config;
-}
-
-RequestContext Config::createContext(const EffectiveConfig& config,
-                                     const std::string& uri)
-{
-    RequestContext context;
-
-    context.allowed_methods = config.allowed_methods;
-    context.autoindex_enabled = config.autoindex_enabled;
-    context.cgi_pass = config.cgi_pass;
-    context.client_max_body_size = config.client_max_body_size;
-    context.error_pages = constructErrorPages(config.error_pages);
-    context.index_files = config.index_files;
-    context.resolved_path = resolvePath(config, uri);
-    context.upload_store = config.upload_store;
-    context.redirection = config.redirection;
-    context.matched_location = config.matchedLocation;
-
-    return context;
-}
-
-std::map<HttpStatusCode, std::string> Config::constructErrorPages(
-    const std::vector<ErrorPage>& errorPages)
-{
-    std::map<HttpStatusCode, std::string> result;
-    for (const auto& errorPage : errorPages)
-    {
-        for (const auto& statusCode : errorPage.statusCodes)
-            result[statusCode] = errorPage.filePath;
-    }
-
-    return result;
-}
-
-// std::string Config::resolvePath(const EffectiveConfig& config,
-//                                 const std::string& uri)
-// {
-//     if (config.alias.empty())
-//         return config.root + uri;
-
-//     if (config.alias.back() == '/')
-//         return config.alias + uri.substr(config.matchedLocation.size());
-//     return config.alias + "/" + uri.substr(config.matchedLocation.size());
-// }
-
-std::string Config::resolvePath(const EffectiveConfig& config,
-                                const std::string& uri)
-{
-    const std::string* base = &config.root; // default to root
-    std::string subpath;
-
-    if (!config.alias.empty())
-    {
-        base = &config.alias;
-        // remove the matched location part from the URI for alias
-        if (uri.size() >= config.matchedLocation.size())
-            subpath = uri.substr(config.matchedLocation.size());
-        else
-            subpath.clear();
-    }
-    else
-        subpath = uri;
-
-    // Ensure exactly one slash between base and subpath
-    bool baseEndsWithSlash = !base->empty() && base->back() == '/';
-    bool subpathStartsWithSlash = !subpath.empty() && subpath.front() == '/';
-
-    if (baseEndsWithSlash && subpathStartsWithSlash)
-        return *base + subpath.substr(1); // remove duplicate slash
-    else if (!baseEndsWithSlash && !subpathStartsWithSlash)
-        return *base + "/" + subpath; // add missing slash
-    else
-        return *base + subpath; // exactly one slash already
+    return RequestResolver::resolve(m_httpBlock, endpoint, host, uri);
 }
 
 ///----------------------------///
@@ -227,7 +140,7 @@ ServerBlock Config::buildServerBlock(
     }
 
     if (serverBlock.listen->empty())
-        serverBlock.listen->emplace_back("8080");
+        serverBlock.listen->emplace_back(":8080");
 
     if (serverBlock.serverName->empty())
         serverBlock.serverName->emplace_back("");
@@ -279,12 +192,6 @@ LocationBlock Config::buildLocationBlock(
     return locationBlock;
 }
 
-/*
-    Maybe it makes sense to create somewhere in the code an
-    array of function pointers and choose which function to
-    apply
-*/
-
 ///----------------///
 ///----------------///
 ///----------------///
@@ -321,33 +228,6 @@ void Config::assign(Property<std::vector<ErrorPage>>& errorPages,
     errorPages.isSet() = true;
 }
 
-// void Config::assign(Property<std::map<HttpStatusCode, std::string>>&
-// errorPages,
-//                     const std::vector<Argument>& args)
-// {
-//     std::vector<HttpStatusCode> statusCodes;
-
-//     for (size_t i = 0; i < args.size() - 1; ++i)
-//     {
-//         try
-//         {
-//             statusCodes.push_back(Converter::toHttpStatusCode(args[i]));
-//         }
-//         catch (const std::exception& ex)
-//         {
-//             const Argument& arg = args[i];
-//             throw ConfigException(arg.line(), arg.column(), ex.what());
-//         }
-//     }
-
-//     const std::string& filePath = args.back();
-
-//     for (auto statusCode : statusCodes)
-//         errorPages[statusCode] = filePath;
-
-//     errorPages.isSet() = true;
-// }
-
 void Config::assign(Property<std::vector<HttpMethod>>& httpMethods,
                     const std::vector<Argument>& args)
 {
@@ -382,6 +262,12 @@ void Config::assign(Property<std::map<std::string, std::string>>& cgiPass,
     cgiPass[args[0]] = args[1];
 
     cgiPass.isSet() = true;
+}
+
+void Config::assign(Property<std::vector<NetworkEndpoint>>& property,
+                    const std::vector<Argument>& args)
+{
+    property->emplace_back(Converter::toNetworkEndpoint(args[0]));
 }
 
 void Config::setDefaultHttpMethods(std::vector<HttpMethod>& httpMethods)

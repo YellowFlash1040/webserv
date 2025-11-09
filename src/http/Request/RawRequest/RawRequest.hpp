@@ -104,6 +104,8 @@ class RawRequest
 		bool isBadRequest() const;
 		
 		void printRequest(size_t idx = 0) const;
+		
+
 	};
 
 #endif

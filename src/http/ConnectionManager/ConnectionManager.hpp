@@ -5,6 +5,7 @@
 #include "ClientState/ClientState.hpp"
 #include "../utils/utils.hpp"
 #include "../config/Config/Config.hpp"
+#include "../../network/NetworkEndpoint/NetworkEndpoint.hpp"
 
 #include <unordered_map>
 #include <string>
@@ -46,19 +47,14 @@ class ConnectionManager
 		void addClient(int clientId);
 		// bool clientSentClose(int clientId) const;
 		void removeClient(int clientId);
-		ClientState& getClientStateForTest(int clientId);
+		ClientState& getClientState(int clientId);
 		
-		bool processData(int clientId, const std::string& tcpData);
+		bool processData(const NetworkEndpoint& endpoint, int clientId, const std::string& tcpData);
 		size_t processReqs(int clientId, const std::string& tcpData);
-		void genRespsForReadyReqs(int clientId);
+		void genRespsForReadyReqs(int clientId, const NetworkEndpoint& endpoint);
 		
 		RawRequest popRawReq(int clientId);
 		
-		Response popNextResponse(int clientId);
-		bool hasPendingResponses(int clientId) const;
-		
-		void handleErrorWithOptionalCustomPage(ClientState& clientState,
-		RequestData& reqData, RequestContext& ctx, Response& resp, HttpStatusCode code);
 	
 	};
 

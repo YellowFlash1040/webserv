@@ -13,7 +13,6 @@ enum class HttpMethod
     NONE,
     GET,
     POST,
-    PUT,
     DELETE
 };
 

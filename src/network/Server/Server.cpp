@@ -127,40 +127,16 @@ void Server::processClient(int clientId)
 	char buf[8192];
 	int n = read(clientId, buf, sizeof(buf) - 1);
 
+	 // Handle incoming data
 	if (n > 0)
 	{
 		buf[n] = '\0';
 		std::cout << GREEN << "\n[processClient]:" << RESET << " read " << n << " bytes: \n" << buf << "\n";
+		
 		// Pass incoming data to ConnectionManager
 		std::string data(buf, n);
-		
-		bool anyRequestDone = m_connMgr.processData(clientId, data);
-
+		bool anyRequestDone = m_connMgr.processData(NetworkEndpoint(8081), clientId, data);
 		std::cout << GREEN << "[processClient]:" << RESET << " any request processed? " << anyRequestDone << "\n";
-		
-		//Send all ready responses
-		std::string respStr;
-		
-		if (anyRequestDone)
-		{
-			while (m_connMgr.hasPendingResponses(clientId))
-			{
-				Response resp = m_connMgr.popNextResponse(clientId);	
-				std::string respStr = resp.toString();
-				std::cout << "[Server::processClient] sending " << respStr.size() << " bytes\n";
-				
-				write(clientId, respStr.c_str(), respStr.size());
-				
-				// Only remove client if last request indicates Connection: close
-				if (resp.shouldClose())
-				{
-					printf ("CLOSE\n");
-					m_connMgr.removeClient(clientId);
-					close(clientId);
-					break;
-				}
-			}
-		}
 	}
 		
 	else if (n == 0)
@@ -169,6 +145,7 @@ void Server::processClient(int clientId)
 		std::cout << "Client closed the socket on their end, fd=" << clientId << "\n";
 		m_connMgr.removeClient(clientId);
 		close(clientId);
+		return;
 	}
 		
 	else
@@ -181,5 +158,42 @@ void Server::processClient(int clientId)
 		perror("read");
 		throw std::runtime_error("read failed");
 	}
-}
+		
+	// Send all pending responses for this client
+	ClientState& clientState = m_connMgr.getClientState(clientId); // assume this accessor exists
 
+	while (clientState.hasPendingResponseData())
+	{
+		ResponseData& respData = clientState.frontResponseData();
+		std::string respStr = respData.serialize(); // convert ResponseData -> HTTP string
+
+		ssize_t sent = respData.bytesSent; // track bytes already sent
+		while (sent < static_cast<ssize_t>(respStr.size()))
+		{
+			ssize_t nWritten = send(clientId, respStr.c_str() + sent, respStr.size() - sent, 0);
+			if (nWritten <= 0)
+			{
+				if (errno == EAGAIN || errno == EWOULDBLOCK)
+				{
+					respData.bytesSent = sent; // save progress for next loop
+					return; // kernel buffer full, try again later
+				}
+				perror("send");
+				throw std::runtime_error("send failed");
+			}
+			sent += nWritten;
+		}
+
+		// Entire response sent, remove from queue
+		clientState.popFrontResponseData();
+
+		// Close connection if needed
+		if (respData.shouldClose)
+		{
+			std::cout << "[processClient] CLOSE\n";
+			m_connMgr.removeClient(clientId);
+			close(clientId);
+			break;
+		}
+	}
+}

@@ -7,6 +7,7 @@
 # include <string>
 # include <stdexcept>
 # include <algorithm>
+# include <sstream>
 # include <cstdint>
 
 typedef uint32_t t_hex;
@@ -26,19 +27,18 @@ class NetworkInterface
 
     // Class specific features
   public:
-    // Constants
-    // Accessors
-    t_hex getValue(void);
-    // Methods
-
-  protected:
-    // Properties
-    // Methods
+    // Operators
+    operator uint32_t() const;
+    operator std::string() const;
+    bool operator==(const NetworkInterface& other) const;
 
   private:
     // Properties
-    t_hex m_value;
+    uint32_t m_hex;
+    std::string m_str;
     // Methods
+    uint32_t parseIp(const std::string& value);
+    int parseOctet(const std::string& part);
 };
 
 #endif

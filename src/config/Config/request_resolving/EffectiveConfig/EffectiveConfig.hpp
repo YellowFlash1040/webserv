@@ -7,13 +7,13 @@
 # include <vector>
 # include <map>
 
-#include "../../../http/HttpMethod/HttpMethod.hpp"
+# include "HttpMethod.hpp"
 # include "HttpRedirection.hpp"
 # include "ErrorPage.hpp"
 
 struct EffectiveConfig
 {
-    std::string matchedLocation = "/";
+    std::string matched_location = "/";
     size_t client_max_body_size = 1024 * 1024;
     std::vector<ErrorPage> error_pages{};
     std::string root = "/var/www";

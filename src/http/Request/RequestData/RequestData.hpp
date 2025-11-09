@@ -14,6 +14,7 @@ struct RequestData
 	std::string httpVersion{};
 	std::unordered_map<std::string, std::string> headers{};
 	std::string body{};
+	ssize_t bytesSent{0};
 	
 	std::string getHeader(const std::string& key) const
 	{

@@ -1,5 +1,5 @@
-#ifndef RESPONSE_HPP
-#define RESPONSE_HPP
+#ifndef RAWRESPONSE_HPP
+#define RAWRESPONSE_HPP
 
 #include <string>
 #include <unordered_map>
@@ -7,13 +7,15 @@
 #include <iomanip>
 #include <fstream>
 
-#include "../Request/RawRequest/RawRequest.hpp"
-#include "../../config/shared/RequestContext/RequestContext.hpp"
+#include "../../Request/RawRequest/RawRequest.hpp"
+#include "../../../config/Config/request_resolving/RequestContext/RequestContext.hpp"
 
-#include "Handlers/CgiHandler/CgiRequestData.hpp"
-#include "Handlers/StaticHandler/StaticHandler.hpp"
+// #include "../Handlers/CgiHandler/CgiRequestData.hpp"
+// #include "../Handlers/StaticHandler/StaticHandler.hpp"
+#include "../FileHandler/FileHandler.hpp"
+#include "../ResponseData/ReposneData.hpp"
 
-class Response
+class RawResponse
 {
 private:
 	RequestData _req;
@@ -23,19 +25,20 @@ private:
 	std::string _statusText;
 	std::unordered_map<std::string, std::string> _headers;
 	std::string _body;
+	bool _isInternalRedirect;
 	
 public:
 
-	Response() = default; //will be used for bad requests
-	Response(const RequestData& req, const RequestContext& ctx); 
-   ~Response() = default;
-    Response(const Response&) = default;
-    Response& operator=(const Response&) = default;
-    Response(Response&&) noexcept = default;
-    Response& operator=(Response&&) noexcept = default;
+	RawResponse() = default; //will be used for bad requests
+	RawResponse(const RequestData& req, const RequestContext& ctx); 
+   ~RawResponse() = default;
+    RawResponse(const RawResponse&) = default;
+    RawResponse& operator=(const RawResponse&) = default;
+    RawResponse(RawResponse&&) noexcept = default;
+    RawResponse& operator=(RawResponse&&) noexcept = default;
 
-	// Reset
-	void reset();
+	// // Reset
+	// void reset();
 
 	// Getters
 	HttpStatusCode getStatusCode() const;
@@ -50,32 +53,27 @@ public:
 	void addHeader(const std::string& key, const std::string& value);
 	void setBody(const std::string& body);
 
-	// Serialize response to string
-	std::string toString() const;
-
 	// Map HTTP status code to default text
 	std::string codeToText(HttpStatusCode code);
-	std::string genResp();
-	
-	// CgiRequest createCgiRequest();
+	void genResp();
 	
 	bool isMethodAllowed(HttpMethod method, const std::vector<HttpMethod>& allowed_methods);
 	std::string allowedMethodsToString(const std::vector<HttpMethod>& allowed_methods);
 
-	void setErrorPageBody(HttpStatusCode code);
+	void generateDefaultErrorPage(HttpStatusCode code);
 	bool shouldClose() const;
 	
-	std::string handleCgiScript();
-	std::string handleRedirection();
+	void handleCgiScript();
+	void handleRedirection();
 	
-	CgiRequestData createCgiRequest();
-	std::string handleStatic();
-	// std::filesystem::path resolveBasePath() const;
-	
+	void handleStatic();
+
 	static std::string httpMethodToString(HttpMethod method);
 	
-
+	ResponseData toResponseData() const;
 	
+	bool isInternalRedirect() const;
+
 	};
 
 #endif

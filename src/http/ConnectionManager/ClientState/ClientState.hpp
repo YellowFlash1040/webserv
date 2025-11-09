@@ -4,7 +4,7 @@
 #include "../../Request/RawRequest/RawRequest.hpp"
 #include "../../Request/RequestData/RequestData.hpp"
 #include "../../HttpMethod/HttpMethod.hpp"
-#include "../../Response/Response.hpp"
+#include "../../Response/RawResponse/RawResponse.hpp"
 
 #include <string>
 #include <iostream>
@@ -26,7 +26,7 @@ class ClientState
 	private:
 		std::vector<RawRequest> _rawRequests;
 		std::vector<RequestData> _requestsData;
-		std::queue<Response> _responseQueue;
+		std::queue<ResponseData> _respDataQueue;
 		
 	public:
 		ClientState();
@@ -52,26 +52,28 @@ class ClientState
 		bool latestRawReqNeedsBody() const;
 
 		// Response management
-		void enqueueResponse(const Response& resp);
-		bool responseQueueEmpty() const;
+		void enqueueResponseData(const ResponseData& resp);
+		// bool respDataQueueEmpty() const;
 	
-		const Response& getRespObj() const;
+		const ResponseData& getRespDataObj() const;
 
-		
-
+	
 		RawRequest& addRawRequest();
 		
 
 		RawRequest popRawReq();
 		RequestData popRequestData();
 		
-		bool hasPendingResponses() const;
-        Response popNextResponse();
+		bool hasPendingResponseData() const;
+        ResponseData popNextResponseData();
 		
 		void addRequestData(const RequestData& requestData);
 		
 		bool hasCompleteRawRequest() const;
 		RawRequest popFirstCompleteRawRequest();
+		
+		ResponseData& frontResponseData();
+		void popFrontResponseData();
 
 };
 

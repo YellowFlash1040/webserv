@@ -13,7 +13,8 @@
 class NotEnoughArgumentsException : public ValidatorException
 {
   public:
-    NotEnoughArgumentsException(const std::unique_ptr<Directive>& directive);
+    explicit NotEnoughArgumentsException(
+        const std::unique_ptr<Directive>& directive);
 
     const char* what() const noexcept override;
 };

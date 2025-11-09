@@ -68,27 +68,27 @@ std::string FileHandler::serveFile(const std::string &path)
 {
 	if (!fileExists(path))
 	{
-		std::cout << "serveFile: not found " << path << "\n";
+		std::cout << "[serveFile]: not found " << path << "\n";
 		return handleNotFound(); // 404
 	}
 
 	// Check read permissions
 	if (access(path.c_str(), R_OK) != 0)
 	{
-		std::cout << "serveFile: forbidden " << path << "\n";
+		std::cout << "[serveFile]: forbidden " << path << "\n";
 		return "__FORBIDDEN__"; // special signal
 	}
 
 	std::ifstream file(path.c_str(), std::ios::binary);
 	if (!file.is_open())
 	{
-		std::cout << "serveFile: cannot open " << path << "\n";
+		std::cout << "[serveFile]: cannot open " << path << "\n";
 		return handleNotFound(); // fallback
 	}
 
 	std::ostringstream buffer;
 	buffer << file.rdbuf();
-	std::cout << "serveFile: read " << buffer.str().size() << " bytes\n";
+	std::cout << "[serveFile]: read " << buffer.str().size() << " bytes\n";
 	return buffer.str();
 }
 

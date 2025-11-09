@@ -8,8 +8,10 @@
 
 # include "ConfigBlock.hpp"
 # include "ServerBlock.hpp"
-
+# include "Property.hpp"
 # include "ErrorPage.hpp"
+# include "EffectiveConfig.hpp"
+# include "DirectiveAppliers.hpp"
 
 struct HttpBlock : public ConfigBlock
 {
@@ -23,7 +25,7 @@ struct HttpBlock : public ConfigBlock
     // Methods
     void applyTo(EffectiveConfig& config) const override;
     const ServerBlock& matchServerBlock(const std::string& host) const;
-    const ServerBlock& matchServerBlock(const std::string& listen,
+    const ServerBlock& matchServerBlock(const NetworkEndpoint& endpoint,
                                         const std::string& host) const;
 };
 
