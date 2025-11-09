@@ -5,7 +5,6 @@
 
 # include <utility>
 # include <string>
-# include <array>
 
 # include "NetworkInterface.hpp"
 
@@ -13,10 +12,6 @@ class NetworkEndpoint
 {
     // Construction and destruction
   public:
-    NetworkEndpoint();
-    explicit NetworkEndpoint(const std::string& value);
-    explicit NetworkEndpoint(const NetworkInterface& interface);
-    explicit NetworkEndpoint(int port);
     NetworkEndpoint(NetworkInterface interface, int port);
     NetworkEndpoint(const NetworkEndpoint& other);
     NetworkEndpoint& operator=(const NetworkEndpoint& other);
@@ -26,17 +21,21 @@ class NetworkEndpoint
 
     // Class specific features
   public:
+    // Constants
     // Accessors
     NetworkInterface ip(void) const;
     int port(void) const;
-    // Operators
-    bool operator==(const NetworkEndpoint& other) const;
-    operator std::string() const;
+    // Methods
+
+  protected:
+    // Properties
+    // Methods
 
   private:
     // Properties
-    NetworkInterface m_interface{"0.0.0.0"};
-    int m_port = 8080;
+    NetworkInterface m_interface;
+    int m_port;
+    // Methods
 };
 
 #endif

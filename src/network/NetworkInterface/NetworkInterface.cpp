@@ -77,6 +77,8 @@ NetworkInterface& NetworkInterface::operator=(NetworkInterface&& other) noexcept
 // Destructor
 NetworkInterface::~NetworkInterface() {}
 
+// ---------------------------ACCESSORS-----------------------------
+
 // ---------------------------OPERATORS-----------------------------
 
 NetworkInterface::operator uint32_t() const
@@ -87,14 +89,6 @@ NetworkInterface::operator uint32_t() const
 NetworkInterface::operator std::string() const
 {
     return (m_str);
-}
-
-bool NetworkInterface::operator==(const NetworkInterface& other) const
-{
-    if (other.m_hex != m_hex)
-        return false;
-
-    return true;
 }
 
 // ----------------------------METHODS------------------------------

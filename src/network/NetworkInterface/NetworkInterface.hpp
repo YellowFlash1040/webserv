@@ -27,10 +27,16 @@ class NetworkInterface
 
     // Class specific features
   public:
+    // Constants
+    // Accessors
+    // Methods
     // Operators
     operator uint32_t() const;
     operator std::string() const;
-    bool operator==(const NetworkInterface& other) const;
+
+  protected:
+    // Properties
+    // Methods
 
   private:
     // Properties
