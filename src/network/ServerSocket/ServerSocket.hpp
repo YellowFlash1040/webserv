@@ -24,15 +24,6 @@ class ServerSocket : public Socket
     ~ServerSocket();
 
     // Class specific features
-  public:
-    // Constants
-    // Accessors
-    // Methods
-
-  protected:
-    // Properties
-    // Methods
-
   private:
     // Properties
     NetworkEndpoint m_endpoint;

@@ -1,7 +1,6 @@
-// Mine
-#include "Server.hpp"
 #include <iostream>
 #include <string.h>
+#include "Server.hpp"
 #include "Config.hpp"
 
 volatile std::sig_atomic_t g_running = true;
@@ -23,7 +22,7 @@ int main(int argc, char** argv)
         Config config = Config::fromFile(filepath);
         std::vector<NetworkEndpoint> endpoints = config.getAllEnpoints();
 
-        Server s;
+        Server s(config);
 
         for (const auto& endpoint : endpoints)
             s.addEndpoint(endpoint);

@@ -41,7 +41,7 @@ class Config
     std::vector<NetworkEndpoint> getAllEnpoints();
     RequestContext createRequestContext(const NetworkEndpoint& endpoint,
                                         const std::string& host,
-                                        const std::string& uri);
+                                        const std::string& uri) const;
 
   private:
     // Properties

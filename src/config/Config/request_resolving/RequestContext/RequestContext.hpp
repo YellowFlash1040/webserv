@@ -9,6 +9,7 @@
 
 # include "HttpMethod.hpp"
 # include "HttpRedirection.hpp"
+# include "HttpStatusCode.hpp"
 # include "ErrorPage.hpp"
 
 struct RequestContext

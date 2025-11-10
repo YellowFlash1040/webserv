@@ -43,8 +43,6 @@ ServerSocket& ServerSocket::operator=(ServerSocket&& other) noexcept
 // Destructor
 ServerSocket::~ServerSocket() {}
 
-// ---------------------------ACCESSORS-----------------------------
-
 // ---------------------------METHODS-----------------------------
 
 void ServerSocket::fillAddressInfo(t_sockaddr_in& addr,
