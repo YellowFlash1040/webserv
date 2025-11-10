@@ -39,6 +39,14 @@ class RequestResolver
         const std::string& host, const std::string& uri);
     static RequestContext createContext(const EffectiveConfig& config,
                                         const std::string& uri);
+    static const ServerBlock& matchServerBlock(
+        const std::vector<ServerBlock>& servers,
+        const NetworkEndpoint& endpoint, const std::string& host);
+    static std::vector<const ServerBlock*> tryMatchByEndpoint(
+        const std::vector<ServerBlock>& servers,
+        const NetworkEndpoint& endpoint);
+    static const LocationBlock* matchLocationBlock(const ServerBlock& server,
+                                                   const std::string& uri);
     static std::map<HttpStatusCode, std::string> constructErrorPages(
         const std::vector<ErrorPage>& errorPages);
     static std::string resolvePath(const EffectiveConfig& config,
