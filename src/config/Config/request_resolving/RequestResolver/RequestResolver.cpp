@@ -18,8 +18,9 @@ EffectiveConfig RequestResolver::createEffectiveConfig(
 {
     EffectiveConfig config;
 
-    const ServerBlock& serverBlock = httpBlock.matchServerBlock(endpoint, host);
-    const LocationBlock* locationBlock = serverBlock.matchLocationBlock(uri);
+    const ServerBlock& serverBlock
+        = matchServerBlock(httpBlock.servers, endpoint, host);
+    const LocationBlock* locationBlock = matchLocationBlock(serverBlock, uri);
 
     httpBlock.applyTo(config);
     serverBlock.applyTo(config);
@@ -27,6 +28,71 @@ EffectiveConfig RequestResolver::createEffectiveConfig(
         locationBlock->applyTo(config);
 
     return config;
+}
+
+const ServerBlock& RequestResolver::matchServerBlock(
+    const std::vector<ServerBlock>& servers, const NetworkEndpoint& endpoint,
+    const std::string& host)
+{
+    std::vector<const ServerBlock*> matchedServers
+        = tryMatchByEndpoint(servers, endpoint);
+
+    if (matchedServers.empty())
+        throw std::runtime_error(
+            "how did you even sent us a request? We don't listen on "
+            + static_cast<std::string>(endpoint));
+
+    if (matchedServers.size() == 1)
+        return *matchedServers.front();
+
+    // If multiple matches → match by host
+    for (const ServerBlock* server : matchedServers)
+        for (const std::string& serverName : server->serverName)
+            if (serverName == host)
+                return *server;
+
+    // If none of the servers matched → return the first one
+    return *matchedServers.front();
+}
+
+std::vector<const ServerBlock*> RequestResolver::tryMatchByEndpoint(
+    const std::vector<ServerBlock>& servers, const NetworkEndpoint& endpoint)
+{
+    std::vector<const ServerBlock*> matchedServers;
+
+    for (const ServerBlock& server : servers)
+    {
+        for (const NetworkEndpoint& listen : server.listen)
+        {
+            if (listen == endpoint)
+            {
+                matchedServers.push_back(&server);
+                break; // no need to check more listens for this server
+            }
+        }
+    }
+
+    return matchedServers;
+}
+
+const LocationBlock* RequestResolver::matchLocationBlock(
+    const ServerBlock& server, const std::string& uri)
+{
+    const LocationBlock* bestMatch = nullptr;
+    std::size_t bestLength = 0;
+
+    for (const LocationBlock& location : server.locations)
+    {
+        const std::string& path = location.path;
+
+        if (uri.compare(0, path.size(), path) == 0 && path.size() > bestLength)
+        {
+            bestLength = path.size();
+            bestMatch = &location;
+        }
+    }
+
+    return bestMatch; // nullptr means "no matching location"
 }
 
 RequestContext RequestResolver::createContext(const EffectiveConfig& config,
