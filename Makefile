@@ -1,6 +1,6 @@
 #-----------------------COMPILATION------------------------------------------------------
 # Compiler and Flags
-CC						:= c++
+CC						:= g++
 CFLAGS				 	 = -Wall -Wextra -Werror $(INCLUDES) $(CPP_VERSION) -g
 TESTS_CFLAGS			 = -Wall -Wextra -Werror $(TESTS_INCLUDES) $(TESTS_CPP_VERSION) -g
 
@@ -11,7 +11,7 @@ TESTS_INCLUDES			 = -I$(TESTS_DIR)/googletest/googletest/include \
 							$(INCLUDES)
 
 # C++ versions
-CPP_VERSION				 = -std=c++11
+CPP_VERSION				 = -std=c++14
 TESTS_CPP_VERSION		 = -std=c++14
 
 #-----------------------BINARIES---------------------------------------------------------
@@ -41,7 +41,7 @@ GTEST_DIR 				:= $(TESTS_DIR)/googletest
 
 #-----------------------FILES------------------------------------------------------------
 # Sources
-CPP_FILES 				:= $(shell find $(SRC_DIR) -name '*.cpp')
+CPP_FILES 				:= $(shell find $(SRC_DIR) -name '*.cpp' -not -path '*/.*/*')
 HEADERS 				:= $(shell find $(SRC_DIR) -name '*.hpp')
 
 # Objects
@@ -85,6 +85,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS) $(TEMPLATES) Makefile
 
 # Collect all .o files into .a file to use it for unit tests
 $(LIBRARY_FOR_TESTS): $(OBJ)
+	@mkdir -p $(TESTS_BIN_FOLDER)
 	@ar src $@ $^
 	@ar d $@ main.o
 
@@ -93,7 +94,7 @@ $(LIBRARY_FOR_TESTS): $(OBJ)
 tests: $(TESTS_NAME)
 
 # Build tests
-$(TESTS_NAME): $(TESTS_OBJ) $(LIBRARY_FOR_TESTS) $(GTEST_LIB)
+$(TESTS_NAME): $(LIBRARY_FOR_TESTS) $(TESTS_OBJ) $(GTEST_LIB)
 	@mkdir -p $(dir $@)
 	@$(CC) $(TESTS_CFLAGS) $(TESTS_OBJ) $(LIBRARY_FOR_TESTS) $(GTEST_LIB) $(LDFLAGS) -o $@
 	@echo "$(GREEN)Compiled $@ successfully!$(RESET)"
