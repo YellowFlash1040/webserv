@@ -38,7 +38,7 @@ class Config
   public:
     // Methods
     static Config fromFile(const std::string& filepath);
-    std::vector<NetworkEndpoint> getAllEnpoints();
+    std::vector<NetworkEndpoint> getAllEnpoints() const;
     RequestContext createRequestContext(const NetworkEndpoint& endpoint,
                                         const std::string& host,
                                         const std::string& uri) const;

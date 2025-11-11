@@ -9,6 +9,9 @@
 Server::Server(const Config& config)
   : m_connMgr(config)
 {
+    std::vector<NetworkEndpoint> endpoints = config.getAllEnpoints();
+    for (const auto& endpoint : endpoints)
+        addEndpoint(endpoint);
 }
 
 // Destructor

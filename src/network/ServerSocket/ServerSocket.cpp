@@ -52,5 +52,5 @@ void ServerSocket::fillAddressInfo(t_sockaddr_in& addr,
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(e.port());
-    addr.sin_addr.s_addr = htonl(e.ip());
+    addr.sin_addr.s_addr = htonl(static_cast<uint32_t>(e.ip()));
 }

@@ -20,18 +20,12 @@ int main(int argc, char** argv)
     try
     {
         Config config = Config::fromFile(filepath);
-        std::vector<NetworkEndpoint> endpoints = config.getAllEnpoints();
-
         Server s(config);
-
-        for (const auto& endpoint : endpoints)
-            s.addEndpoint(endpoint);
-
         s.run();
     }
     catch (const ConfigException& e)
     {
-        std::cerr << "\033[1m" << filepath << ":\033[0m " << e.what() << '\n';
+        std::cerr << "\033[1m" << filepath << ":\033[0m" << e.what() << '\n';
         return 1;
     }
     catch (const std::runtime_error& e)
