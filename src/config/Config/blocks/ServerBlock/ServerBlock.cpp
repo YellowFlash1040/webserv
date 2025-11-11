@@ -19,23 +19,3 @@ void ServerBlock::applyTo(EffectiveConfig& config) const
         config.redirection.isSet = true;
     }
 }
-
-const LocationBlock* ServerBlock::matchLocationBlock(
-    const std::string& uri) const
-{
-    const LocationBlock* bestMatch = nullptr;
-    std::size_t bestLength = 0;
-
-    for (const LocationBlock& location : locations)
-    {
-        const std::string& path = location.path;
-
-        if (uri.compare(0, path.size(), path) == 0 && path.size() > bestLength)
-        {
-            bestLength = path.size();
-            bestMatch = &location;
-        }
-    }
-
-    return bestMatch; // nullptr means "no matching location"
-}

@@ -24,9 +24,6 @@ struct HttpBlock : public ConfigBlock
     Property<std::vector<std::string>> index;
     // Methods
     void applyTo(EffectiveConfig& config) const override;
-    const ServerBlock& matchServerBlock(const std::string& host) const;
-    const ServerBlock& matchServerBlock(const NetworkEndpoint& endpoint,
-                                        const std::string& host) const;
 };
 
 #endif
