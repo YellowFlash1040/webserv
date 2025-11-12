@@ -22,9 +22,8 @@ class Socket
 
     // Class specific features
   public:
-    // Constants
     // Accessors
-    int fd(void) const;
+    int fd() const;
     // Operators
     operator int() const;
     // Methods
@@ -33,11 +32,6 @@ class Socket
   protected:
     // Properties
     int m_fd;
-    // Methods
-
-  private:
-    // Properties
-    // Methods
 };
 
 #endif

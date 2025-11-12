@@ -27,8 +27,8 @@ class NetworkEndpoint
     // Class specific features
   public:
     // Accessors
-    NetworkInterface ip(void) const;
-    int port(void) const;
+    NetworkInterface ip() const;
+    int port() const;
     // Operators
     bool operator==(const NetworkEndpoint& other) const;
     operator std::string() const;

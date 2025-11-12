@@ -15,8 +15,11 @@
 # include <sys/timerfd.h>
 
 # include "Client.hpp"
+# include "Config.hpp"
+# include "MemoryUtils.hpp"
 # include "NetworkEndpoint.hpp"
 # include "ServerSocket.hpp"
+# include "ConnectionManager.hpp"
 
 typedef struct epoll_event t_event;
 
@@ -26,7 +29,7 @@ class Server
 {
     // Construction and destruction
   public:
-    Server();
+    Server(const Config& config);
     ~Server();
 
     // Class specific features
@@ -34,7 +37,6 @@ class Server
     // Constants
     static constexpr int QUEUE_SIZE = 100;
     static constexpr int MAX_EVENTS = 50;
-    // Accessors
     // Methods
     void run(void);
     void addEndpoint(const NetworkEndpoint& endpoint);
@@ -43,20 +45,14 @@ class Server
     int createTimerFd(int interval_sec);
     void checkClientTimeouts();
 
-  protected:
-    // Properties
-    // Methods
-
   private:
     // Properties
     int m_epfd = -1; // event poll fd
     int m_timerfd = -1;
     std::unordered_map<int, ServerSocket> m_listeners;
     std::unordered_map<int, std::unique_ptr<Client>> m_clients;
-    
+    ConnectionManager m_connMgr;
     // Methods
-    void fillAddressInfo(NetworkEndpoint e);
-    void setNonBlockingAndCloexec(int fd);
     void addSocketToEPoll(int socket, uint32_t events);
     void acceptNewClient(int listeningSocket);
     void processClient(int clientSocket);

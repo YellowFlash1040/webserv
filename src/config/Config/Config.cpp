@@ -49,7 +49,7 @@ Config Config::fromFile(const std::string& filepath)
 ///----------------------------///
 ///----------------------------///
 
-std::vector<NetworkEndpoint> Config::getAllEnpoints()
+std::vector<NetworkEndpoint> Config::getAllEnpoints() const
 {
     std::vector<NetworkEndpoint> endpoints;
 
@@ -66,88 +66,11 @@ std::vector<NetworkEndpoint> Config::getAllEnpoints()
     return endpoints;
 }
 
-///----------------------------///
-///----------------------------///
-///----------------------------///
-
-RequestContext Config::createRequestContext(const std::string& host,
-                                            const std::string& uri)
+RequestContext Config::createRequestContext(const NetworkEndpoint& endpoint,
+                                            const std::string& host,
+                                            const std::string& uri) const
 {
-    EffectiveConfig config = createEffectiveConfig(host, uri);
-
-    return createContext(config, uri);
-}
-
-EffectiveConfig Config::createEffectiveConfig(const std::string& host,
-                                              const std::string& uri)
-{
-    EffectiveConfig config;
-
-    HttpBlock& httpBlock = m_httpBlock;
-    const ServerBlock& serverBlock = httpBlock.matchServerBlock(host);
-    const LocationBlock* locationBlock = serverBlock.matchLocationBlock(uri);
-
-    httpBlock.applyTo(config);
-    serverBlock.applyTo(config);
-    if (locationBlock)
-        locationBlock->applyTo(config);
-
-    return config;
-}
-
-RequestContext Config::createContext(const EffectiveConfig& config,
-                                     const std::string& uri)
-{
-    RequestContext context;
-
-    context.allowed_methods = config.allowed_methods;
-    context.autoindex_enabled = config.autoindex_enabled;
-    context.cgi_pass = config.cgi_pass;
-    context.client_max_body_size = config.client_max_body_size;
-    context.error_pages = constructErrorPages(config.error_pages);
-    context.index_files = config.index_files;
-    context.resolved_path = resolvePath(config, uri);
-    context.upload_store = config.upload_store;
-    context.redirection = config.redirection;
-
-    return context;
-}
-
-std::map<HttpStatusCode, std::string> Config::constructErrorPages(
-    const std::vector<ErrorPage>& errorPages)
-{
-    std::map<HttpStatusCode, std::string> result;
-    for (const auto& errorPage : errorPages)
-        for (const auto& statusCode : errorPage.statusCodes)
-            result[statusCode] = errorPage.filePath;
-
-    return result;
-}
-
-std::string Config::resolvePath(const EffectiveConfig& config,
-                                const std::string& uri)
-{
-    const std::string* base = &config.root; // default to root
-    std::string subpath;
-
-    if (!config.alias.empty())
-    {
-        base = &config.alias;
-        subpath = uri.substr(config.matched_location.size());
-    }
-    else
-        subpath = uri;
-
-    // Ensure exactly one slash between base and subpath
-    bool baseEndsWithSlash = base->back() == '/';
-    bool subpathStartsWithSlash = subpath.front() == '/';
-
-    if (baseEndsWithSlash && subpathStartsWithSlash)
-        return *base + subpath.substr(1); // remove duplicate slash
-    else if (!baseEndsWithSlash && !subpathStartsWithSlash)
-        return *base + "/" + subpath; // add missing slash
-    else
-        return *base + subpath; // exactly one slash already
+    return RequestResolver::resolve(m_httpBlock, endpoint, host, uri);
 }
 
 ///----------------------------///
@@ -217,7 +140,7 @@ ServerBlock Config::buildServerBlock(
     }
 
     if (serverBlock.listen->empty())
-        serverBlock.listen->emplace_back("8080");
+        serverBlock.listen->emplace_back(":8080");
 
     if (serverBlock.serverName->empty())
         serverBlock.serverName->emplace_back("");

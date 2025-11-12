@@ -327,8 +327,17 @@ void Validator::validateFolderPath(const std::string& s)
     if (s.empty())
         throw std::invalid_argument("folder path cannot be empty");
 
-    if (s[0] != '/')
-        throw std::invalid_argument("Folder path has to start from a '/'");
+    std::string forbiddenChars = "<>:\"|?*";
+    for (char c : s)
+    {
+        if (!isprint(c))
+            throw std::invalid_argument(
+                "path can not contain non-printable characters");
+
+        if (forbiddenChars.find(c) != std::string::npos)
+            throw std::invalid_argument(std::string("path can not contain '")
+                                        + c + "' characters");
+    }
 }
 
 void Validator::validateInteger(const std::string& s)

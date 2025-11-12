@@ -21,6 +21,8 @@
 # include "ServerBlock.hpp"
 # include "LocationBlock.hpp"
 
+# include "RequestResolver.hpp"
+
 class Config
 {
     // Construction and destruction
@@ -36,9 +38,10 @@ class Config
   public:
     // Methods
     static Config fromFile(const std::string& filepath);
-    std::vector<NetworkEndpoint> getAllEnpoints();
-    RequestContext createRequestContext(const std::string& host,
-                                        const std::string& uri);
+    std::vector<NetworkEndpoint> getAllEnpoints() const;
+    RequestContext createRequestContext(const NetworkEndpoint& endpoint,
+                                        const std::string& host,
+                                        const std::string& uri) const;
 
   private:
     // Properties
@@ -71,15 +74,6 @@ class Config
                        const std::vector<Argument>& args);
 
     static void setDefaultHttpMethods(std::vector<HttpMethod>& httpMethods);
-
-    EffectiveConfig createEffectiveConfig(const std::string& host,
-                                          const std::string& uri);
-    static RequestContext createContext(const EffectiveConfig& config,
-                                        const std::string& uri);
-    static std::map<HttpStatusCode, std::string> constructErrorPages(
-        const std::vector<ErrorPage>& errorPages);
-    static std::string resolvePath(const EffectiveConfig& config,
-                                   const std::string& uri);
 };
 
 #endif

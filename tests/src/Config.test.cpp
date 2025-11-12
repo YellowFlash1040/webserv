@@ -482,7 +482,7 @@ class RequestContextValidator
 
 TEST_F(ConfigTest, RequestContext_RootPath_Site1Local)
 {
-    RequestContext ctx = config->createRequestContext("site1.local", "/");
+    RequestContext ctx = config->createRequestContext(NetworkEndpoint(8080), "site1.local", "/");
 
      RequestContextValidator(ctx)
         .hasBodySize(20ul * 1024 * 1024)
@@ -501,7 +501,7 @@ TEST_F(ConfigTest, RequestContext_RootPath_Site1Local)
 
 TEST_F(ConfigTest, RequestContext_KapouetPath_Site1Local)
 {
-    RequestContext ctx = config->createRequestContext("site1.local", "/kapouet");
+    RequestContext ctx = config->createRequestContext(NetworkEndpoint(8080), "site1.local", "/kapouet");
 
     RequestContextValidator(ctx)
         .hasResolvedPath("/var/www/site1/kapouet")
@@ -521,7 +521,7 @@ TEST_F(ConfigTest, RequestContext_KapouetPath_Site1Local)
 
 TEST_F(ConfigTest, RequestContext_FileInsideKapouet_Site1Local)
 {
-    RequestContext ctx = config->createRequestContext("site1.local", "/kapouet/file.jpg");
+    RequestContext ctx = config->createRequestContext(NetworkEndpoint(8080), "site1.local", "/kapouet/file.jpg");
 
     RequestContextValidator(ctx)
         .hasResolvedPath("/tmp/www/kapouet/file.jpg")
@@ -540,7 +540,7 @@ TEST_F(ConfigTest, RequestContext_FileInsideKapouet_Site1Local)
 
 TEST_F(ConfigTest, RequestContext_FileInsideList_Site1Local)
 {
-    RequestContext ctx = config->createRequestContext("site1.local", "/list/file.jpg");
+    RequestContext ctx = config->createRequestContext(NetworkEndpoint(8080), "site1.local", "/list/file.jpg");
 
     RequestContextValidator(ctx)
         .hasResolvedPath("/var/www/site1/list/file.jpg")
@@ -559,7 +559,7 @@ TEST_F(ConfigTest, RequestContext_FileInsideList_Site1Local)
 
 TEST_F(ConfigTest, RequestContext_Oldpage_Site1Local)
 {
-    RequestContext ctx = config->createRequestContext("site1.local", "/oldpage");
+    RequestContext ctx = config->createRequestContext(NetworkEndpoint(8080), "site1.local", "/oldpage");
 
     RequestContextValidator(ctx)
         .hasResolvedPath("/var/www/site1/oldpage")
@@ -578,7 +578,7 @@ TEST_F(ConfigTest, RequestContext_Oldpage_Site1Local)
 
 TEST_F(ConfigTest, RequestContext_RootPath_Site2Local)
 {
-    RequestContext ctx = config->createRequestContext("site2.local", "/");
+    RequestContext ctx = config->createRequestContext(NetworkEndpoint(9090), "site2.local", "/");
 
     RequestContextValidator(ctx)
         .hasResolvedPath("/var/www/site2/")
@@ -597,7 +597,7 @@ TEST_F(ConfigTest, RequestContext_RootPath_Site2Local)
 
 TEST_F(ConfigTest, RequestContext_RandomPage_Site2Local)
 {
-    RequestContext ctx = config->createRequestContext("site2.local", "/something");
+    RequestContext ctx = config->createRequestContext(NetworkEndpoint(9090), "site2.local", "/something");
 
     RequestContextValidator(ctx)
         .hasResolvedPath("/var/www/site2/something")
