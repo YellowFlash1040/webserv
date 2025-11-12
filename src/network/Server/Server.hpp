@@ -40,7 +40,7 @@ class Server
     // Methods
     void run(void);
     void addEndpoint(const NetworkEndpoint& endpoint);
-    void removeClient(int clientSocket);
+    void removeClient(Client& client);
     void printAllClients() const;
     int createTimerFd(int interval_sec);
     void checkClientTimeouts();
@@ -55,8 +55,8 @@ class Server
     // Methods
     void addSocketToEPoll(int socket, uint32_t events);
     void acceptNewClient(int listeningSocket);
-    void processClient(int clientSocket);
-    void flushClientOutBuffer(int fd, Client& client);
+    void processClient(Client& client);
+    void flushClientOutBuffer(Client& client);
 };
 
 #endif

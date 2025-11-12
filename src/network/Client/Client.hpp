@@ -14,10 +14,11 @@
 class Client 
 {
 public:
-    Client(int fd, const sockaddr_in& addr);
+    Client(int fd, const sockaddr_in& addr, int listeningSocketFd);
     ~Client();
 
     int getSocket() const;
+    int getListeningSocket() const;
     const sockaddr_in& getAddress() const;
 
     std::string& getInBuffer();
@@ -36,6 +37,7 @@ public:
 private:
     int socket_fd;
     sockaddr_in address;
+    int listeningSocketFd;
     std::string in_buffer;
     std::string out_buffer;
     std::chrono::steady_clock::time_point lastActivity;

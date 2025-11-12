@@ -86,19 +86,20 @@ void Server::run(void)
             Client& client = *itClient->second;
 
             if (ev & EPOLLIN)
-                processClient(fd);
+                processClient(client);
 
             if ((ev & EPOLLOUT) && !client.getOutBuffer().empty())
-                flushClientOutBuffer(fd, client);
+                flushClientOutBuffer(client);
 
             if (ev & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
-                removeClient(fd);
+                removeClient(client);
         }
     }
 }
 
-void Server::flushClientOutBuffer(int fd, Client& client)
+void Server::flushClientOutBuffer(Client& client)
 {
+    int fd = client.getSocket();
     std::string& out = client.getOutBuffer();
     if (out.empty())
         return;
@@ -117,6 +118,7 @@ void Server::flushClientOutBuffer(int fd, Client& client)
         epoll_ctl(m_epfd, EPOLL_CTL_MOD, fd, &mod);
     }
 }
+
 
 void Server::addEndpoint(const NetworkEndpoint& endpoint)
 {
@@ -152,8 +154,10 @@ void Server::acceptNewClient(int listeningSocket)
 
     Socket::setNonBlockingAndCloexec(clientSocket);
     addSocketToEPoll(clientSocket, EPOLLIN);
+
     m_clients.emplace(clientSocket,
-                      std::make_unique<Client>(clientSocket, clientAddr));
+        std::make_unique<Client>(clientSocket, clientAddr, listeningSocket));
+
     m_connMgr.addClient(clientSocket);
 
     struct epoll_event ev;
@@ -162,43 +166,44 @@ void Server::acceptNewClient(int listeningSocket)
     epoll_ctl(m_epfd, EPOLL_CTL_MOD, clientSocket, &ev);
 }
 
-void Server::removeClient(int clientSocket)
+void Server::removeClient(Client& client)
 {
-    auto it = m_clients.find(clientSocket);
-    if (it == m_clients.end())
-        return;
+    int clientSocket = client.getSocket();
 
     if (m_epfd != -1)
         epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr);
 
-    m_clients.erase(it);
+    m_clients.erase(clientSocket);
 
     std::cout << "Client removed: " << clientSocket << "\n";
 }
 
-void Server::processClient(int clientFd)
+void Server::processClient(Client& client)
 {
+    int clientFd = client.getSocket();
     char buf[8192];
     int n = read(clientFd, buf, sizeof(buf) - 1);
 
-    // Handle incoming data
+    // Обработка входящих данных
     if (n > 0)
     {
         buf[n] = '\0';
-        // Pass incoming data to ConnectionManager
         std::string data(buf, n);
-        bool anyRequestDone
-            = m_connMgr.processData(NetworkEndpoint(7777), clientFd, data);
+
+        // Получаем endpoint через listeningSocket
+        int listeningSocket = client.getListeningSocket();
+        NetworkEndpoint& ep = m_listeners.at(listeningSocket).getEndpoint();
+
+        bool anyRequestDone = m_connMgr.processData(ep, clientFd, data);
         (void)anyRequestDone;
     }
-
     else if (n == 0)
     {
         m_connMgr.removeClient(clientFd);
+        removeClient(client);
         close(clientFd);
         return;
     }
-
     else
     {
         if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -207,40 +212,37 @@ void Server::processClient(int clientFd)
         throw std::runtime_error("read failed");
     }
 
-    // Send all pending responses for this client
-    ClientState& clientState
-        = m_connMgr.getClientState(clientFd); // assume this accessor exists
+    // Отправка всех ответов
+    ClientState& clientState = m_connMgr.getClientState(clientFd); 
 
     while (clientState.hasPendingResponseData())
     {
         ResponseData& respData = clientState.frontResponseData();
-        std::string respStr
-            = respData.serialize(); // convert ResponseData -> HTTP string
+        std::string respStr = respData.serialize();
 
-        auto it = m_clients.find(clientFd);
-        if (it != m_clients.end())
-        {
-            it->second->appendToOutBuffer(respStr);
-            it->second->updateLastActivity();
-            struct epoll_event mod;
-            mod.data.fd = clientFd;
-            mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP | EPOLLOUT;
-            if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, clientFd, &mod) == -1)
-                perror("epoll_ctl EPOLLOUT");
-        }
+        client.appendToOutBuffer(respStr);
+        client.updateLastActivity();
 
-        // Entire response sent, remove from queue
+        // Включаем EPOLLOUT, чтобы epoll отслеживал возможность записи
+        struct epoll_event mod;
+        mod.data.fd = clientFd;
+        mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP | EPOLLOUT;
+        if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, clientFd, &mod) == -1)
+            perror("epoll_ctl EPOLLOUT");
+
+        // Удаляем отправленный элемент из очереди
         clientState.popFrontResponseData();
 
-        // Close connection if needed
+        // Закрываем соединение, если нужно
         if (respData.shouldClose)
         {
             m_connMgr.removeClient(clientFd);
-            removeClient(clientFd);
+            removeClient(client);
             break;
         }
     }
 }
+
 
 void Server::printAllClients() const
 {

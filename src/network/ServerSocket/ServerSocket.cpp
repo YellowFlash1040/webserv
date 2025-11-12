@@ -45,6 +45,16 @@ ServerSocket::~ServerSocket() {}
 
 // ---------------------------METHODS-----------------------------
 
+NetworkEndpoint& ServerSocket::getEndpoint()
+{
+    return m_endpoint;
+}
+
+const NetworkEndpoint& ServerSocket::getEndpoint() const
+{
+    return m_endpoint;
+}
+
 void ServerSocket::fillAddressInfo(t_sockaddr_in& addr,
                                    const NetworkEndpoint& e)
 {

@@ -24,6 +24,8 @@ class ServerSocket : public Socket
     ~ServerSocket();
 
     // Class specific features
+    NetworkEndpoint& getEndpoint();
+    const NetworkEndpoint& getEndpoint() const;
   private:
     // Properties
     NetworkEndpoint m_endpoint;
