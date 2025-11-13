@@ -10,3 +10,6 @@
 !**/tests/googletest/**/*.a
 !**/tests/googletest/**/*.h
 !.clang-format
+!*.conf
+!*.py
+!*.html
