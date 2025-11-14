@@ -13,3 +13,6 @@
 !*.conf
 !*.py
 !*.html
+!*.ico
+!*.css
+!*.js

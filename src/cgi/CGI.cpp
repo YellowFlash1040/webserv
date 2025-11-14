@@ -210,8 +210,6 @@ std::string methodToString(HttpMethod method)
         return "GET";
     case HttpMethod::POST:
         return "POST";
-    case HttpMethod::PUT:
-        return "PUT";
     case HttpMethod::DELETE:
         return "DELETE";
     default:

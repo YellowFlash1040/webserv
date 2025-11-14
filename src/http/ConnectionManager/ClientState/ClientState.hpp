@@ -24,9 +24,17 @@
 class ClientState
 {
 	private:
-		std::vector<RawRequest> _rawRequests;
-		std::vector<RequestData> _requestsData;
-		std::queue<ResponseData> _respDataQueue;
+  	// 1. Raw requests from the client (byte level)
+	std::vector<RawRequest> _rawRequests;
+
+	// 2. Parsed request data from RawRequest
+	std::vector<RequestData> _requestsData;
+
+	// 3. Raw responses (not yet serialized), allows handling internal redirects
+	std::deque<RawResponse> _rawResponsesQueue;
+
+	// 4. Serialized responses ready to be sent on the socket
+	std::queue<ResponseData> _respDataQueue;
 		
 	public:
 		ClientState();
@@ -51,9 +59,9 @@ class ClientState
 		
 		bool latestRawReqNeedsBody() const;
 
-		// Response management
+
 		void enqueueResponseData(const ResponseData& resp);
-		// bool respDataQueueEmpty() const;
+
 	
 		const ResponseData& getRespDataObj() const;
 
@@ -65,7 +73,7 @@ class ClientState
 		RequestData popRequestData();
 		
 		bool hasPendingResponseData() const;
-        ResponseData popNextResponseData();
+		ResponseData popNextResponseData();
 		
 		void addRequestData(const RequestData& requestData);
 		
@@ -74,6 +82,12 @@ class ClientState
 		
 		ResponseData& frontResponseData();
 		void popFrontResponseData();
+
+		void enqueueRawResponse(const RawResponse& resp);
+		RawResponse& peekLastRawResponse();
+		RawResponse popNextRawResponse();
+		
+		    const std::queue<ResponseData>& getResponseQueue() const { return _respDataQueue; }
 
 };
 

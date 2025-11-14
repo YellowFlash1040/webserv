@@ -32,13 +32,9 @@ bool ClientState::latestRawReqNeedsBody() const
 
 void ClientState::enqueueResponseData(const ResponseData& resp)
 {
+	std::cout << RED << "enqueue ResponseData" << RESET << "\n";
 	_respDataQueue.push(resp);
 }
-
-// bool ClientState::respDataQueueEmpty() const
-// {
-// 	return _respDataQueue.empty();
-// }
 
 const ResponseData& ClientState::getRespDataObj() const
 {
@@ -205,4 +201,28 @@ void ClientState::popFrontResponseData()
 	if (_respDataQueue.empty())
 		throw std::runtime_error("No pending responses");
 	_respDataQueue.pop();
+}
+
+
+void ClientState::enqueueRawResponse(const RawResponse& resp)
+{
+	std::cout << RED << "[enqueueRawResponse]: enqueued" << RESET << "\n";
+	_rawResponsesQueue.push_back(resp);
+}
+
+RawResponse& ClientState::peekLastRawResponse()
+{
+	if (_rawResponsesQueue.empty())
+		throw std::runtime_error("No raw responses in queue to peek.");
+	return _rawResponsesQueue.back();
+}
+
+RawResponse ClientState::popNextRawResponse()
+{
+	if (_rawResponsesQueue.empty())
+		throw std::runtime_error("No RawResponse to pop");
+
+	RawResponse resp = std::move(_rawResponsesQueue.front());
+	_rawResponsesQueue.pop_front();
+	return resp;
 }

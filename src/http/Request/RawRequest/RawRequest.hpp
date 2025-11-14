@@ -72,10 +72,6 @@ class RawRequest
 		void appendToBody(const std::string& data);
 		void addHeader(const std::string& name, const std::string& value);
 		void setChunkedBuffer(std::string&& newBuffer);
-		const std::string getHeader(const std::string& name) const;
-		bool conLenReached() const;
-		void setHeadersDone();
-		void setBodyDone();
 		
 
 	public:
@@ -87,6 +83,10 @@ class RawRequest
 		RawRequest& operator=(RawRequest&& other) noexcept;
 
 		
+		const std::string getHeader(const std::string& name) const;
+		bool conLenReached() const;
+		void setHeadersDone();
+		void setBodyDone();
 		bool isHeadersDone() const;
 		bool isBodyDone() const;
 		bool isRequestDone() const;
@@ -103,7 +103,13 @@ class RawRequest
 		void markBadRequest(const std::string& msg);
 		bool isBadRequest() const;
 		
+		const std::string& getUri() const;
+		std::string getHost() const;
+
 		void printRequest(size_t idx = 0) const;
+		
+		void setMethod(const std::string& method);
+		void setUri(const std::string& uri);
 		
 
 	};

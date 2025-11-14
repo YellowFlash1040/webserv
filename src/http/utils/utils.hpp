@@ -17,5 +17,6 @@
 #define RESET "\033[0m"
 
 void printReqContext(const RequestContext& ctx);
+void printAllResponses(const ClientState& clientState);
 
 #endif

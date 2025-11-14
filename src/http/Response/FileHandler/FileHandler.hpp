@@ -15,44 +15,37 @@
 #include <cstring>  // for strerror
 
 #include "../../../config/Config/request_resolving/RequestContext/RequestContext.hpp"
-
+#include "../../Request/RequestData/RequestData.hpp"
+#include "../RawResponse/RawResponse.hpp"
 
 class FileHandler
 {
+	private:
+	std::string _root;
+	// bool _autoindex;
+	std::vector<std::string> _indexFiles;
+	
 	public:
+	FileHandler() = delete;
+	FileHandler(bool autoindex, const std::vector<std::string> &indexFiles);
+	FileHandler(const FileHandler &) = default;
+	FileHandler &operator=(const FileHandler &) = default;
+	~FileHandler() = default;
+	
+	DeliveryInfo getDeliveryInfo(const std::string &path, size_t maxInMemory = 1024 * 1024);
+	static bool pathExists(const std::string& path);
+	static bool existsAndIsFile(const std::string& path);
+	static bool existsAndIsDirectory(const std::string& path);
+	static bool hasWritePermission(const std::string& path);
+	static bool deleteFile(const std::string& path);
 
-		FileHandler() = delete;
-		FileHandler(bool autoindex, const std::vector<std::string> &indexFiles);
-		FileHandler(const FileHandler &) = default;
-		FileHandler &operator=(const FileHandler &) = default;
-		~FileHandler() = default;
-		
-		// Resolve a URI to an absolute filesystem path under a given root.
-		std::string resolveFilePath(const std::string &uri, const RequestContext &ctx) const;
-
-		// Filesystem checks
-		static bool isDirectory(const std::string &path);
-		static bool fileExists(const std::string &path);
-
-		// Directory handling
-		std::string handleDirectory(const std::string &dirPath) const;
-		static std::string generateAutoindex(const std::string &dirPath);
-
-		// File serving and errors
-		static std::string serveFile(const std::string &path);
-		static std::string handleNotFound();
-
-		// MIME type detection
-		static std::string detectMimeType(const std::string &path);
-		
-		std::string getIndexFilePath(const std::string &dirPath) const;
-		
-		private:
-		std::string _root;
-		bool _autoindex;
-		std::vector<std::string> _indexFiles;
-		bool isPathInsideRoot(const std::string& root, const std::string& resolved) const;
-		
-	};
+	std::string generateAutoindex(const std::string& dirPath);
+	
+	// static FileResult internalServerError();
+	static std::string detectMimeType(const std::string& path);
+	std::string getIndexFilePath(const std::string& dirPath) const;
+	
+	//std::string readFileToString(const std::string& path);
+};
 
 #endif

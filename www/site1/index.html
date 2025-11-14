@@ -2,34 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Placeholder Page</title>
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            color: #333;
-        }
-        .container {
-            text-align: center;
-        }
-        h1 {
-            font-size: 2rem;
-        }
-        p {
-            font-size: 1rem;
-            color: #666;
-        }
-    </style>
+    <title>Home - Site1</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/script.js" defer></script>
 </head>
 <body>
-    <div class="container">
-        <h1>Site on port 8080</h1>
-    </div>
+    <header>
+        <img src="/images/logo.jpg" alt="Logo" class="logo">
+        <h1>Welcome to Site1</h1>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/about.html">About</a>
+        </nav>
+    </header>
+    <main>
+        <p>This is the homepage served from custom HTTP server</p>
+    </main>
 </body>
 </html>

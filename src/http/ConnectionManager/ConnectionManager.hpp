@@ -6,6 +6,8 @@
 #include "../utils/utils.hpp"
 #include "../config/Config/Config.hpp"
 #include "../../network/NetworkEndpoint/NetworkEndpoint.hpp"
+#include "../RequestHandler/RequestHandler.hpp"
+#include "../Response/FileHandler/FileHandler.hpp"
 
 #include <unordered_map>
 #include <string>
@@ -25,37 +27,45 @@
 
 class ConnectionManager
 {
-  private:
-    // TODO: make m_config const once Config methods are const-correct
-    const Config& m_config;
+	private:
+		const Config& m_config;
+		
+		std::unordered_map<int, ClientState> m_clients;
+		
+	public:
+		ConnectionManager() = delete;
+		
+		// TODO: make m_config const once Config methods are const-correct
+		ConnectionManager(const Config& config);
+		~ConnectionManager() = default;
+		ConnectionManager(const ConnectionManager&) = default;
+		ConnectionManager& operator=(const ConnectionManager&) = delete;
+		ConnectionManager(ConnectionManager&&) noexcept = default;
+		ConnectionManager& operator=(ConnectionManager&&) noexcept = delete;
 
-    std::unordered_map<int, ClientState> m_clients;
+		const RawRequest& getRawRequest(int clientId, size_t index = SIZE_MAX) const;
+		
+		void addClient(int clientId);
+		// bool clientSentClose(int clientId) const;
+		void removeClient(int clientId);
+		ClientState& getClientState(int clientId);
+		
+		bool processData(const NetworkEndpoint& endpoint, int clientId, const std::string& tcpData);
+		
+		void genResps(int clientId, const NetworkEndpoint& endpoint);
 
-  public:
-    ConnectionManager() = delete;
-
-    // TODO: make m_config const once Config methods are const-correct
-    ConnectionManager(const Config& config);
-    ~ConnectionManager() = default;
-    ConnectionManager(const ConnectionManager&) = default;
-    ConnectionManager& operator=(const ConnectionManager&) = delete;
-    ConnectionManager(ConnectionManager&&) noexcept = default;
-    ConnectionManager& operator=(ConnectionManager&&) noexcept = delete;
-
-    const RawRequest& getRawRequest(int clientId,
-                                    size_t index = SIZE_MAX) const;
-
-    void addClient(int clientId);
-    // bool clientSentClose(int clientId) const;
-    void removeClient(int clientId);
-    ClientState& getClientState(int clientId);
-
-    bool processData(const NetworkEndpoint& endpoint, int clientId,
-                     const std::string& tcpData);
-    size_t processReqs(int clientId, const std::string& tcpData);
-    void genRespsForReadyReqs(int clientId, const NetworkEndpoint& endpoint);
-
-    RawRequest popRawReq(int clientId);
-};
+		size_t processReqs(int clientId, const std::string& tcpData);
+				
+		void enqueueInternRedirResp(const std::string& newUri,
+                                               RequestContext& ctx,
+                                               RequestHandler& reqHandler,
+                                               const NetworkEndpoint& endpoint, 
+											   ClientState& clientState);
+		
+		
+		void enqueueExternRedirResp(std::string& newUri, RequestContext newCtx, RequestHandler& reqHandler, const NetworkEndpoint& endpoint);
+	
+		
+	};
 
 #endif
