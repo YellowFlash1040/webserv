@@ -12,6 +12,7 @@ void ServerBlock::applyTo(EffectiveConfig& config) const
     applyIfSet(alias, config.alias, Replace{});
     applyIfSet(autoindex, config.autoindex_enabled, Replace{});
     applyIfSet(index, config.index_files, Replace{});
+    applyIfSet(uploadStore, config.upload_store, Replace{});
 
     if (httpRedirection.isSet() && !config.redirection.isSet)
     {
