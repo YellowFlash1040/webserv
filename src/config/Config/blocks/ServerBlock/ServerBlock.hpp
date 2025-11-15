@@ -33,6 +33,7 @@ struct ServerBlock : public ConfigBlock
     Property<HttpRedirection> httpRedirection;
     Property<bool> autoindex{};
     Property<std::vector<std::string>> index;
+    Property<std::string> uploadStore;
     // Methods
     void applyTo(EffectiveConfig& context) const override;
 };
