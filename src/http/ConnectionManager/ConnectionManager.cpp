@@ -201,7 +201,7 @@ void ConnectionManager::genResps(int clientId, const NetworkEndpoint& endpoint)
 			std::cout << "[genRespsForReadyReqs] Generated new ctx\n";
 			
 			
-			FileHandler fileHandler(newCtx.autoindex_enabled, newCtx.index_files);
+			FileHandler fileHandler(newCtx.index_files);
 			if (!fileHandler.existsAndIsFile(newCtx.resolved_path))
 			{
 				std::cout << "Resolved error_page file does not exist\n";

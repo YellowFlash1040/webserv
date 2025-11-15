@@ -91,7 +91,7 @@ void RequestHandler::processGet(RequestData& req,
 	(void)endpoint;
 	(void)req;
 
-	FileHandler fileHandler(ctx.autoindex_enabled, ctx.index_files);
+	FileHandler fileHandler(ctx.index_files);
 
 	std::cout << "[processGet] Processing request for path: "
 			  << ctx.resolved_path << std::endl;
@@ -193,7 +193,7 @@ void RequestHandler::processGet(RequestData& req,
 		addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::Forbidden);
 		return;
 	}
-	// 4. Path does not exist at all
+	// 5. Path does not exist at all
 	std::cout << "[processGet] Path not found: " << ctx.resolved_path
 			  << std::endl;
 	addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::NotFound);
