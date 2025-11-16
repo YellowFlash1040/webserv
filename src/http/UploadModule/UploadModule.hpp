@@ -3,7 +3,10 @@
 #ifndef UPLOADMODULE_HPP
 # define UPLOADMODULE_HPP
 
-# include "istream"
+# include <istream>
+# include <vector>
+# include <cstring>
+
 # include "RequestContext.hpp"
 # include "RequestData.hpp"
 # include "RawResponse.hpp"
@@ -21,6 +24,12 @@ class UploadModule
 
     // Class specific features
   public:
+    // Structs, Classes
+    struct FormField
+    {
+        std::string headers;
+        std::string body;
+    };
     // Methods
     static void processUpload(RequestData& req, RequestContext& ctx,
                               RawResponse& resp);
@@ -31,14 +40,14 @@ class UploadModule
     static void processMultipartFormData(const RequestData& req,
                                          const std::string& uploadStore);
     static std::string extractBoundary(const std::string& contentTypeHeader);
-    static void processFormBody(const std::string& body,
-                                const std::string& delimiter,
-                                const std::string& uploadStore);
+    static std::vector<FormField> parseFormData(const std::string& body,
+                                                const std::string& boundary);
+
     static std::string extractFileName(const std::string& line);
-    static void skipHeaders(std::istringstream& iss);
-    static void saveFile(std::istringstream& iss, const std::string& delimiter,
-                         const std::string& filename,
-                         const std::string& uploadStore);
 };
+
+bool extractFormField(const std::string& body, const std::string& boundary,
+                      size_t& pos, UploadModule::FormField& field);
+std::string extractHeaders(const std::string& body, size_t& pos);
 
 #endif

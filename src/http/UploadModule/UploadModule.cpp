@@ -1,5 +1,7 @@
 #include "UploadModule.hpp"
 
+using FormField = UploadModule::FormField;
+
 // ---------------------------METHODS-----------------------------
 
 void UploadModule::processUpload(RequestData& req, RequestContext& ctx,
@@ -15,11 +17,16 @@ void UploadModule::processUpload(RequestData& req, RequestContext& ctx,
 
 /*
 ------WebKitFormBoundary7sXEyrliWNq0uCE6\r\n
-Content-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\r\n
+Content-Disposition: form-data; name=\"files[]\"; filename=\"file.txt\"\r\n
 Content-Type:text/plain\r\n\r\n
 
 Some data inside txt file\nand a second line\n\r\n
-------WebKitFormBoundaryrVWI6fref2latTof--
+------WebKitFormBoundary7sXEyrliWNq0uCE6\r\n
+Content-Disposition: form-data; name=\"files[]\"; filename=\"file2.txt\"\r\n
+Content-Type:text/plain\r\n\r\n
+
+Data inside second file\n\r\n
+------WebKitFormBoundary7sXEyrliWNq0uCE6--
 */
 
 bool UploadModule::isMultipartFormData(const RequestData& req)
@@ -38,6 +45,7 @@ void UploadModule::processMultipartFormData(const RequestData& req,
         return;
 
     parseFormData(req.body, boundary);
+    (void)uploadStore;
 }
 
 std::string UploadModule::extractBoundary(const std::string& contentTypeHeader)
@@ -49,85 +57,10 @@ std::string UploadModule::extractBoundary(const std::string& contentTypeHeader)
     return contentTypeHeader.substr(prefix.length());
 }
 
-void UploadModule::processFormBody(const std::string& body,
-                                   const std::string& delimiter,
-                                   const std::string& uploadStore)
+std::vector<FormField> UploadModule::parseFormData(const std::string& body,
+                                                   const std::string& boundary)
 {
-    std::istringstream iss(body);
-    std::string line;
-    std::string filename;
-
-    while (std::getline(iss, line))
-    {
-        if (line.find("filename=") != std::string::npos)
-        {
-            filename = extractFileName(line);
-            break;
-        }
-    }
-    if (filename.empty())
-        return;
-
-    skipHeaders(iss);
-    // saveFile(iss, delimiter, filename, uploadStore);
-    (void)delimiter;
-    (void)uploadStore;
-    return;
-}
-
-void UploadModule::skipHeaders(std::istringstream& iss)
-{
-    std::string prevLine;
-    std::string line;
-    while (std::getline(iss, line))
-    {
-        if (prevLine.back() == '\r' && line == "\r")
-            break;
-        prevLine = line;
-    }
-}
-
-std::string UploadModule::extractFileName(const std::string& line)
-{
-    const std::string& prefix = "filename=\"";
-    size_t openBracePos = line.find(prefix) + prefix.length();
-    size_t closeBracePos = line.find('"', openBracePos);
-    size_t filenameSize = closeBracePos - openBracePos;
-    return line.substr(openBracePos, filenameSize);
-}
-
-// void UploadModule::saveFile(const std::string& body,
-//                             const std::string& boundary,
-//                             const std::string& filename,
-//                             const std::string& uploadStore)
-// {
-//     const std::string startMarker = "\r\n\r\n"; // end of headers in part
-//     size_t headersEnd = body.find(startMarker);
-//     if (headersEnd == std::string::npos)
-//         return;
-//     size_t fileStart = headersEnd + startMarker.size();
-
-//     const std::string endMarker = "\r\n--" + boundary + "--";
-//     size_t fileEnd = body.find(endMarker, fileStart);
-//     if (fileEnd == std::string::npos)
-//         return;
-
-//     size_t fileSize = fileEnd - fileStart;
-
-//     std::ofstream os(uploadStore + "/" + filename, std::ios::binary);
-//     os.write(body.data() + fileStart, fileSize);
-// }
-
-struct Part
-{
-    std::string headers;
-    std::string body; // raw, exact bytes
-};
-
-std::vector<Part> parseMultipart(const std::string& body,
-                                 const std::string& boundary)
-{
-    std::vector<Part> parts;
+    std::vector<FormField> formFields;
 
     const std::string boundaryMarker = "--" + boundary;
     const std::string endMarker = "--" + boundary + "--";
@@ -169,10 +102,109 @@ std::vector<Part> parseMultipart(const std::string& body,
         if (bodyEnd >= 2 && body.substr(bodyEnd - 2, 2) == "\r\n")
             bodyEnd -= 2;
 
-        parts.push_back({headers, body.substr(bodyStart, bodyEnd - bodyStart)});
+        formFields.push_back(
+            {headers, body.substr(bodyStart, bodyEnd - bodyStart)});
 
         pos = nextBoundary; // continue to next part
     }
 
-    return parts;
+    return formFields;
 }
+
+void doSomething()
+{
+    // Find next boundary
+    // Check for end boundary
+    // Skip CRLF after boundary
+    // Find separator between header and body
+    // Extract headers
+    // Find next boundary to get the body range
+    // Trim the trailing \r\n before the next boundary
+    // Extract body
+    // Continue to next part
+}
+
+bool extractFormField(const std::string& body, const std::string& boundary,
+                      size_t& pos, FormField& field)
+{
+    const std::string boundaryMarker = "--" + boundary;
+
+    pos = body.find(boundaryMarker, pos) + boundaryMarker.size();
+    if (body.compare(pos, 2, "--") == 0)
+        return false;
+    pos += strlen("\r\n");
+
+    std::string headers = extractHeaders(body, pos);
+
+    size_t bodyStart = pos;
+    pos = body.find(boundaryMarker, pos);
+    pos -= strlen("\r\n");
+    size_t bodyEnd = pos;
+
+    std::string fieldBody = body.substr(bodyStart, bodyEnd - bodyStart);
+
+    field = {headers, fieldBody};
+
+    return true;
+}
+
+std::string extractHeaders(const std::string& body, size_t& pos)
+{
+    size_t headersEnd = body.find("\r\n\r\n", pos);
+    std::string headers = body.substr(pos, headersEnd - pos);
+    pos = headersEnd + strlen("\r\n\r\n");
+    return headers;
+}
+
+// void UploadModule::processFormBody(const std::string& body,
+//                                    const std::string& delimiter,
+//                                    const std::string& uploadStore)
+// {
+//     std::istringstream iss(body);
+//     std::string line;
+//     std::string filename;
+
+//     while (std::getline(iss, line))
+//     {
+//         if (line.find("filename=") != std::string::npos)
+//         {
+//             filename = extractFileName(line);
+//             break;
+//         }
+//     }
+//     if (filename.empty())
+//         return;
+
+//     return;
+// }
+
+std::string UploadModule::extractFileName(const std::string& line)
+{
+    const std::string& prefix = "filename=\"";
+    size_t openBracePos = line.find(prefix) + prefix.length();
+    size_t closeBracePos = line.find('"', openBracePos);
+    size_t filenameSize = closeBracePos - openBracePos;
+    return line.substr(openBracePos, filenameSize);
+}
+
+// void UploadModule::saveFile(const std::string& body,
+//                             const std::string& boundary,
+//                             const std::string& filename,
+//                             const std::string& uploadStore)
+// {
+//     const std::string startMarker = "\r\n\r\n"; // end of headers in part
+//     size_t headersEnd = body.find(startMarker);
+//     if (headersEnd == std::string::npos)
+//         return;
+//     size_t fileStart = headersEnd + startMarker.size();
+
+//     const std::string endMarker = "\r\n--" + boundary + "--";
+//     size_t fileEnd = body.find(endMarker, fileStart);
+//     if (fileEnd == std::string::npos)
+//         return;
+
+//     size_t fileSize = fileEnd - fileStart;
+
+//     std::ofstream os(uploadStore + "/" + filename, std::ios::binary);
+//     os.write(body.data() + fileStart, fileSize);
+// }
