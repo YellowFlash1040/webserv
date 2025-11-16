@@ -33,15 +33,14 @@ bool UploadModule::isMultipartFormData(const RequestData& req)
 void UploadModule::processMultipartFormData(const RequestData& req,
                                             const std::string& uploadStore)
 {
-    const std::string delimiter
-        = extractDelimiter(req.getHeader("Content-Type"));
-    if (delimiter.empty())
+    const std::string boundary = extractBoundary(req.getHeader("Content-Type"));
+    if (boundary.empty())
         return;
 
-    processFormBody(req.body, delimiter, uploadStore);
+    parseFormData(req.body, boundary);
 }
 
-std::string UploadModule::extractDelimiter(const std::string& contentTypeHeader)
+std::string UploadModule::extractBoundary(const std::string& contentTypeHeader)
 {
     const std::string prefix = "multipart/form-data; boundary=";
     if (contentTypeHeader.compare(0, prefix.length(), prefix) != 0)

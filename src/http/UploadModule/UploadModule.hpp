@@ -30,7 +30,7 @@ class UploadModule
     static bool isMultipartFormData(const RequestData& req);
     static void processMultipartFormData(const RequestData& req,
                                          const std::string& uploadStore);
-    static std::string extractDelimiter(const std::string& contentTypeHeader);
+    static std::string extractBoundary(const std::string& contentTypeHeader);
     static void processFormBody(const std::string& body,
                                 const std::string& delimiter,
                                 const std::string& uploadStore);
