@@ -5,7 +5,7 @@ using FileField = UploadModule::FileField;
 
 // ---------------------------METHODS-----------------------------
 
-//"multipart/form-data; boundary=----WebKitFormBoundaryrVWI6fref2latTof"
+//"multipart/form-data; boundary=----WebKitFormBoundary7sXEyrliWNq0uCE6"
 
 /*
 ------WebKitFormBoundary7sXEyrliWNq0uCE6\r\n
@@ -49,30 +49,6 @@ void UploadModule::processMultipartFormData(const RequestData& req,
     std::vector<FileField> files = searchForFiles(formFields);
     for (FileField file : files)
         saveFile(file, uploadStore);
-}
-
-void UploadModule::saveFile(const FileField& file,
-                            const std::string& uploadStore)
-{
-    std::ofstream os(uploadStore + "/" + file.fileName, std::ios::binary);
-    if (!os)
-        throw std::runtime_error("Failed to open file '" + file.fileName
-                                 + "' for writing");
-    os.write(file.contents.c_str(), file.contents.size());
-}
-
-std::vector<FileField> UploadModule::searchForFiles(
-    const std::vector<FormField>& formFields)
-{
-    std::vector<FileField> files;
-    std::string filename;
-    for (FormField field : formFields)
-    {
-        filename = extractFileName(field.headers);
-        if (!filename.empty())
-            files.push_back({filename, field.body});
-    }
-    return files;
 }
 
 std::string UploadModule::extractBoundary(const std::string& contentTypeHeader)
@@ -159,6 +135,20 @@ FormField UploadModule::buildField(const std::string& body,
     return f;
 }
 
+std::vector<FileField> UploadModule::searchForFiles(
+    const std::vector<FormField>& formFields)
+{
+    std::vector<FileField> files;
+    std::string filename;
+    for (FormField field : formFields)
+    {
+        filename = extractFileName(field.headers);
+        if (!filename.empty())
+            files.push_back({filename, field.body});
+    }
+    return files;
+}
+
 std::string UploadModule::extractFileName(const std::string& headers)
 {
     const std::string& prefix = "filename=\"";
@@ -166,4 +156,14 @@ std::string UploadModule::extractFileName(const std::string& headers)
     size_t closeBracePos = headers.find('"', openBracePos);
     size_t filenameSize = closeBracePos - openBracePos;
     return headers.substr(openBracePos, filenameSize);
+}
+
+void UploadModule::saveFile(const FileField& file,
+                            const std::string& uploadStore)
+{
+    std::ofstream os(uploadStore + "/" + file.fileName, std::ios::binary);
+    if (!os)
+        throw std::runtime_error("Failed to open file '" + file.fileName
+                                 + "' for writing");
+    os.write(file.contents.c_str(), file.contents.size());
 }

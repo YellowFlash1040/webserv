@@ -38,9 +38,6 @@ class UploadModule
     // Methods
     static void processUpload(RequestData& req, RequestContext& ctx,
                               RawResponse& resp);
-    ////
-    static std::vector<FormField> parseFormData(const std::string& body,
-                                                const std::string& boundary);
 
   private:
     // Methods
@@ -48,8 +45,8 @@ class UploadModule
     static void processMultipartFormData(const RequestData& req,
                                          const std::string& uploadStore);
     static std::string extractBoundary(const std::string& contentTypeHeader);
-
-    ////
+    static std::vector<FormField> parseFormData(const std::string& body,
+                                                const std::string& boundary);
     static bool extractFormField(const std::string& body,
                                  const std::string& boundary, size_t& pos,
                                  FormField& outField);
