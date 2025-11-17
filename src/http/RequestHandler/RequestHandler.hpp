@@ -30,6 +30,8 @@ class RequestHandler
 	void processPost(RequestData& req, const NetworkEndpoint& endpoint, RequestContext& ctx, RawResponse& resp);
 	void processDelete(RequestData& req, const NetworkEndpoint& endpoint, RequestContext& ctx, RawResponse& resp);
 	
+	std::string getCgiPathFromUri(const std::string& uri, const std::map<std::string, std::string>& cgi_pass,
+		HttpStatusCode& outStatus);
 	void setFileDelivery(RawResponse& resp, const std::string& path, FileHandler& fileHandler);
 	std::string readFileToString(const std::string& path);
 	

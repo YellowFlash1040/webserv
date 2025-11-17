@@ -78,6 +78,7 @@ std::string RawResponse::codeToText(HttpStatusCode code)
 		case HttpStatusCode::PayloadTooLarge: return "Payload Too Large"; //413
 		case HttpStatusCode::InternalServerError: return "Internal Server Error"; //500
 		case HttpStatusCode::NotImplemented: return "Not Implemented"; //501
+		case HttpStatusCode::BadGateway: return "Bad Gateway"; //502
 		case HttpStatusCode::LoopDetected: return "Loop Detected"; //508
 		
 		default: return "Unknown";

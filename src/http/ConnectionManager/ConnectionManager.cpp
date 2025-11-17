@@ -232,7 +232,7 @@ void ConnectionManager::genResps(int clientId, const NetworkEndpoint& endpoint)
 			RawResponse nextResp = clientState.popNextRawResponse();
 			
 			// Giving the served error page and error code instead of 200
-			std::cout << "[genRespsForReadyReqs] Giving the served error page and error code instead of 200, new code: " << static_cast<int>(curRawResp.getStatusCode()) << "\n";
+			std::cout << "[genRespsForReadyReqs] Chenging code 200 to code: " << static_cast<int>(curRawResp.getStatusCode()) << "\n";
 			nextResp.setStatusCode(curRawResp.getStatusCode());
 			
 			ResponseData curResData = nextResp.toResponseData();
