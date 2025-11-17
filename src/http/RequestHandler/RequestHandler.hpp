@@ -10,6 +10,7 @@
 #include "../HttpStatusCode/HttpStatusCode.hpp"
 #include "../HttpMethod/HttpMethod.hpp"
 #include "../Response/FileHandler/FileHandler.hpp"
+#include "CGI.hpp"
 
 class RequestHandler
 {
@@ -38,7 +39,10 @@ class RequestHandler
 	void serveBadRequest(RawRequest& rawReq, const NetworkEndpoint& endpoint, RequestContext& ctx);
 	void addGeneralErrorDetails(RawResponse& resp, RequestContext& ctx, HttpStatusCode code);
 	
-	std::string handleCGI(RequestData& req, const NetworkEndpoint& endpoint);
+	std::string handleCGI(RequestData& req,
+									  const NetworkEndpoint& endpoint,
+									  const std::string& interpreter,
+									  const std::string& scriptPath);
 	void processUpload(RequestData &req, RequestContext &ctx, RawResponse &resp);
 
 };

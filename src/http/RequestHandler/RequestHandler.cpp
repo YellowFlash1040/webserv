@@ -103,7 +103,7 @@ void RequestHandler::processGet(RequestData& req,
 		std::string interpreter = getCgiPathFromUri(req.uri, ctx.cgi_pass, status);
 		
 		std::cout << "[processGet] CGI interpreter path: \"" << interpreter
-              << "\", status: " << static_cast<int>(status) << "\n";
+			  << "\", status: " << static_cast<int>(status) << "\n";
 		
 		if (status == HttpStatusCode::BadGateway)
 		{
@@ -145,7 +145,17 @@ void RequestHandler::processGet(RequestData& req,
 		{
 			std::cout << "Executing CGI interpreter: " << interpreter <<		
 				" for script: " << ctx.resolved_path << std::endl;
-			// std::string cgiResult = handleCGI(req, endpoint); //add interpreter
+					if (status == HttpStatusCode::OK)
+		{
+			std::cout << "Executing CGI interpreter: " << interpreter <<		
+				" for script: " << ctx.resolved_path << std::endl;
+			std::string cgiResult = handleCGI(req, endpoint, interpreter, ctx.resolved_path);
+
+			rawResp.setBody(cgiResult);
+			rawResp.setStatus(HttpStatusCode::OK);
+			rawResp.setMimeType("text/plain");
+			return;
+		}
 			// do something with this string
 			// if ok:
 			// rawResp.setBody(cgiResult);
@@ -297,14 +307,45 @@ std::string RequestHandler::getCgiPathFromUri(
 	return "";
 }
 
-
-
-//implement
-std::string RequestHandler::handleCGI(RequestData& req, const NetworkEndpoint& endpoint)
+std::string RequestHandler::handleCGI(RequestData& req,
+									  const NetworkEndpoint& endpoint,
+									  const std::string& interpreter,
+									  const std::string& scriptPath)
 {
-	(void)req;
-	(void)endpoint;
-	return "";
+	std::cout << "[handleCGI] scriptPath = " << scriptPath
+		  << ", interpreter = " << interpreter << std::endl;
+
+	std::vector<std::string> args;
+	args.push_back(scriptPath);
+
+	std::vector<std::string> env = CGI::buildEnvFromRequest(req);
+	env.push_back("SCRIPT_FILENAME=" + scriptPath);
+
+	NetworkInterface localIp = endpoint.ip();
+	int localPort = endpoint.port();
+
+	env.push_back("SERVER_ADDR=" + static_cast<std::string>(localIp));
+	env.push_back("SERVER_PORT=" + std::to_string(localPort));
+
+	env.push_back("REMOTE_ADDR="); // TODO: add client IP
+	env.push_back("REMOTE_PORT="); // TODO: addd client port
+
+	std::string host = req.getHeader("Host");
+	if (!host.empty())
+		env.push_back("SERVER_NAME=" + host);
+	else
+		env.push_back("SERVER_NAME=" + static_cast<std::string>(localIp));
+
+	const std::string& input = req.body;
+
+	try
+	{
+		return CGI::execute(interpreter, args, env, input, "./www/site1/py");
+	}
+	catch (const std::exception& e)
+	{
+		return std::string("Content-Type: text/plain\r\n\r\nCGI error: ") + e.what();
+	}
 }
 
 void RequestHandler::setFileDelivery(RawResponse& resp, const std::string& path,
@@ -517,7 +558,7 @@ void RequestHandler::processPost(RequestData& req,
 	if (!ctx.cgi_pass.empty())
 	{
 		std::cout << "[processPost] CGI configured, executing..." << std::endl;
-		handleCGI(req, endpoint);
+		//handleCGI(req, endpoint, interpreter, ctx.resolved_path);
 		return;
 	}
 
