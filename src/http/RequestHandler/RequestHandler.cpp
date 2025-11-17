@@ -1,4 +1,5 @@
 #include "RequestHandler.hpp"
+#include "CGI.hpp"
 
 void RequestHandler::processRequest(RawRequest& rawReq,
 									const NetworkEndpoint& endpoint,
@@ -88,24 +89,43 @@ void RequestHandler::processGet(RequestData& req,
 								const NetworkEndpoint& endpoint,
 								RequestContext& ctx, RawResponse& rawResp)
 {
-	(void)endpoint;
-	(void)req;
+	FileHandler fileHandler(ctx.index_files);
 
-	FileHandler fileHandler(ctx.autoindex_enabled, ctx.index_files);
-
-	std::cout << "[processGet] Processing request for path: "
+	std::cout << "[processGet] Processing request for resolved path: "
 			  << ctx.resolved_path << std::endl;
 
 	// 1. Check CGI first
 	if (!ctx.cgi_pass.empty())
 	{
-		std::cout << "[processGet] Detected CGI configuration, checking file "
-					 "validity..."
-				  << std::endl;
+		HttpStatusCode status;
+		std::string interpreter = getCgiPathFromUri(req.uri, ctx.cgi_pass, status);
+		
+		std::cout << "[processGet] CGI interpreter path: \"" << interpreter
+              << "\", status: " << static_cast<int>(status) << "\n";
+		
+		if (status == HttpStatusCode::BadGateway)
+		{
+			addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::BadGateway);
+			return;
+		}
+		
+		switch (status)
+		{
+			case HttpStatusCode::None: std::cout << "None"; break;
+			case HttpStatusCode::OK: std::cout << "OK"; break;
+			case HttpStatusCode::BadGateway: std::cout << "BadGateway"; break;
+			case HttpStatusCode::Forbidden: std::cout << "Forbidden"; break;
+			default: std::cout << "Other"; break;
+		}	
+		std::cout << ")\n";
+
+		
+		std::cout << "[processGet] interpreter detected, checking file " << ctx.resolved_path <<
+					 " for validity..." << std::endl;
 
 		if (!fileHandler.existsAndIsFile(ctx.resolved_path))
 		{
-			std::cout << "[processGet] CGI target not found: "
+			std::cout << "[processGet] CGI Uri not found: "
 					  << ctx.resolved_path << std::endl;
 			addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::NotFound);
 			return;
@@ -113,17 +133,26 @@ void RequestHandler::processGet(RequestData& req,
 		if (access(ctx.resolved_path.c_str(), X_OK) != 0)
 		{
 			std::cout
-				<< "[processGet] CGI target exists but is not executable: "
+				<< "[processGet] CGI Uri exists but is not executable: "
 				<< ctx.resolved_path << std::endl;
 			addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::Forbidden);
 			return;
 		}
+		
+		if (status == HttpStatusCode::OK)
+		{
+			std::cout << "Executing CGI interpreter: " << interpreter <<		
+				" for script: " << ctx.resolved_path << std::endl;
+			std::string cgiResult = handleCGI(req, endpoint, interpreter, ctx.resolved_path);
 
-		std::cout << "[processGet] Running CGI handler for: "
-				  << ctx.resolved_path << std::endl;
-		// handleCGI(req, endpoint);
-		return;
+			rawResp.setBody(cgiResult);
+			rawResp.setStatus(HttpStatusCode::OK);
+			rawResp.setMimeType("text/plain");
+			return;
+		}
 	}
+
+	// status == None → no CGI mapping -> continue to static file handling
 
 	// 2. Static file handling
 	if (fileHandler.existsAndIsFile(ctx.resolved_path))
@@ -147,6 +176,7 @@ void RequestHandler::processGet(RequestData& req,
 
 		std::cout << "[processGet] Served static file with status: "
 				  << static_cast<int>(rawResp.getStatusCode()) << std::endl;
+		std::cout << "[processGet] might change later if it is an internal redirection" << std::endl;
 		return;
 	}
 
@@ -193,19 +223,116 @@ void RequestHandler::processGet(RequestData& req,
 		addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::Forbidden);
 		return;
 	}
-	// 4. Path does not exist at all
+	// 5. Path does not exist at all
 	std::cout << "[processGet] Path not found: " << ctx.resolved_path
 			  << std::endl;
 	addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::NotFound);
 	return;
 }
 
-//implement
-std::string RequestHandler::handleCGI(RequestData& req, const NetworkEndpoint& endpoint)
+std::string RequestHandler::getCgiPathFromUri(
+	const std::string& uri,
+	const std::map<std::string, std::string>& cgi_pass,
+	HttpStatusCode& outStatus)
 {
-	(void)req;
-	(void)endpoint;
+	std::cout << "[getCgiPathFromUri] Called with URI: \"" << uri << "\"\n";
+	outStatus = HttpStatusCode::None;
+
+	if (cgi_pass.empty())
+	{
+		std::cout << "[getCgiPathFromUri] cgi_pass empty → no CGI\n";
+		return "";
+	}
+
+	std::filesystem::path path(uri);
+	std::string ext = path.extension().string();
+	std::cout << "[getCgiPathFromUri] Extracted extension: \"" << ext << "\"\n";
+
+	for (const auto &entry : cgi_pass)
+	{
+		std::cout << "[getCgiPathFromUri] Checking pair: key=\"" << entry.first
+				  << "\", interpreter=\"" << entry.second << "\"\n";
+
+		if (entry.first == ext)
+		{
+			std::cout << "[getCgiPathFromUri] Extension matches\n";
+
+			// Check if interpreter exists
+			if (!std::filesystem::exists(entry.second))
+			{
+				std::cout << "[getCgiPathFromUri] Interpreter path does not exist: \"" 
+						  << entry.second << "\" → BadGateway\n";
+				outStatus = HttpStatusCode::BadGateway;
+				return "";
+			}
+
+			// Canonicalize interpreter path
+			std::filesystem::path canonicalPath = std::filesystem::canonical(entry.second);
+			std::cout << "[getCgiPathFromUri] Canonicalized interpreter path: \"" 
+					  << canonicalPath.string() << "\"\n";
+
+			// Verify it stays inside /usr/bin/
+			if (canonicalPath.string().compare(0, std::string("/usr/bin/").size(), "/usr/bin/") != 0)
+			{
+				std::cout << "[getCgiPathFromUri] Interpreter path escapes /usr/bin/ → BadGateway\n";
+				outStatus = HttpStatusCode::BadGateway;
+				return "";
+			}
+
+			std::cout << "[getCgiPathFromUri] Interpreter path valid -> OK\n";
+			outStatus = HttpStatusCode::OK;
+			return entry.second;
+		}
+		else
+		{
+			std::cout << "[getCgiPathFromUri] Extension does not match key: \"" 
+					  << entry.first << "\" -> continue\n";
+		}
+	}
+
+	std::cout << "[getCgiPathFromUri] No matching CGI extension found\n";
 	return "";
+}
+
+std::string RequestHandler::handleCGI(RequestData& req,
+                                      const NetworkEndpoint& endpoint,
+                                      const std::string& interpreter,
+                                      const std::string& scriptPath)
+{
+	std::cout << "[handleCGI] scriptPath = " << scriptPath
+          << ", interpreter = " << interpreter << std::endl;
+
+    std::vector<std::string> args;
+    args.push_back(scriptPath);
+
+    std::vector<std::string> env = CGI::buildEnvFromRequest(req);
+    env.push_back("SCRIPT_FILENAME=" + scriptPath);
+
+    NetworkInterface localIp = endpoint.ip();
+    int localPort = endpoint.port();
+
+    env.push_back("SERVER_ADDR=" + static_cast<std::string>(localIp));
+    env.push_back("SERVER_PORT=" + std::to_string(localPort));
+
+    env.push_back("REMOTE_ADDR="); // TODO: add client IP
+    env.push_back("REMOTE_PORT="); // TODO: addd client port
+
+    std::string host = req.getHeader("Host");
+    if (!host.empty())
+        env.push_back("SERVER_NAME=" + host);
+    else
+        env.push_back("SERVER_NAME=" + static_cast<std::string>(localIp));
+
+    const std::string& input = req.body;
+
+    try
+    {
+        return CGI::execute(interpreter, args, env, input, "./www/site1/py");
+    }
+    catch (const std::exception& e)
+    {
+        return std::string("Content-Type: text/plain\r\n\r\nCGI error: ") + e.what();
+    }
 }
 
 void RequestHandler::setFileDelivery(RawResponse& resp, const std::string& path,
@@ -403,7 +530,9 @@ void RequestHandler::processPost(RequestData& req,
 								 const NetworkEndpoint& endpoint,
 								 RequestContext& ctx, RawResponse& resp)
 {
-	(void)endpoint;
+	HttpStatusCode status;
+	std::string interpreter = getCgiPathFromUri(req.uri, ctx.cgi_pass, status);
+
 	std::cout << "[processPost] Processing POST for path: " << ctx.resolved_path
 			  << std::endl;
 
@@ -418,7 +547,7 @@ void RequestHandler::processPost(RequestData& req,
 	if (!ctx.cgi_pass.empty())
 	{
 		std::cout << "[processPost] CGI configured, executing..." << std::endl;
-		handleCGI(req, endpoint);
+		handleCGI(req, endpoint, interpreter, ctx.resolved_path);
 		return;
 	}
 
