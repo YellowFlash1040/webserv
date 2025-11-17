@@ -49,7 +49,7 @@ bool ConnectionManager::processData(const NetworkEndpoint& endpoint, int clientI
 size_t ConnectionManager::processReqs(int clientId, const std::string& data)
 {
 	
-	std::cout << YELLOW << "DEBUG: processReqs: " << RESET  << std::endl;
+	// std::cout << YELLOW << "DEBUG: processReqs: " << RESET  << std::endl;
 	auto it = m_clients.find(clientId);
 	if (it == m_clients.end())
 		return 0;
