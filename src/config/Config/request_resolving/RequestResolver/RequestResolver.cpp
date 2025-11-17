@@ -109,6 +109,8 @@ RequestContext RequestResolver::createContext(const EffectiveConfig& config,
     context.resolved_path = resolvePath(config, uri);
     context.upload_store = config.upload_store;
     context.redirection = config.redirection;
+    context.root = config.root;
+    context.alias = config.alias;
 
     return context;
 }

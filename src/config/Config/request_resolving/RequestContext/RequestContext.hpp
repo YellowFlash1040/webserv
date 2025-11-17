@@ -22,6 +22,8 @@ struct RequestContext
     std::map<HttpStatusCode, std::string> error_pages{};
     std::string upload_store{};
     std::map<std::string, std::string> cgi_pass{};
+    std::string root;
+    std::string alias;
 };
 
 #endif
