@@ -24,10 +24,10 @@ Data inside second file\n\r\n
 void UploadModule::processUpload(RequestData& req, RequestContext& ctx,
                                  RawResponse& resp)
 {
-    (void)resp;
-
     if (isMultipartFormData(req))
         processMultipartFormData(req, ctx.upload_store);
+    
+    createResponse(resp);
 }
 
 bool UploadModule::isMultipartFormData(const RequestData& req)
@@ -166,4 +166,13 @@ void UploadModule::saveFile(const FileField& file,
         throw std::runtime_error("Failed to open file '" + file.fileName
                                  + "' for writing");
     os.write(file.contents.c_str(), file.contents.size());
+}
+
+void UploadModule::createResponse(RawResponse& resp)
+{
+    resp.setStatus(HttpStatusCode::Created);
+    resp.addHeader("Content-Type", "application/json");
+    resp.setBody(R"({
+  "message": "File(s) uploaded successfully",
+})");
 }

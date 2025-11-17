@@ -63,6 +63,9 @@ class UploadModule
         const std::vector<FormField>& formFields);
     static std::string extractFileName(const std::string& headers);
     static void saveFile(const FileField& file, const std::string& uploadStore);
+
+    ////
+    static void createResponse(RawResponse& resp);
 };
 
 #endif
