@@ -4,7 +4,7 @@
 // clang-format off
 TEST(UploadModuleTest, test1)
 {
-    std::string input =
+    std::string body =
     "------WebKitFormBoundary7sXEyrliWNq0uCE6\r\n"
     "Content-Disposition: form-data; name=\"files[]\"; filename=\"file.txt\"\r\n"
     "Content-Type: text/plain\r\n"
@@ -21,9 +21,5 @@ TEST(UploadModuleTest, test1)
 
     std::string boundary = "----WebKitFormBoundary7sXEyrliWNq0uCE6";
 
-    std::vector<UploadModule::FormField> formFields;
-    UploadModule::FormField field{};
-    size_t pos = 0;
-    while (extractFormField(input, boundary, pos, field))
-        formFields.push_back(field);
+    UploadModule::parseFormData(body, boundary);
 }
