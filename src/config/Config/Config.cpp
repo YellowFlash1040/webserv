@@ -49,7 +49,7 @@ Config Config::fromFile(const std::string& filepath)
 ///----------------------------///
 ///----------------------------///
 
-std::vector<NetworkEndpoint> Config::getAllEnpoints()
+std::vector<NetworkEndpoint> Config::getAllEnpoints() const
 {
     std::vector<NetworkEndpoint> endpoints;
 
@@ -68,7 +68,7 @@ std::vector<NetworkEndpoint> Config::getAllEnpoints()
 
 RequestContext Config::createRequestContext(const NetworkEndpoint& endpoint,
                                             const std::string& host,
-                                            const std::string& uri)
+                                            const std::string& uri) const
 {
     return RequestResolver::resolve(m_httpBlock, endpoint, host, uri);
 }
