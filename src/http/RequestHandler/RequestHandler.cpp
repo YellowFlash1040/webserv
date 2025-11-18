@@ -430,21 +430,13 @@ void RequestHandler::processPost(RequestData& req,
 		return;
 	}
 
-	processUpload(req, ctx, resp);
+	UploadModule::processUpload(req, ctx, resp);
 	std::cout << "[processPost] Upload processed, body size: "
 			  << resp.getBody().size() << std::endl;
+	
+	clientState.enqueueRawResponse(resp);
 
 	return;
-}
-
-
-void RequestHandler::processUpload(RequestData& req, RequestContext& ctx,
-								   RawResponse& resp)
-{
-	(void)req;
-	(void)ctx;
-	(void)resp;
-
 }
 
 std::string RequestHandler::readFileToString(const std::string& path)
