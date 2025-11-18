@@ -137,6 +137,8 @@ ServerBlock Config::buildServerBlock(
             assign(serverBlock.autoindex, args);
         else if (name == Directives::RETURN)
             assign(serverBlock.httpRedirection, args);
+        else if (name == Directives::UPLOAD_STORE)
+            assign(serverBlock.uploadStore, args);
     }
 
     if (serverBlock.listen->empty())
