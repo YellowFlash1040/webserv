@@ -39,4 +39,18 @@ class NetworkEndpoint
     int m_port = 8080;
 };
 
+namespace std
+{
+template <>
+struct hash<NetworkEndpoint>
+{
+    std::size_t operator()(const NetworkEndpoint& e) const noexcept
+    {
+        std::size_t h1 = std::hash<int>{}(static_cast<int>(e.ip()));
+        std::size_t h2 = std::hash<int>{}(e.port());
+        return h1 ^ (h2 << 1); // combine hashes
+    }
+};
+} // namespace std
+
 #endif
