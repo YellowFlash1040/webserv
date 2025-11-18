@@ -49,7 +49,7 @@ Config Config::fromFile(const std::string& filepath)
 ///----------------------------///
 ///----------------------------///
 
-std::vector<NetworkEndpoint> Config::getAllEnpoints()
+std::vector<NetworkEndpoint> Config::getAllEndpoints()
 {
     std::unordered_set<NetworkEndpoint> endpoints;
 
