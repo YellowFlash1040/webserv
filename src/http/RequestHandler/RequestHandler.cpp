@@ -127,7 +127,7 @@ void RequestHandler::processGet(RequestData& req,
 
 		if (!fileHandler.existsAndIsFile(ctx.resolved_path))
 		{
-			std::cout << "[processGet] CGI Uri not found: "
+			std::cout << "[processahhGet] CGI Uri not found: "
 					  << ctx.resolved_path << std::endl;
 			addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::NotFound);
 			return;
@@ -352,17 +352,19 @@ void RequestHandler::setFileDelivery(RawResponse& resp, const std::string& path,
 									 FileHandler& fileHandler)
 {
 	DeliveryInfo info = fileHandler.getDeliveryInfo(path, 1024 * 1024);
-
+	
+	resp.setFileMode(info.mode);       // always set mode
+    resp.setFileSize(info.size);       // store file size
+	
 	if (info.mode == FileDeliveryMode::InMemory)
 	{
-		resp.setFileMode(FileDeliveryMode::InMemory);
 		resp.setBody(readFileToString(path));
 		resp.addHeader("Content-Length", std::to_string(info.size));
 	}
 	else
 	{
-		resp.setFileMode(FileDeliveryMode::Streamed);
 		resp.setFilePath(path);
+		//body is left empty; Content-Length comes from _fileSize
 	}
 }
 
@@ -433,7 +435,7 @@ void RequestHandler::addGeneralErrorDetails(RawResponse& resp,
 			  << static_cast<int>(code) << "\n";
 
 	resp.setStatusCode(code);
-	std::cout << "[addGeneralErrorDetails] Code set to"
+	std::cout << "[addGeneralErrorDetails] Code set to "
 			  << static_cast<int>(code) << "\n";
 
 	auto it = ctx.error_pages.find(code);

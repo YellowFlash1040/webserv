@@ -57,6 +57,7 @@ class Server
     void acceptNewClient(int listeningSocket);
     void processClient(Client& client);
     void flushClientOutBuffer(Client& client);
+    void sendResponseDataChunk(Client& client, ResponseData& respData);
 };
 
 #endif

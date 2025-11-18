@@ -111,6 +111,13 @@ class RawRequest
 		void setMethod(const std::string& method);
 		void setUri(const std::string& uri);
 		
+		//added for the test
+		void setRawUri(const std::string& u) { _rawUri = u; }
+		void setQuery(const std::string& q) { _query = q; }
+		void setHttpVersion(const std::string& v) { _httpVersion = v; }
+		void setHeader(const std::string& key, const std::string& value) { _headers[key] = value; }
+		
+	
 
 	};
 

@@ -43,6 +43,7 @@ bool FileHandler::deleteFile(const std::string& path)
 }
 
 //already setting size at this stage to avoid multimple stat calls, might be a mistake
+// st_size is a off_t, which on 64-bit systems is ALSO 64-bit
 DeliveryInfo FileHandler::getDeliveryInfo(const std::string &path, size_t maxInMemory)
 {
 	struct stat s;
@@ -153,5 +154,4 @@ std::string FileHandler::getIndexFilePath(const std::string &dirPath) const
 	std::cout << "[getIndexFilePath] No index file found\n";
 	return "";
 }
-
 
