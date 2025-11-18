@@ -9,7 +9,7 @@
 Server::Server(const Config& config)
   : m_connMgr(config)
 {
-    std::vector<NetworkEndpoint> endpoints = config.getAllEnpoints();
+    std::vector<NetworkEndpoint> endpoints = config.getAllEndpoints();
     for (const auto& endpoint : endpoints)
         addEndpoint(endpoint);
 }
