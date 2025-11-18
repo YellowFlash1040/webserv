@@ -51,19 +51,13 @@ Config Config::fromFile(const std::string& filepath)
 
 std::vector<NetworkEndpoint> Config::getAllEnpoints()
 {
-    std::vector<NetworkEndpoint> endpoints;
-
-    size_t totalListens = 0;
-    for (const auto& server : m_httpBlock.servers)
-        totalListens += server.listen->size();
-
-    endpoints.reserve(totalListens);
+    std::unordered_set<NetworkEndpoint> endpoints;
 
     for (const auto& server : m_httpBlock.servers)
         for (const auto& listen : server.listen)
-            endpoints.emplace_back(listen);
+            endpoints.insert(listen);
 
-    return endpoints;
+    return {endpoints.begin(), endpoints.end()};
 }
 
 RequestContext Config::createRequestContext(const NetworkEndpoint& endpoint,
