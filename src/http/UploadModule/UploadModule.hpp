@@ -65,7 +65,8 @@ class UploadModule
     static void saveFile(const FileField& file, const std::string& uploadStore);
 
     ////
-    static void createResponse(RawResponse& resp);
+    static void create201Response(RawResponse& resp);
+    static void create415Response(RawResponse& resp);
 };
 
 #endif

@@ -25,9 +25,11 @@ void UploadModule::processUpload(RequestData& req, RequestContext& ctx,
                                  RawResponse& resp)
 {
     if (isMultipartFormData(req))
+    {
         processMultipartFormData(req, ctx.upload_store);
-    
-    createResponse(resp);
+        create201Response(resp);
+    }
+    create415Response(resp);
 }
 
 bool UploadModule::isMultipartFormData(const RequestData& req)
@@ -168,11 +170,19 @@ void UploadModule::saveFile(const FileField& file,
     os.write(file.contents.c_str(), file.contents.size());
 }
 
-void UploadModule::createResponse(RawResponse& resp)
+void UploadModule::create201Response(RawResponse& resp)
 {
     resp.setStatus(HttpStatusCode::Created);
+    resp.setDefaultHeaders();
     resp.addHeader("Content-Type", "application/json");
     resp.setBody(R"({
   "message": "File(s) uploaded successfully",
 })");
+}
+
+void UploadModule::create415Response(RawResponse& resp)
+{
+    resp.setStatus(HttpStatusCode::UnsupportedMediaType);
+    resp.setDefaultHeaders();
+    resp.addHeader("Accept-Post", "multipart/form-data");
 }
