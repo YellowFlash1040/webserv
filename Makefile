@@ -11,7 +11,7 @@ TESTS_INCLUDES			 = -I$(TESTS_DIR)/googletest/googletest/include \
 							$(INCLUDES)
 
 # C++ versions
-CPP_VERSION				 = -std=c++14
+CPP_VERSION				 = -std=c++17
 TESTS_CPP_VERSION		 = -std=c++14
 
 #-----------------------BINARIES---------------------------------------------------------

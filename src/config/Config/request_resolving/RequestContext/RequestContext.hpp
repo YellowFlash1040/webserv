@@ -9,6 +9,7 @@
 
 # include "HttpMethod.hpp"
 # include "HttpRedirection.hpp"
+# include "HttpStatusCode.hpp"
 # include "ErrorPage.hpp"
 
 struct RequestContext
@@ -22,6 +23,7 @@ struct RequestContext
     std::map<HttpStatusCode, std::string> error_pages{};
     std::string upload_store{};
     std::map<std::string, std::string> cgi_pass{};
+    std::string matched_location{};
 };
 
 #endif

@@ -1,42 +1,42 @@
 #include <iostream>
+#include <string.h>
+#include "Server.hpp"
 #include "Config.hpp"
+
+volatile std::sig_atomic_t g_running = true;
+
+void handle_signal(int)
+{
+    g_running = false;
+}
 
 int main(int argc, char** argv)
 {
-    // const char* filepath = "./webserv.conf";
-    // const char* filepath = "./noneexistent.conf";
-    // const char* filepath = "./assets/nopermissions.conf";
-    // const char* filepath = "./assets/empty.conf";
-    // const char* filepath = "./assets/invalid.conf";
+    std::signal(SIGINT, handle_signal);
+    std::signal(SIGTERM, handle_signal);
 
-    const char* filepath;
-    if (argc > 1)
-        filepath = argv[1];
-    else
-        filepath = "webserv.conf";
+    const char* filepath = (argc > 1) ? argv[1] : "webserv.conf";
 
     try
     {
         Config config = Config::fromFile(filepath);
-
-        RequestContext context = config.createRequestContext(
-            NetworkEndpoint(8080), "server.com", "/foo/file");
-
-        std::cout << "Well done :)"
-                  << "\n";
+        Server s(config);
+        s.run();
     }
     catch (const ConfigException& e)
     {
-        std::cerr << "\033[1m";
-        std::cerr << filepath << ":";
-        std::cerr << "\033[0m";
-
-        std::cerr << e.what() << '\n';
+        std::cerr << "\033[1m" << filepath << ":\033[0m" << e.what() << '\n';
+        return 1;
+    }
+    catch (const std::runtime_error& e)
+    {
+        std::cerr << "Error: " << e.what() << ": " << strerror(errno) << "\n";
+        return 1;
     }
     catch (const std::exception& e)
     {
-        std::cerr << "Error: " << e.what() << '\n';
+        std::cerr << "Error: " << e.what() << "\n";
+        return 1;
     }
-
     return 0;
 }

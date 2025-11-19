@@ -14,7 +14,7 @@ enum class HttpStatusCode
     EarlyHints = 103,
 
     // 2xx Success
-    Ok = 200,
+    OK = 200,
     Created = 201,
     Accepted = 202,
     NonAuthoritativeInformation = 203,
@@ -67,7 +67,7 @@ enum class HttpStatusCode
     UnavailableForLegalReasons = 451,
 
     // 5xx Server Errors
-    InternalError = 500,
+    InternalServerError = 500,
     NotImplemented = 501,
     BadGateway = 502,
     ServiceUnavailable = 503,
