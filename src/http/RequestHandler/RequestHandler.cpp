@@ -1,5 +1,6 @@
 #include "RequestHandler.hpp"
 #include "CGI.hpp"
+#include "CGIParser.hpp"
 
 void RequestHandler::processRequest(RawRequest& rawReq,
 									const NetworkEndpoint& endpoint,
@@ -145,9 +146,11 @@ void RequestHandler::processGet(RequestData& req,
 				" for script: " << ctx.resolved_path << std::endl;
 			std::string cgiResult = handleCGI(req, endpoint, interpreter, ctx.resolved_path);
 
-			rawResp.setBody(cgiResult);
+			CGIParser parser(cgiResult);
+
+			rawResp.setBody(parser.getBody());
 			rawResp.setStatus(HttpStatusCode::OK);
-			rawResp.setMimeType("text/plain");
+			rawResp.setMimeType(parser.getHeaderValue("Content-Type"));
 			return;
 		}
 	}
@@ -303,7 +306,8 @@ std::string RequestHandler::handleCGI(RequestData& req,
           << ", interpreter = " << interpreter << std::endl;
 
     std::vector<std::string> args;
-    args.push_back(scriptPath);
+    //args.push_back(interpreter);
+	args.push_back(scriptPath);
 
     std::vector<std::string> env = CGI::buildEnvFromRequest(req);
     env.push_back("SCRIPT_FILENAME=" + scriptPath);
@@ -327,7 +331,7 @@ std::string RequestHandler::handleCGI(RequestData& req,
 
     try
     {
-        return CGI::execute(interpreter, args, env, input, "./www/site1/py");
+        return CGI::execute(interpreter, args, env, input);
     }
     catch (const std::exception& e)
     {

@@ -1,8 +1,6 @@
 #include "Server.hpp"
 #include "Client.hpp"
 
-#include "Router.hpp"
-
 // --------------CONSTRUCTION AND DESTRUCTION--------------
 
 // Default constructor

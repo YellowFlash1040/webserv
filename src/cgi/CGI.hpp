@@ -5,9 +5,6 @@
 
 # include <string>
 # include <vector>
-
-// From Tamar, remove it later
-# include <unordered_map>
 # include "RequestData.hpp"
 # include "HttpMethod.hpp"
 
@@ -17,9 +14,7 @@ class CGI
     static std::string execute(const std::string& scriptPath,
                                const std::vector<std::string>& args,
                                const std::vector<std::string>& env,
-                               const std::string& input = "",
-                               const std::string& rootDir
-                               = "/var/www/cgi-bin/");
+                               const std::string& input = "");
 
     static std::vector<std::string> buildEnvFromRequest(const RequestData& req);
 };

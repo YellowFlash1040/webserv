@@ -4,18 +4,33 @@
 #define CGIPARSER_HPP
 
 #include <string>
-
-struct CGIResponse
-{
-    std::string headers;
-    std::string body;
-};
+# include <vector>
 
 class CGIParser
 {
 public:
-    static CGIResponse CGIResponseParser(const std::string& output);
+    struct Header
+    {
+        std::string key;
+        std::string value;
+    };
+
+    CGIParser(const std::string& cgiOutput);
+    std::string getHttpResponse() const;
+    const std::vector<Header>& getHeaders() const;
+    const std::string& getBody() const;
+    std::string getHeaderValue(const std::string& key) const;
+
+    static std::string CGIResponseParser(const std::string& output);
+
+private:
+    std::vector<Header> headers;
+    std::string body;
+    std::string status;
+
+    void parse(const std::string& output); 
 };
+
 
 #endif
 
