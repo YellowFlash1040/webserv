@@ -27,9 +27,10 @@ void UploadModule::processUpload(RequestData& req, RequestContext& ctx,
     if (isMultipartFormData(req))
     {
         processMultipartFormData(req, ctx.upload_store);
-        create201Response(resp);
+        return create201Response(resp);
     }
-    create415Response(resp);
+
+    return create415Response(resp);
 }
 
 bool UploadModule::isMultipartFormData(const RequestData& req)
