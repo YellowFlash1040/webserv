@@ -154,9 +154,14 @@ std::vector<FileField> UploadModule::searchForFiles(
 std::string UploadModule::extractFileName(const std::string& headers)
 {
     const std::string& prefix = "filename=\"";
-    size_t openBracePos = headers.find(prefix) + prefix.length();
+    size_t prefixPos = headers.find(prefix);
+    if (prefixPos == std::string::npos)
+        return {};
+
+    size_t openBracePos = prefixPos + prefix.length();
     size_t closeBracePos = headers.find('"', openBracePos);
     size_t filenameSize = closeBracePos - openBracePos;
+
     return headers.substr(openBracePos, filenameSize);
 }
 
