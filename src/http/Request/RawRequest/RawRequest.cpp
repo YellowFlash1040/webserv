@@ -192,15 +192,15 @@ void RawRequest::appendToChunkedBuffer(const std::string& data)
 
 	_chunkedBuffer += data;
 
-	std::cout << ORANGE << "[appendToChunkedBuffer]: " << RESET << "After append, _chunkedBuffer size = " << _chunkedBuffer.size()
-			  << ", contents = |" << _chunkedBuffer << "|\n";
+	// std::cout << ORANGE << "[appendToChunkedBuffer]: " << RESET << "After append, _chunkedBuffer size = " << _chunkedBuffer.size()
+	// 		  << ", contents = |" << _chunkedBuffer << "|\n";
 }
 
 std::string RawRequest::decodeChunkedBody(size_t& bytesProcessed)
 {
-	std::cout << ORANGE << "[decodeChunkedBody]:" << RESET
-		<< " START: _chunkedBuffer = |" << _chunkedBuffer 
-		<< "|, _chunkedBuffer size = " << _chunkedBuffer.size() << "\n";
+	// std::cout << ORANGE << "[decodeChunkedBody]:" << RESET
+	// 	<< " START: _chunkedBuffer = |" << _chunkedBuffer 
+	// 	<< "|, _chunkedBuffer size = " << _chunkedBuffer.size() << "\n";
 
 	std::string decoded;
 	size_t pos = 0;
@@ -342,7 +342,7 @@ size_t RawRequest::remainingConLen() const
 
 void RawRequest::consumeTempBuffer(size_t n)
 {
-	std::cout << MINT << "[consumeTempBuffer]: " << RESET << "_tempbuffer before: |" << _tempBuffer << "|, size = " << _tempBuffer.size() << "\n";
+	// std::cout << MINT << "[consumeTempBuffer]: " << RESET << "_tempbuffer before: |" << _tempBuffer << "|, size = " << _tempBuffer.size() << "\n";
 
 	if (n >= _tempBuffer.size())
 	{
@@ -353,7 +353,7 @@ void RawRequest::consumeTempBuffer(size_t n)
 		_tempBuffer.erase(0, n);  // remove the first n bytes
 	}
 
-	std::cout << MINT << "[consumeTempBuffer]: " << RESET << "after consuming:  |" << _tempBuffer << "|, size = " << _tempBuffer.size() << "\n";
+	// std::cout << MINT << "[consumeTempBuffer]: " << RESET << "after consuming:  |" << _tempBuffer << "|, size = " << _tempBuffer.size() << "\n";
 }
 
 void RawRequest::appendToBody(const std::string& data)
@@ -363,38 +363,38 @@ void RawRequest::appendToBody(const std::string& data)
 
 	_body += data;
 
-	std::cout << ORANGE << "[appendToBody]: " << RESET
-			  << "_body now = |" << _body << "|\n";
+	// std::cout << ORANGE << "[appendToBody]: " << RESET
+	// 		  << "_body now = |" << _body << "|\n";
 }
 
 void RawRequest::setChunkedBuffer(std::string&& newBuffer)
 {
 	std::cout << ORANGE << "[setChunkedBuffer]: " << RESET << "old size of chunkedBuffer = " << _chunkedBuffer.size() << "\n";
 	_chunkedBuffer = std::move(newBuffer);
-	std::cout << "new size = " << _chunkedBuffer.size()
-	<< "(moved). content = |" << _chunkedBuffer 
-	<< RESET << "|\n";
+	// std::cout << "new size = " << _chunkedBuffer.size()
+	// << "(moved). content = |" << _chunkedBuffer 
+	// << RESET << "|\n";
 }
 
 void RawRequest::appendBodyBytes(const std::string& data)
 {
-	std::cout << YELLOW << "[appendBodyBytes]:" << RESET << std::endl;
+	// std::cout << YELLOW << "[appendBodyBytes]:" << RESET << std::endl;
 	
 
-	std::cout << GREEN << "[appendBodyBytes] before appending:" << RESET << "\n"
-		<< "ContentLengthBuffer() = " << _conLenBuffer << "\n"
-		<< "ChunkedBuffer() = " << _chunkedBuffer << "\n";
+	// std::cout << GREEN << "[appendBodyBytes] before appending:" << RESET << "\n"
+	// 	<< "ContentLengthBuffer() = " << _conLenBuffer << "\n"
+	// 	<< "ChunkedBuffer() = " << _chunkedBuffer << "\n";
 		
 	switch (_bodyType)
 	{
 		case BodyType::SIZED:
 		{
 			size_t remaining = remainingConLen(); // bytes still needed
-			std::cout << MINT << "[appendBodyBytes]: " << RESET "remaining bytes of content to append: "
-				<< remaining << "\n";
+			// std::cout << MINT << "[appendBodyBytes]: " << RESET "remaining bytes of content to append: "
+			// 	<< remaining << "\n";
 			size_t toAppend = std::min(remaining, data.size());
-			std::cout << MINT << "[appendBodyBytes]: " << RESET "bytes to will be appended in reality: "
-				<< toAppend << "\n";
+			// std::cout << MINT << "[appendBodyBytes]: " << RESET "bytes to will be appended in reality: "
+			// 	<< toAppend << "\n";
 			appendToConLenBuffer(data.substr(0, toAppend));
 			consumeTempBuffer(toAppend); // remove exactly what we consumed
 			if (conLenReached())
@@ -402,18 +402,18 @@ void RawRequest::appendBodyBytes(const std::string& data)
 				appendToBody(_conLenBuffer);
 				setBodyDone();
 			}
-			std::cout << GREEN << "[appendBodyBytes] after appending:" << RESET << "\n"
-			<< "ContentLengthBuffer() = " << _conLenBuffer << "\n";
-			std::cout << "[appendBodyBytes]: after finishing body length, requests:\n";
+			// std::cout << GREEN << "[appendBodyBytes] after appending:" << RESET << "\n"
+			// << "ContentLengthBuffer() = " << _conLenBuffer << "\n";
+			// std::cout << "[appendBodyBytes]: after finishing body length, requests:\n";
 			break;
 		}
 
 		case BodyType::CHUNKED:
 		{
 			appendToChunkedBuffer(_tempBuffer);
-			std::cout << GREEN << "[appendBodyBytes]: " << RESET
-				<< "appeneded _chunkBuffer with data from tempBuffer. It is now |"
-				<< _chunkedBuffer << "|\n";
+			// std::cout << GREEN << "[appendBodyBytes]: " << RESET
+			// 	<< "appeneded _chunkBuffer with data from tempBuffer. It is now |"
+			// 	<< _chunkedBuffer << "|\n";
 			setTempBuffer(""); // consumed for decoding
 			size_t bytesProcessed = 0;
 			
@@ -426,14 +426,14 @@ void RawRequest::appendBodyBytes(const std::string& data)
 			
 			if (_terminatingZeroMet)
 			{
-				std::cout << GREEN << "[appendBodyBytes]: " << RESET
-				<< "TerminatingZero found\n";
+				// std::cout << GREEN << "[appendBodyBytes]: " << RESET
+				// << "TerminatingZero found\n";
 				setBodyDone();
 				setTempBuffer(_chunkedBuffer);
 				_chunkedBuffer.clear();
-				std::cout << GREEN << "[appendBodyBytes]: " << RESET
-					<< "set _tempBuffer to the contents of _chunkedBuffer, it is now = |"
-					<< _tempBuffer << "| and cleared _chunkedBuffer\n";
+				// std::cout << GREEN << "[appendBodyBytes]: " << RESET
+				// 	<< "set _tempBuffer to the contents of _chunkedBuffer, it is now = |"
+				// 	<< _tempBuffer << "| and cleared _chunkedBuffer\n";
 				
 			}
 			else
@@ -441,8 +441,8 @@ void RawRequest::appendBodyBytes(const std::string& data)
 				// partial chunk left? move leftovers to tempBuffer for next process
 				setTempBuffer(_chunkedBuffer + _tempBuffer);
 				
-				std::cout << GREEN << "[appendBodyBytes]: " << RESET
-				<< "TerminatingZero not found yet\n";
+				// std::cout << GREEN << "[appendBodyBytes]: " << RESET
+				// << "TerminatingZero not found yet\n";
 			}
 			break;
 		}
@@ -483,7 +483,7 @@ void RawRequest::separateHeadersFromBody()  // TODO: handle malformed requests s
 
 	// Keep leftover (after headers) in tempBuffer
 	_tempBuffer = _tempBuffer.substr(headerEnd + 4);
-	std::cout << "Temp buffer after headers removed = |" << _tempBuffer << "|\n";
+	// std::cout << "Temp buffer after headers removed = |" << _tempBuffer << "|\n";
 	
 	std::cout << "Temp buffer length after header removal = " << _tempBuffer.size() << std::endl;
 	try

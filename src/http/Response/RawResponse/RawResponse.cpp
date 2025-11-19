@@ -1,21 +1,20 @@
 #include "RawResponse.hpp"
 
 RawResponse::RawResponse(const RequestData& req, const RequestContext& ctx)
-	: _req(req),
-	  _ctx(ctx),
-	  _statusCode(HttpStatusCode::OK),
-	  _statusText(""),
-	  _headers(),
-	  _body(""),
-	  _isInternalRedirect(false),
-	  _isExternalRedirect(false),
-	  _redirectTarget(""),
-	  _fileMode(FileDeliveryMode::InMemory),
-	  _filePath(""),
-	  _fileSize(0),
-	  _mimeType("")
+    : _req(req),
+      _ctx(ctx),
+      _statusCode(HttpStatusCode::OK),
+      _statusText(""),
+      _headers(),
+      _body(""),
+      _isInternalRedirect(false),
+      _isExternalRedirect(false),
+      _redirectTarget(""),
+      _fileMode(FileDeliveryMode::InMemory),
+      _filePath(""),
+      _mimeType("")
 {
-	setDefaultHeaders();
+    setDefaultHeaders();
 }
 
 HttpStatusCode RawResponse::getStatusCode() const
@@ -79,7 +78,6 @@ std::string RawResponse::codeToText(HttpStatusCode code)
 		case HttpStatusCode::PayloadTooLarge: return "Payload Too Large"; //413
 		case HttpStatusCode::InternalServerError: return "Internal Server Error"; //500
 		case HttpStatusCode::NotImplemented: return "Not Implemented"; //501
-		case HttpStatusCode::BadGateway: return "Bad Gateway"; //502
 		case HttpStatusCode::LoopDetected: return "Loop Detected"; //508
 		
 		default: return "Unknown";
@@ -219,38 +217,13 @@ bool RawResponse::shouldClose() const
 
 ResponseData RawResponse::toResponseData() const
 {
-	ResponseData data;
-
-	// Basic status info
-	data.statusCode = static_cast<int>(_statusCode);
-	data.statusText = _statusText;
-	data.headers = _headers;
-
-	// --- STREAMED DELIVERY ---
-	if (_fileMode == FileDeliveryMode::Streamed)
-	{
-		data.fileMode = FileDeliveryMode::Streamed;
-		data.filePath = _filePath;
-		data.fileSize = _fileSize;
-
-		data.body = "";  // streamed → empty body
-
-		data.headers["Content-Length"] = std::to_string(_fileSize);
-		data.headers["Content-Type"] = _mimeType;
-
-		data.shouldClose = shouldClose();
-		return data;
-	}
-
-	// --- IN-MEMORY DELIVERY ---
-	data.fileMode = FileDeliveryMode::InMemory;
-	data.body = _body;
-
-	data.headers["Content-Length"] = std::to_string(data.body.size());
-	data.headers["Content-Type"] = _mimeType;
-
-	data.shouldClose = shouldClose();
-	return data;
+	ResponseData rd;
+	rd.statusCode = static_cast<int>(_statusCode);
+	rd.statusText = _statusText;
+	rd.body = _body;
+	rd.headers = _headers;
+	rd.shouldClose = shouldClose();
+	return rd;
 }
 
 bool RawResponse::isInternalRedirect() const
@@ -324,14 +297,4 @@ void RawResponse::setRedirectTarget(const std::string& uri)
 const std::string& RawResponse::getRedirectTarget() const
 {
 	return _redirectTarget;
-}
-
-void RawResponse::setFileSize(size_t size)
-{
-	_fileSize = size;
-}
-
-size_t RawResponse::getFileSize() const
-{
-	return _fileSize;
 }

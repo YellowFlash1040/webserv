@@ -9,8 +9,14 @@
 
 #include "../../Request/RawRequest/RawRequest.hpp"
 #include "../../../config/Config/request_resolving/RequestContext/RequestContext.hpp"
-#include "../ResponseData/ResponseData.hpp"
-#include "../FileDeliveryMode/FileDeliveryMode.hpp"
+// #include "../FileHandler/FileHandler.hpp"
+#include "../ResponseData/ReposneData.hpp"
+
+enum class FileDeliveryMode
+{
+	InMemory,
+	Streamed
+};
 
 struct DeliveryInfo
 {
@@ -35,7 +41,6 @@ class RawResponse
 	
 	FileDeliveryMode _fileMode = FileDeliveryMode::InMemory;
 	std::string _filePath;      // Only used if streamed
-	size_t _fileSize;    // file size (always set)
 	std::string _mimeType;      // Content type of file
 	
 	public:
@@ -101,8 +106,6 @@ class RawResponse
 	void setStatusCode(HttpStatusCode code);
 	
 	bool isExternalRedirect() const;
-	void setFileSize(size_t size);
-	size_t getFileSize() const;
 	
 	};
 

@@ -8,6 +8,7 @@
 
 #include <string>
 #include <iostream>
+#include <vector>
 #include <cstdint>
 #include <stdexcept>
 #include <queue>
@@ -23,13 +24,16 @@
 class ClientState
 {
 	private:
-  	// Raw requests from the client (byte level)
-	std::deque<RawRequest> _rawRequests;
+  	// 1. Raw requests from the client (byte level)
+	std::vector<RawRequest> _rawRequests;
 
-	// Raw responses (not yet serialized), allows handling internal redirects
+	// 2. Parsed request data from RawRequest
+	std::vector<RequestData> _requestsData;
+
+	// 3. Raw responses (not yet serialized), allows handling internal redirects
 	std::deque<RawResponse> _rawResponsesQueue;
 
-	// Responses ready to be sent on the socket
+	// 4. Serialized responses ready to be sent on the socket
 	std::queue<ResponseData> _respDataQueue;
 		
 	public:
@@ -41,9 +45,11 @@ class ClientState
 		ClientState& operator=(ClientState&& other) noexcept = default;
 
 		size_t getRawReqCount() const;
+		size_t getRequestCount() const;
 		
 		RawRequest& getRawRequest(size_t idx);
 		const RawRequest& getRawRequest(size_t idx) const;
+		RequestData& getRequest(size_t idx);
 		
 		RawRequest& getLatestRawReq();
 		const RawRequest& getLatestRawReq() const;
@@ -64,10 +70,13 @@ class ClientState
 		
 
 		RawRequest popRawReq();
-
+		RequestData popRequestData();
 		
 		bool hasPendingResponseData() const;
-
+		ResponseData popNextResponseData();
+		
+		void addRequestData(const RequestData& requestData);
+		
 		bool hasCompleteRawRequest() const;
 		RawRequest popFirstCompleteRawRequest();
 		
@@ -78,7 +87,7 @@ class ClientState
 		RawResponse& peekLastRawResponse();
 		RawResponse popNextRawResponse();
 		
-		const std::queue<ResponseData>& getResponseQueue() const { return _respDataQueue; }
+		    const std::queue<ResponseData>& getResponseQueue() const { return _respDataQueue; }
 
 };
 

@@ -59,9 +59,6 @@ std::string getShebangInterpreter(const std::string& path)
 std::string validateScriptPath(const std::string& scriptPath,
                                const std::string& rootDir)
 {
-    std::cout << "[validateScriptPath] scriptPath = " << scriptPath
-          << ", rootDir = " << rootDir << std::endl;
-
     struct stat st;
     if (stat(scriptPath.c_str(), &st) == -1)
         throw std::runtime_error("CGI script not found: " + scriptPath);
@@ -96,7 +93,7 @@ std::string CGI::execute(const std::string& scriptPath,
                          const std::vector<std::string>& env,
                          const std::string& input, const std::string& rootDir)
 {
-    std::string execPath = validateScriptPath(args[0], rootDir);
+    std::string execPath = validateScriptPath(scriptPath, rootDir);
 
     int pipe_in[2], pipe_out[2];
 
