@@ -153,8 +153,10 @@ void Server::acceptNewClient(int listeningSocket)
     Socket::setNonBlockingAndCloexec(clientSocket);
     addSocketToEPoll(clientSocket, EPOLLIN);
 
+    const NetworkEndpoint& ep = m_listeners.at(listeningSocket).getEndpoint();
+
     m_clients.emplace(clientSocket,
-        std::make_unique<Client>(clientSocket, clientAddr, listeningSocket));
+                    std::make_unique<Client>(clientSocket, clientAddr, ep));
 
     m_connMgr.addClient(clientSocket);
 
@@ -182,16 +184,12 @@ void Server::processClient(Client& client)
     char buf[8192];
     int n = read(clientFd, buf, sizeof(buf) - 1);
 
-    // Обработка входящих данных
     if (n > 0)
     {
         buf[n] = '\0';
         std::string data(buf, n);
 
-        // Получаем endpoint через listeningSocket
-        int listeningSocket = client.getListeningSocket();
-        NetworkEndpoint& ep = m_listeners.at(listeningSocket).getEndpoint();
-
+        const NetworkEndpoint& ep = client.getListeningEndpoint();
         bool anyRequestDone = m_connMgr.processData(ep, clientFd, data);
         (void)anyRequestDone;
     }
