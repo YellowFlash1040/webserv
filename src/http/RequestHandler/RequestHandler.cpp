@@ -86,6 +86,45 @@ bool RequestHandler::isMethodAllowed(
 	return false;
 }
 
+void RequestHandler::processCGIResponse(const RequestData& req,
+                        const NetworkEndpoint& endpoint,
+                        const std::string& interpreter,
+                        const std::string& resolvedPath,
+                        RawResponse& rawResp)
+{
+    try {
+        std::string cgiResult = handleCGI(req, endpoint, interpreter, resolvedPath);
+        ParsedCGI parsed = CGIParser::parse(cgiResult);
+
+        if (parsed.is_redirect)
+		{
+            rawResp.setStatus(static_cast<HttpStatusCode>(parsed.status));
+            rawResp.addHeader("Location", parsed.headers.at("Location"));
+            rawResp.setBody("");
+            rawResp.setMimeType("");
+        }
+		else
+		{
+            rawResp.setBody(parsed.body);
+
+            int status_code = parsed.status > 0 ? parsed.status : static_cast<int>(HttpStatusCode::OK);
+            rawResp.setStatus(static_cast<HttpStatusCode>(status_code));
+
+            std::string ct = parsed.headers.count("Content-Type") ? parsed.headers.at("Content-Type") : "text/plain";
+            rawResp.setMimeType(ct);
+        }
+    }
+    catch (const std::exception &e)
+	{
+        rawResp.setStatus(HttpStatusCode::InternalServerError);
+        rawResp.setMimeType("text/plain");
+        rawResp.setBody(std::string("CGI parse error: ") + e.what());
+    }
+	// if use enqueueRawResponse - I got same response in .py and .pl scripts running in 2 tabs
+	// clientState.enqueueRawResponse(rawResp);
+}
+
+
 void RequestHandler::processGet(RequestData& req,
 								const NetworkEndpoint& endpoint,
 								RequestContext& ctx, RawResponse& rawResp)
@@ -144,13 +183,7 @@ void RequestHandler::processGet(RequestData& req,
 		{
 			std::cout << "Executing CGI interpreter: " << interpreter <<		
 				" for script: " << ctx.resolved_path << std::endl;
-			std::string cgiResult = handleCGI(req, endpoint, interpreter, ctx.resolved_path);
-
-			CGIParser parser(cgiResult);
-
-			rawResp.setBody(parser.getBody());
-			rawResp.setStatus(HttpStatusCode::OK);
-			rawResp.setMimeType(parser.getHeaderValue("Content-Type"));
+			processCGIResponse(req, endpoint, interpreter, ctx.resolved_path, rawResp);
 			return;
 		}
 	}
@@ -297,7 +330,7 @@ std::string RequestHandler::getCgiPathFromUri(
 	return "";
 }
 
-std::string RequestHandler::handleCGI(RequestData& req,
+std::string RequestHandler::handleCGI(const RequestData& req,
                                       const NetworkEndpoint& endpoint,
                                       const std::string& interpreter,
                                       const std::string& scriptPath)

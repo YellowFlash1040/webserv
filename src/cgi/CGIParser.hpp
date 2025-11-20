@@ -4,33 +4,33 @@
 #define CGIPARSER_HPP
 
 #include <string>
-# include <vector>
+#include <string_view>
+#include <unordered_map>
+
+struct ParsedCGI
+{
+    int status = 200;
+    std::unordered_map<std::string, std::string> headers;
+    std::string body;
+    bool is_redirect = false;
+};
 
 class CGIParser
 {
 public:
-    struct Header
-    {
-        std::string key;
-        std::string value;
-    };
-
-    CGIParser(const std::string& cgiOutput);
-    std::string getHttpResponse() const;
-    const std::vector<Header>& getHeaders() const;
-    const std::string& getBody() const;
-    std::string getHeaderValue(const std::string& key) const;
-
-    static std::string CGIResponseParser(const std::string& output);
+    static ParsedCGI parse(std::string_view cgi);
 
 private:
-    std::vector<Header> headers;
-    std::string body;
-    std::string status;
+    CGIParser(std::string_view raw);
 
-    void parse(const std::string& output); 
+    ParsedCGI run();
+    size_t findSeparator();
+    void parseHeaders(std::string_view header_part, ParsedCGI &out);
+    void validate(ParsedCGI &out);
+    static std::string trim(std::string_view sv);
+
+    std::string_view _raw;
+    size_t _delimiter_len = 0;
 };
 
-
 #endif
-

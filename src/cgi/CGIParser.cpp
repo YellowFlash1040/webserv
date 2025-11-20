@@ -1,119 +1,103 @@
 #include "CGIParser.hpp"
-#include <sstream>
+#include <stdexcept>
 #include <algorithm>
+#include <cctype>
 
-CGIParser::CGIParser(const std::string& cgiOutput)
+CGIParser::CGIParser(std::string_view raw) : _raw(raw) {}
+
+ParsedCGI CGIParser::parse(std::string_view cgi)
 {
-    parse(cgiOutput);
+    CGIParser parser(cgi);
+    return parser.run();
 }
 
-void CGIParser::parse(const std::string& output)
+ParsedCGI CGIParser::run()
 {
-    std::istringstream stream(output);
-    std::string line;
-    bool inHeaders = true;
+    ParsedCGI out;
 
-    while (std::getline(stream, line))
-    {
+    size_t sep = findSeparator();
+    std::string_view header_part = _raw.substr(0, sep);
+    out.body = std::string(_raw.substr(sep + _delimiter_len));
+
+    parseHeaders(header_part, out);
+    validate(out);
+
+    return out;
+}
+
+size_t CGIParser::findSeparator()
+{
+    size_t pos = _raw.find("\r\n\r\n");
+    if (pos != std::string_view::npos) {
+        _delimiter_len = 4;
+        return pos;
+    }
+
+    pos = _raw.find("\n\n");
+    if (pos != std::string_view::npos) {
+        _delimiter_len = 2;
+        return pos;
+    }
+
+    throw std::runtime_error("CGI response missing header-body separator");
+}
+
+std::string CGIParser::trim(std::string_view sv)
+{
+    size_t start = 0;
+    while (start < sv.size() && std::isspace((unsigned char)sv[start]))
+        start++;
+
+    size_t end = sv.size();
+    while (end > start && std::isspace((unsigned char)sv[end - 1]))
+        end--;
+
+    return std::string(sv.substr(start, end - start));
+}
+
+void CGIParser::parseHeaders(std::string_view header_part, ParsedCGI &out)
+{
+    while (!header_part.empty()) {
+        size_t line_end = header_part.find('\n');
+        std::string_view line =
+            (line_end == std::string_view::npos)
+                ? header_part
+                : header_part.substr(0, line_end);
+
         if (!line.empty() && line.back() == '\r')
-            line.pop_back();
+            line.remove_suffix(1);
 
-        if (inHeaders)
-        {
-            if (line.empty())
-            {
-                inHeaders = false;
-                continue;
-            }
-            size_t pos = line.find(':');
-            if (pos != std::string::npos)
-            {
-                std::string key = line.substr(0, pos);
-                std::string value = line.substr(pos + 1);
-                value.erase(0, value.find_first_not_of(" \t"));
+        if (line.empty()) break;
 
-                headers.push_back({ key, value });
-
-                std::string lowerKey = key;
-                std::transform(lowerKey.begin(), lowerKey.end(), lowerKey.begin(), ::tolower);
-                if (lowerKey == "status")
-                {
-                    status = value;
-                }
-            }
-        }
+        if (line_end == std::string_view::npos)
+            header_part = {};
         else
-        {
-            body += line + "\n";
+            header_part = header_part.substr(line_end + 1);
+
+        size_t colon = line.find(':');
+        if (colon == std::string_view::npos)
+            throw std::runtime_error("Invalid CGI header line");
+
+        std::string name = std::string(line.substr(0, colon));
+        std::string value = trim(line.substr(colon + 1));
+
+        if (name == "Status") {
+            out.status = std::stoi(value);
+        }
+        else if (name == "Location") {
+            out.headers["Location"] = value;
+            out.is_redirect = true;
+            if (out.status == 200)
+                out.status = 302;
+        }
+        else {
+            out.headers[name] = value;
         }
     }
-
-    if (!body.empty() && body.back() == '\n')
-        body.pop_back();
-
-    if (status.empty())
-        status = "200 OK";
-
-    auto it = std::find_if(headers.begin(), headers.end(), [](const Header& h){
-        std::string k = h.key;
-        std::transform(k.begin(), k.end(), k.begin(), ::tolower);
-        return k == "content-type";
-    });
-    if (it == headers.end())
-    {
-        headers.push_back({ "Content-Type", "text/plain" });
-    }
-
-    it = std::find_if(headers.begin(), headers.end(), [](const Header& h){
-        std::string k = h.key;
-        std::transform(k.begin(), k.end(), k.begin(), ::tolower);
-        return k == "content-length";
-    });
-    if (it == headers.end())
-    {
-        headers.push_back({ "Content-Length", std::to_string(body.size()) });
-    }
 }
 
-const std::vector<CGIParser::Header>& CGIParser::getHeaders() const
+void CGIParser::validate(ParsedCGI &out)
 {
-    return headers;
-}
-
-const std::string& CGIParser::getBody() const
-{
-    return body;
-}
-
-std::string CGIParser::getHeaderValue(const std::string& key) const
-{
-    std::string keyLower = key;
-    std::transform(keyLower.begin(), keyLower.end(), keyLower.begin(), ::tolower);
-
-    for (const auto& h : headers)
-    {
-        std::string hKey = h.key;
-        std::transform(hKey.begin(), hKey.end(), hKey.begin(), ::tolower);
-        if (hKey == keyLower)
-            return h.value;
-    }
-    return "";
-}
-
-std::string CGIParser::getHttpResponse() const
-{
-    std::ostringstream out;
-    out << "HTTP/1.1 " << status << "\r\n";
-    for (const auto& h : headers)
-    {
-        out << h.key << ": " << h.value << "\r\n";
-    }
-    out << "\r\n" << body;
-    return out.str();
-}
-
-std::string CGIParser::CGIResponseParser(const std::string& output)
-{
-    CGIParser parser(output);
-    return parser.getHttpResponse();
+    if (!out.is_redirect && !out.headers.count("Content-Type"))
+        throw std::runtime_error("CGI missing required Content-Type");
 }
