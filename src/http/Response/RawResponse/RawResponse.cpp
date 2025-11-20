@@ -95,16 +95,7 @@ void RawResponse::setDefaultHeaders()
 
 
 
-std::string RawResponse::httpMethodToString(HttpMethod method)
-{
-	switch (method)
-	{
-		case HttpMethod::GET:    return "GET";
-		case HttpMethod::POST:   return "POST";
-		case HttpMethod::DELETE: return "DELETE";
-		default:                 return "NONE";
-	}
-}
+
 
 std::string RawResponse::allowedMethodsToString(const std::vector<HttpMethod>& allowed_methods)
 {
@@ -120,41 +111,46 @@ std::string RawResponse::allowedMethodsToString(const std::vector<HttpMethod>& a
 
 void RawResponse::sendFile(const std::string &filePath, const std::string &mimeType)
 {
-	std::ifstream file(filePath, std::ios::binary);
-	if (!file.is_open())
-	{
-		std::cout << "[sendFile] ERROR: cannot open file: " << filePath << std::endl;
-		setStatus(HttpStatusCode::NotFound);
-		setBody("<html><body><h1>404 Not Found</h1></body></html>");
-		addHeader("Content-Type", "text/html");
-		return;
-	}
+    DBG("[sendFile] Opening file: " << filePath);
 
-	// Determine file size
-	file.seekg(0, std::ios::end);
-	std::streamsize size = file.tellg();
-	file.seekg(0, std::ios::beg);
+    std::ifstream file(filePath, std::ios::binary);
+    if (!file.is_open())
+    {
+        DBG("[sendFile] ERROR: cannot open file: " << filePath);
+        setStatus(HttpStatusCode::NotFound);
+        setBody("<html><body><h1>404 Not Found</h1></body></html>");
+        addHeader("Content-Type", "text/html");
+        return;
+    }
 
-	std::vector<char> buffer(static_cast<size_t>(size));
-	if (!file.read(buffer.data(), size)) {
-		std::cout << "[sendFile] ERROR: failed to read file: " << filePath << std::endl;
-		setStatus(HttpStatusCode::InternalServerError);
-		setBody("<html><body><h1>500 Internal Server Error</h1></body></html>");
-		addHeader("Content-Type", "text/html");
-		return;
-	}
+    // Determine file size
+    file.seekg(0, std::ios::end);
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
 
-	file.close();
+    DBG("[sendFile] File opened, size = " << size);
 
-	// Set response headers
-	setStatus(HttpStatusCode::OK);
-	addHeader("Content-Type", mimeType);
-	addHeader("Content-Length", std::to_string(size));
+    std::vector<char> buffer(static_cast<size_t>(size));
+    if (!file.read(buffer.data(), size)) {
+        DBG("[sendFile] ERROR: failed to read file: " << filePath);
+        setStatus(HttpStatusCode::InternalServerError);
+        setBody("<html><body><h1>500 Internal Server Error</h1></body></html>");
+        addHeader("Content-Type", "text/html");
+        return;
+    }
 
-	// Set the body from the file content
-	setBody(std::string(buffer.begin(), buffer.end()));
+    file.close();
+    DBG("[sendFile] File read successfully");
 
-	std::cout << "[sendFile] Served file: " << filePath << ", size=" << size << std::endl;
+    // Set response headers
+    setStatus(HttpStatusCode::OK);
+    addHeader("Content-Type", mimeType);
+    addHeader("Content-Length", std::to_string(size));
+
+    // Set the body from the file content
+    setBody(std::string(buffer.begin(), buffer.end()));
+
+    DBG("[sendFile] Served file: " << filePath << ", size=" << size);
 }
 
 void RawResponse::handleExternalRedirect(const std::string& reqUri)
@@ -191,24 +187,27 @@ void RawResponse::handleCgiScript()
 
 void RawResponse::addDefaultErrorDetails(HttpStatusCode code)
 {
-	_statusText = codeToText(code);
+    DBG("[addDefaultErrorDetails] Called for code " 
+        << static_cast<int>(code) << " (" << codeToText(code) << ")");
 
-	std::string htmlBody =
-		"<html>\n"
-		"<head><title>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</title></head>\n"
-		"<body>\n"
-		"<center><h1>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</h1></center>\n"
-		"<center><h3>(Default Error Page)</h3></center>\n"
-		"<hr><center>APT-Server/1.0</center>\n"
-		"</body>\n"
-		"</html>\n";
+    _statusText = codeToText(code);
 
-	setBody(htmlBody);
-	addHeader("Content-Type", "text/html");
-	addHeader("Content-Length", std::to_string(_body.size()));
+    std::string htmlBody =
+        "<html>\n"
+        "<head><title>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</title></head>\n"
+        "<body>\n"
+        "<center><h1>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</h1></center>\n"
+        "<center><h3>(Default Error Page)</h3></center>\n"
+        "<hr><center>APT-Server/1.0</center>\n"
+        "</body>\n"
+        "</html>\n";
 
-	std::cout << "[addDefaultErrorDetails] Default error page generated for code "
-			  << static_cast<int>(code) << " (" << _statusText << ")\n";
+    setBody(htmlBody);
+    addHeader("Content-Type", "text/html");
+    addHeader("Content-Length", std::to_string(_body.size()));
+
+    DBG("[addDefaultErrorDetails] Default error page generated, length = " 
+        << _body.size());
 }
 
 bool RawResponse::shouldClose() const

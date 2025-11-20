@@ -5,6 +5,7 @@
 #include "../../Request/RequestData/RequestData.hpp"
 #include "../../HttpMethod/HttpMethod.hpp"
 #include "../../Response/RawResponse/RawResponse.hpp"
+#include "debug.hpp"
 
 #include <string>
 #include <iostream>

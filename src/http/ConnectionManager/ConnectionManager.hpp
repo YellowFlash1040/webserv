@@ -8,6 +8,7 @@
 #include "../../network/NetworkEndpoint/NetworkEndpoint.hpp"
 #include "../RequestHandler/RequestHandler.hpp"
 #include "../Response/FileHandler/FileHandler.hpp"
+#include "debug.hpp" 
 
 #include <unordered_map>
 #include <string>
@@ -57,13 +58,13 @@ class ConnectionManager
 		size_t processReqs(int clientId, const std::string& tcpData);
 				
 		void enqueueInternRedirResp(const std::string& newUri,
-                                               RequestContext& ctx,
+                                               const RequestContext& ctx,
                                                RequestHandler& reqHandler,
                                                const NetworkEndpoint& endpoint, 
 											   ClientState& clientState);
 		
 		
-		void enqueueExternRedirResp(std::string& newUri, RequestContext newCtx, RequestHandler& reqHandler, const NetworkEndpoint& endpoint);
+		void enqueueExternRedirResp(HttpMethod method, const RequestContext& newCtx, RequestHandler& reqHandler, const NetworkEndpoint& endpoint);
 	
 		
 	};

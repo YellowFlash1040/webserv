@@ -2,79 +2,84 @@
 
 void printReqContext(const RequestContext& ctx)
 {
-    std::cout << TEAL << "---- RequestContext ----" << RESET << "\n";
-    std::cout << "client_max_body_size: " << ctx.client_max_body_size << "\n";
+    DBG("\n" << TEAL << "---- RequestContext ----" << RESET);
 
-    std::cout << "error_pages:\n";
-	for (std::map<HttpStatusCode, std::string>::const_iterator it = ctx.error_pages.begin();
-		it != ctx.error_pages.end(); ++it)
-	{
-		std::cout << "  statusCode: " << static_cast<int>(it->first)
-				<< " -> filePath: " << it->second << "\n";
-	}
+    DBG("client_max_body_size: " << ctx.client_max_body_size);
 
-    std::cout << "resolved_path: " << ctx.resolved_path << "\n";
-    std::cout << "autoindex_enabled: " << (ctx.autoindex_enabled ? "true" : "false") << "\n";
+    DBG("error_pages:");
+    for (std::map<HttpStatusCode, std::string>::const_iterator it = ctx.error_pages.begin();
+         it != ctx.error_pages.end(); ++it)
+    {
+        DBG("  statusCode: " << static_cast<int>(it->first)
+            << " -> filePath: " << it->second);
+    }
 
-    std::cout << "index_files:\n";
+    DBG("resolved_path: " << ctx.resolved_path);
+    DBG("autoindex_enabled: " << (ctx.autoindex_enabled ? "true" : "false"));
+
+    DBG("index_files:");
     for (size_t i = 0; i < ctx.index_files.size(); ++i)
-        std::cout << "  " << ctx.index_files[i] << "\n";
+        DBG("  " << ctx.index_files[i]);
 
-    std::cout << "upload_store: " << ctx.upload_store << "\n";
-    std::cout << "cgi_pass:\n";
-	for (std::map<std::string, std::string>::const_iterator it = ctx.cgi_pass.begin();
-		it != ctx.cgi_pass.end(); ++it)
-	{
-		std::cout << "  " << it->first << " -> " << it->second << "\n";
-	}
+    DBG("upload_store: " << ctx.upload_store);
 
-    std::cout << "allowed_methods:\n";
+    DBG("cgi_pass:");
+    for (std::map<std::string, std::string>::const_iterator it = ctx.cgi_pass.begin();
+         it != ctx.cgi_pass.end(); ++it)
+    {
+        DBG("  " << it->first << " -> " << it->second);
+    }
+
+    DBG("allowed_methods:");
     for (size_t i = 0; i < ctx.allowed_methods.size(); ++i)
-		std::cout << "  " << RawResponse::httpMethodToString(ctx.allowed_methods[i]) << "\n";
+        DBG("  " << RawResponse::httpMethodToString(ctx.allowed_methods[i]));
 
-    std::cout << "redirection: " << static_cast<int>(ctx.redirection.statusCode) << " " << ctx.redirection.url << "\n";
+    DBG("redirection: " << static_cast<int>(ctx.redirection.statusCode)
+        << " " << ctx.redirection.url);
 
-    std::cout << "matched_location: " << ctx.matched_location << "\n";
-    std::cout << TEAL << "------------------------" << RESET "\n";
+    DBG("matched_location: " << ctx.matched_location);
+
+    DBG(TEAL << "------------------------" << RESET << "\n");
 }
 
 void printAllResponses(const ClientState& clientState)
 {
-    const std::queue<ResponseData>& queue = clientState.getResponseQueue();
-    std::cout << "=== Response Queue (" << queue.size() << " items) ===\n";
+    DBG("=== Response Queue (" << clientState.getResponseQueue().size() << " items) ===");
 
-    std::queue<ResponseData> tempQueue = queue; // copy for iteration
+    std::queue<ResponseData> tempQueue = clientState.getResponseQueue();
     size_t index = 0;
+    (void)index; // prevent unused-variable warning in case DBG is disabled
 
     while (!tempQueue.empty())
     {
         const ResponseData& resp = tempQueue.front();
-        std::cout << "---- Response " << index++ << " ----\n";
-        std::cout << "Status: " << resp.statusCode << " " << resp.statusText << "\n";
-        std::cout << "Should Close: " << std::boolalpha << resp.shouldClose << "\n";
 
-        std::cout << "Headers:\n";
+        DBG("---- Response " << index++ << " ----");
+        DBG("Status: " << resp.statusCode << " " << resp.statusText);
+        DBG("Should Close: " << std::boolalpha << resp.shouldClose);
+
+        DBG("Headers:");
         std::string contentType;
         for (const auto& [key, value] : resp.headers)
         {
-            std::cout << "  " << key << ": " << value << "\n";
+            DBG("  " << key << ": " << value);
             if (key == "Content-Type")
                 contentType = value;
         }
 
-        std::cout << "Body (length=" << resp.body.size() << "):\n";
+        DBG("Body (length=" << resp.body.size() << "):");
         if (contentType.find("text") != std::string::npos || contentType.empty())
         {
-            std::cout << resp.body << "\n";
+            DBG(resp.body);
         }
         else
         {
-            std::cout << "[binary content, not displayed]\n";
+            DBG("[binary content, not displayed]");
         }
 
         tempQueue.pop();
     }
 
-    std::cout << "=== End of Queue ===\n";
+    DBG("=== End of Queue ===");
 }
 

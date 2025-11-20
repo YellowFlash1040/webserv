@@ -17,6 +17,7 @@
 #include "../../../config/Config/request_resolving/RequestContext/RequestContext.hpp"
 #include "../../Request/RequestData/RequestData.hpp"
 #include "../RawResponse/RawResponse.hpp"
+#include "debug.hpp"
 
 class FileHandler
 {

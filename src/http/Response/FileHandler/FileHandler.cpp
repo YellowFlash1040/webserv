@@ -128,11 +128,11 @@ std::string FileHandler::detectMimeType(const std::string &path)
 // Returns the first existing index file path in the directory, or empty string if none exist
 std::string FileHandler::getIndexFilePath(const std::string &dirPath) const
 {
-	std::cout << "[getIndexFilePath] dirPath = \"" << dirPath << "\"\n";
+	DBG("[getIndexFilePath] dirPath = \"" << dirPath << "\"");
 
 	if (!existsAndIsDirectory(dirPath))
 	{
-		std::cout << "[getIndexFilePath] Not a directory\n";
+		DBG("[getIndexFilePath] Not a directory");
 		return "";
 	}
 
@@ -144,14 +144,15 @@ std::string FileHandler::getIndexFilePath(const std::string &dirPath) const
 		indexPath += idx;
 		
 		bool exists = existsAndIsFile(indexPath);
-		std::cout << "[getIndexFilePath] Checking index file: " << indexPath
-				  << " -> " << (exists ? "exists" : "not found") << "\n";
+		DBG("[getIndexFilePath] Checking index file: " << indexPath
+			<< " -> " << (exists ? "exists" : "not found"));
 
 		if (exists)
 			return indexPath;
 	}
 
-	std::cout << "[getIndexFilePath] No index file found\n";
+	DBG("[getIndexFilePath] No index file found");
 	return "";
 }
+
 

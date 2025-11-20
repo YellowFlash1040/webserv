@@ -127,26 +127,25 @@ std::string RawRequest::bodyTypeToString(BodyType t)
 
 void RawRequest::parseRequestLineAndHeaders(const std::string& headerPart)
 {
-	try
-	{
-		std::istringstream stream(headerPart);
-		std::string line;
-		if (!std::getline(stream, line))
-			throw std::runtime_error("Malformed request: missing request line");
-		
-		removeCarriageReturns(line);
+    try
+    {
+        std::istringstream stream(headerPart);
+        std::string line;
+        if (!std::getline(stream, line))
+            throw std::runtime_error("Malformed request: missing request line");
 
-		parseRequestLine(line);
-		parseHeaders(stream); 
-	}
-	catch(const std::exception& e)
-	{
-		std::cout << "[parseRequestLineAndHeaders] Bad request: " << e.what() << "\n";
+        removeCarriageReturns(line);
+
+        DBG("[parseRequestLineAndHeaders] Request line: " << line);
+
+        parseRequestLine(line);
+        parseHeaders(stream);
+    }
+    catch(const std::exception& e)
+    {
+        DBG("[parseRequestLineAndHeaders] Bad request: " << e.what());
         markBadRequest(e.what()); // sets _requestDone and prepares 400 response
-	}
-	
-	
-
+    }
 }
 	
 void RawRequest::parseHeaders(std::istringstream& stream)
@@ -187,20 +186,19 @@ void RawRequest::parseHeaders(std::istringstream& stream)
 
 void RawRequest::appendToChunkedBuffer(const std::string& data)
 {
-	std::cout << YELLOW << "DEBUG: appendToChunkedBuffer" << RESET << std::endl;
-	std::cout << ORANGE << "[appendToChunkedBuffer]: " << RESET << "Before append, _chunkedBuffer size = " << _chunkedBuffer.size() << "\n";
+    DBG("\n" << YELLOW << "[appendToChunkedBuffer]" << RESET
+        << "\nBefore append, _chunkedBuffer size = " << _chunkedBuffer.size());
 
-	_chunkedBuffer += data;
+    _chunkedBuffer += data;
 
-	// std::cout << ORANGE << "[appendToChunkedBuffer]: " << RESET << "After append, _chunkedBuffer size = " << _chunkedBuffer.size()
-	// 		  << ", contents = |" << _chunkedBuffer << "|\n";
+    DBG("[appendToChunkedBuffer] After append, _chunkedBuffer size = " << _chunkedBuffer.size());
 }
 
 std::string RawRequest::decodeChunkedBody(size_t& bytesProcessed)
 {
-	// std::cout << ORANGE << "[decodeChunkedBody]:" << RESET
-	// 	<< " START: _chunkedBuffer = |" << _chunkedBuffer 
-	// 	<< "|, _chunkedBuffer size = " << _chunkedBuffer.size() << "\n";
+	DBG(ORANGE << "[decodeChunkedBody]:" << RESET
+		<< " START: _chunkedBuffer = |" << _chunkedBuffer 
+		<< "|, _chunkedBuffer size = " << _chunkedBuffer.size());
 
 	std::string decoded;
 	size_t pos = 0;
@@ -212,14 +210,12 @@ std::string RawRequest::decodeChunkedBody(size_t& bytesProcessed)
 		size_t chunkLineEnd = _chunkedBuffer.find("\r\n", pos);
 		if (chunkLineEnd == std::string::npos)
 		{
-			std::cout << ORANGE << "[decodeChunkedBody]" << RESET
-				<< ": Incomplete chunkHeaderLine, waiting for more data\n";
+			DBG("[decodeChunkedBody]: Incomplete chunkHeaderLine, waiting for more data");
 			break; // wait for more data
 		}
 
 		std::string chunkHeaderLine = _chunkedBuffer.substr(pos, chunkLineEnd - pos);
-		std::cout << ORANGE << "[decodeChunkedBody]: " << RESET
-				<< "chunkHeaderLine is |" << chunkHeaderLine << "|\n";
+		DBG("[decodeChunkedBody]: chunkHeaderLine is |" << chunkHeaderLine);
 		
 		// Extract chunk size (if there are extensions ignore them)
 		size_t semicolonPos = chunkHeaderLine.find(';');
@@ -232,27 +228,22 @@ std::string RawRequest::decodeChunkedBody(size_t& bytesProcessed)
 		}
 		catch (...)
 		{
-			std::cout << ORANGE << "[decodeChunkedBody]" << RESET
-				<< ": Invalid chunk size |" << chunkSizeStr << "|, throwing exception\n";
+			DBG("[decodeChunkedBody]: Invalid chunk size |" << chunkSizeStr << "|, throwing exception");
 			throw std::runtime_error("Invalid chunk size in chunked body");
 		}
 
-		std::cout << ORANGE << "[decodeChunkedBody]:" << RESET
-			<< " Found the chunkHeaderLine |" << chunkHeaderLine 
-			<< "|, so chunkSize = " << chunkSize << " bytes\n";
+		DBG("[decodeChunkedBody]: Found the chunkHeaderLine |" << chunkHeaderLine 
+			<< "|, so chunkSize = " << chunkSize << " bytes");
 
 		size_t chunkDataStart = chunkLineEnd + 2; // skip \r\n
-		std::cout << ORANGE << "[decodeChunkedBody]: " << RESET
-				<< "Skipped \\r\\n from chunkLineEnd at pos " << chunkLineEnd << ". chunkDataStart pos is " << chunkDataStart << "\n"; 
+		DBG("[decodeChunkedBody]: Skipped \\r\\n from chunkLineEnd at pos " << chunkLineEnd << ". chunkDataStart pos is " << chunkDataStart);
 		
 		size_t chunkDataEnd = chunkDataStart + chunkSize;
-		std::cout << ORANGE << "[decodeChunkedBody]: " << RESET
-				<< "chunkDataEnd pos is " << chunkDataEnd << "\n"; 
+		DBG("[decodeChunkedBody]: chunkDataEnd pos is " << chunkDataEnd);
 
 		if (chunkDataEnd > _chunkedBuffer.size())
 		{
-			std::cout << ORANGE << "[decodeChunkedBody]: " << RESET
-				<< ": Incomplete chunkData, waiting for more data\n";
+			DBG("[decodeChunkedBody]: Incomplete chunkData, waiting for more data");
 			break; // wait for more data
 		}
 
@@ -262,26 +253,22 @@ std::string RawRequest::decodeChunkedBody(size_t& bytesProcessed)
 			// Append chunk data
 			std::string chunkData = _chunkedBuffer.substr(chunkDataStart, chunkSize);
 			decoded += chunkData;
-			std::cout << ORANGE << "[decodeChunkedBody]: " << RESET
-				<< "Appended chunkData |" << chunkData 
+			DBG("[decodeChunkedBody]: Appended chunkData |" << chunkData 
 				<< "|, to decoded. decoded is now |" << decoded
-				<< "|, decoded.size = " << decoded.size() << "\n";
+				<< "|, decoded.size = " << decoded.size());
 			
 				pos = chunkDataEnd + 2; // skip chunkData + trailing \r\n
-				std::cout << ORANGE << "[decodeChunkedBody]: " << RESET
-				<< "skipped chunkData + chunkTrailer, pos is " << pos << "\n";
+				DBG("[decodeChunkedBody]: skipped chunkData + chunkTrailer, pos is " << pos);
 			}
 		else
 		{
 			// terminating zero chunk, make sure final CRLF exists
-			std::cout << ORANGE << "[decodeChunkedBody]: " << RESET
-				<< RED << "reached terminating zero chunk" << RESET "\n";
+			DBG("[decodeChunkedBody]: reached terminating zero chunk!!");
 
 			// make sure the final CRLF exists
 			size_t zeroChunkEnd = chunkDataStart + 2; // chunkDataStart points after the first \r\n
-			std::cout << ORANGE << "[decodeChunkedBody]: " << RESET
-				<< "zeroChunkEnd is set to 2 bytes after chunkDataStart (" << chunkDataStart
-				<< "), so at " << zeroChunkEnd << "\n";
+			DBG("[decodeChunkedBody]: zeroChunkEnd is set to 2 bytes after chunkDataStart (" << chunkDataStart
+				<< "), so at " << zeroChunkEnd);
 			
 
 			if (_chunkedBuffer.size() >= zeroChunkEnd
@@ -290,14 +277,12 @@ std::string RawRequest::decodeChunkedBody(size_t& bytesProcessed)
 			{
 				pos = zeroChunkEnd;
 				_terminatingZeroMet = true;
-				std::cout << ORANGE << "[decodeChunkedBody]: " << RESET
-						<< "Zero-size chunk fully consumed, pos = " << pos << "\n";
+				DBG("[decodeChunkedBody]: Zero-size chunk fully consumed, pos = " << pos);
 				break;
 			}
 			else
 			{
-				std::cout << ORANGE << "[decodeChunkedBody]: " << RESET
-					<< "waiting for final CRLF after zero chunk\n";
+				DBG("[decodeChunkedBody]: waiting for final CRLF after zero chunk");
 				break; // wait for more data
 			}
 			break; // zero chunk ends the loop
@@ -305,13 +290,16 @@ std::string RawRequest::decodeChunkedBody(size_t& bytesProcessed)
 	}
 	
 	bytesProcessed = pos;
-	std::cout << ORANGE << "[decodeChunkedBody]:" << RESET
-		<< " END: decoded is |" << decoded << "| with size = " << decoded.size() 
-		<< ", bytesProcessed = " << bytesProcessed << "\n";
+	DBG("[decodeChunkedBody]: END: decoded is |" << decoded << "| with size = " << decoded.size()
+		<< ", bytesProcessed = " << bytesProcessed);
 
 	return decoded;
 }
 
+HttpMethod RawRequest::getMethod() const
+{
+	return _method;
+}
 
 bool RawRequest::conLenReached() const
 {
@@ -342,7 +330,8 @@ size_t RawRequest::remainingConLen() const
 
 void RawRequest::consumeTempBuffer(size_t n)
 {
-	// std::cout << MINT << "[consumeTempBuffer]: " << RESET << "_tempbuffer before: |" << _tempBuffer << "|, size = " << _tempBuffer.size() << "\n";
+	DBG("[consumeTempBuffer]: _tempBuffer before: |" << _tempBuffer 
+        << "|, size = " << _tempBuffer.size());
 
 	if (n >= _tempBuffer.size())
 	{
@@ -353,192 +342,175 @@ void RawRequest::consumeTempBuffer(size_t n)
 		_tempBuffer.erase(0, n);  // remove the first n bytes
 	}
 
-	// std::cout << MINT << "[consumeTempBuffer]: " << RESET << "after consuming:  |" << _tempBuffer << "|, size = " << _tempBuffer.size() << "\n";
+	DBG("[consumeTempBuffer]: after consuming: |" << _tempBuffer 
+        << "|, size = " << _tempBuffer.size());
 }
 
 void RawRequest::appendToBody(const std::string& data)
 {
-	std::cout << ORANGE << "[appendToBody]: " << RESET
-			  << "Appending " << data.size() << " bytes to _body\n";
+    DBG("[appendToBody]: Appending " << data.size() << " bytes to _body");
 
-	_body += data;
+    _body += data;
 
-	// std::cout << ORANGE << "[appendToBody]: " << RESET
-	// 		  << "_body now = |" << _body << "|\n";
+    DBG("[appendToBody]: _body now = |" << _body << "|");
 }
 
 void RawRequest::setChunkedBuffer(std::string&& newBuffer)
 {
-	std::cout << ORANGE << "[setChunkedBuffer]: " << RESET << "old size of chunkedBuffer = " << _chunkedBuffer.size() << "\n";
-	_chunkedBuffer = std::move(newBuffer);
-	// std::cout << "new size = " << _chunkedBuffer.size()
-	// << "(moved). content = |" << _chunkedBuffer 
-	// << RESET << "|\n";
+    DBG("[setChunkedBuffer]: old size of _chunkedBuffer = " << _chunkedBuffer.size());
+
+    _chunkedBuffer = std::move(newBuffer);
+
+    DBG("[setChunkedBuffer]: new size of _chunkedBuffer = " << _chunkedBuffer.size()
+        << ", content = |" << _chunkedBuffer << "|");
 }
 
 void RawRequest::appendBodyBytes(const std::string& data)
 {
-	// std::cout << YELLOW << "[appendBodyBytes]:" << RESET << std::endl;
-	
 
-	// std::cout << GREEN << "[appendBodyBytes] before appending:" << RESET << "\n"
-	// 	<< "ContentLengthBuffer() = " << _conLenBuffer << "\n"
-	// 	<< "ChunkedBuffer() = " << _chunkedBuffer << "\n";
-		
 	switch (_bodyType)
 	{
 		case BodyType::SIZED:
 		{
 			size_t remaining = remainingConLen(); // bytes still needed
-			// std::cout << MINT << "[appendBodyBytes]: " << RESET "remaining bytes of content to append: "
-			// 	<< remaining << "\n";
+			 DBG("[appendBodyBytes]: remaining bytes of content to append = " << remaining);
+			
 			size_t toAppend = std::min(remaining, data.size());
-			// std::cout << MINT << "[appendBodyBytes]: " << RESET "bytes to will be appended in reality: "
-			// 	<< toAppend << "\n";
+			DBG("[appendBodyBytes]: bytes to append in reality = " << toAppend);
+			
 			appendToConLenBuffer(data.substr(0, toAppend));
 			consumeTempBuffer(toAppend); // remove exactly what we consumed
+			
 			if (conLenReached())
 			{
 				appendToBody(_conLenBuffer);
 				setBodyDone();
+				DBG("[appendBodyBytes]: Content-Length body finished, body done set");
 			}
-			// std::cout << GREEN << "[appendBodyBytes] after appending:" << RESET << "\n"
-			// << "ContentLengthBuffer() = " << _conLenBuffer << "\n";
-			// std::cout << "[appendBodyBytes]: after finishing body length, requests:\n";
 			break;
 		}
 
 		case BodyType::CHUNKED:
 		{
 			appendToChunkedBuffer(_tempBuffer);
-			// std::cout << GREEN << "[appendBodyBytes]: " << RESET
-			// 	<< "appeneded _chunkBuffer with data from tempBuffer. It is now |"
-			// 	<< _chunkedBuffer << "|\n";
+			DBG("[appendBodyBytes]: appended _chunkedBuffer with data from _tempBuffer, _chunkedBuffer size = " 
+                << _chunkedBuffer.size());
+			
 			setTempBuffer(""); // consumed for decoding
 			size_t bytesProcessed = 0;
 			
 			// decode as much as possible
 			std::string decoded = decodeChunkedBody(bytesProcessed);
 			appendToBody(decoded); // append only the decoded chunks
+			DBG("[appendBodyBytes]: decoded chunked body appended, decoded size = " << decoded.size());
 			
 			// remove processed bytes from _chunkedBuffer
 			setChunkedBuffer(_chunkedBuffer.substr(bytesProcessed));
+			DBG("[appendBodyBytes]: _chunkedBuffer resized after processing, new size = " << _chunkedBuffer.size());
 			
 			if (_terminatingZeroMet)
 			{
-				// std::cout << GREEN << "[appendBodyBytes]: " << RESET
-				// << "TerminatingZero found\n";
 				setBodyDone();
 				setTempBuffer(_chunkedBuffer);
 				_chunkedBuffer.clear();
-				// std::cout << GREEN << "[appendBodyBytes]: " << RESET
-				// 	<< "set _tempBuffer to the contents of _chunkedBuffer, it is now = |"
-				// 	<< _tempBuffer << "| and cleared _chunkedBuffer\n";
-				
+				DBG("[appendBodyBytes]: Terminating zero chunk found, body done set, tempBuffer updated, _chunkedBuffer cleared");
 			}
 			else
 			{
 				// partial chunk left? move leftovers to tempBuffer for next process
 				setTempBuffer(_chunkedBuffer + _tempBuffer);
 				
-				// std::cout << GREEN << "[appendBodyBytes]: " << RESET
-				// << "TerminatingZero not found yet\n";
+				DBG("[appendBodyBytes]: Terminating zero not found, leftovers moved to tempBuffer");
 			}
 			break;
 		}
 
 		case BodyType::NO_BODY:
 			// Nothing to append
+			DBG("[appendBodyBytes]: No body type, nothing to append");
 			break;
 
 		case BodyType::ERROR:
 			throw std::runtime_error("Cannot append body data: request in ERROR state");
 	}
+	DBG("[appendBodyBytes]: END");
 	
 }
 
-void RawRequest::separateHeadersFromBody()  // TODO: handle malformed requests safely and support error pages without URI
+void RawRequest::separateHeadersFromBody()
 {
-	std::cout << YELLOW << "DEBUG: separateHeadersFromBody: " << RESET << std::endl;
-	//std::cout << "[separateHeadersFromBody] tempBuffer = |" << _tempBuffer << "|\n";
+	DBG("separateHeadersFromBody");
 
 	size_t headerEnd = _tempBuffer.find("\r\n\r\n");
 	if (headerEnd == std::string::npos)
 	{
-		std::cout << "[separateHeadersFromBody] Headers incomplete (\\r\\n\\r\\n not found)\n";
+		DBG("Headers incomplete (\\r\\n\\r\\n not found)");
 		return; // headers incomplete
 	}
 
 	std::string headerPart = _tempBuffer.substr(0, headerEnd + 4);
-	//std::cout << "[separateHeadersFromBody] Header part = |" << headerPart << "|\n";
+	DBG("Header part extracted, length = " << headerPart.size());
 
 	parseRequestLineAndHeaders(headerPart);
-	
+
 	if (_bodyType == BodyType::NO_BODY)
 	{
-		std::cout << "No body, marking body done and request done\n";
+		DBG("No body, marking body done and request done");
 		_bodyDone = true;
 		_requestDone = true;
 	}
 
 	// Keep leftover (after headers) in tempBuffer
 	_tempBuffer = _tempBuffer.substr(headerEnd + 4);
-	// std::cout << "Temp buffer after headers removed = |" << _tempBuffer << "|\n";
-	
-	std::cout << "Temp buffer length after header removal = " << _tempBuffer.size() << std::endl;
+	DBG("Temp buffer length after header removal = " << _tempBuffer.size());
+
 	try
 	{
-    	_uri = normalizePath(_uri);  // validate path AFTER leftovers are handled
+		_uri = normalizePath(_uri);  // validate path AFTER leftovers are handled
 	}
 	catch (const std::exception& e)
 	{
 		markBadRequest(e.what());
 	}
-	
-}
-
-
-HttpMethod RawRequest::stringToHttpMethod(const std::string& method)
-{
-	if (method == "GET") return HttpMethod::GET;
-	if (method == "POST") return HttpMethod::POST;
-	if (method == "DELETE") return HttpMethod::DELETE;
-	return HttpMethod::NONE; // fallback
 }
 
 void RawRequest::parseRequestLine(const std::string& firstLine)
 {
-	std::istringstream reqLine(firstLine);
-	reqLine >> _method >> _rawUri >> _httpVersion;
+    std::istringstream reqLine(firstLine);
+	std::string methodStr;
+	
+    reqLine >> methodStr >> _rawUri >> _httpVersion;
 
-	if (_method.empty() || _rawUri.empty() || _httpVersion.empty())
+	if (methodStr.empty() || _rawUri.empty() || _httpVersion.empty())
 		throw std::runtime_error("Invalid request line");
 
-	if (stringToHttpMethod(_method) == HttpMethod::NONE)
-		throw std::invalid_argument("Unsupported HTTP method: " + _method);
+	_method = stringToHttpMethod(methodStr);
+    if (_method == HttpMethod::NONE)
+        throw std::invalid_argument("Unsupported HTTP method: " + httpMethodToString(_method));
 
-	if (_httpVersion != "HTTP/1.0" && _httpVersion != "HTTP/1.1")
-		throw std::invalid_argument("Unsupported HTTP version: " + _httpVersion);
+    if (_httpVersion != "HTTP/1.0" && _httpVersion != "HTTP/1.1")
+        throw std::invalid_argument("Unsupported HTTP version: " + _httpVersion);
 
-	if (_rawUri[0] != '/')
-	{
-		throw std::invalid_argument("Invalid request URI: " + _rawUri);
-		//400 Bad Request
-	}
-		// --- Split URI into path + query ---
-	size_t qpos = _rawUri.find('?');
-	if (qpos != std::string::npos)
-	{
-		_uri = _rawUri.substr(0, qpos);
-		_query = _rawUri.substr(qpos + 1);
-	}
-	else
-	{
-		_uri = _rawUri;
-		_query.clear();
-	}
-	std::cout << "[parseRequestLine]: _uri is " << _uri << " \n";
+    if (_rawUri[0] != '/')
+    {
+        throw std::invalid_argument("Invalid request URI: " + _rawUri);
+        // 400 Bad Request
+    }
 
+    // --- Split URI into path + query ---
+    size_t qpos = _rawUri.find('?');
+    if (qpos != std::string::npos)
+    {
+        _uri = _rawUri.substr(0, qpos);
+        _query = _rawUri.substr(qpos + 1);
+    }
+    else
+    {
+        _uri = _rawUri;
+        _query.clear();
+    }
+
+    DBG("[parseRequestLine]: _uri is " << _uri);
 }
 
 
@@ -587,59 +559,59 @@ std::string RawRequest::decodePercentOnce(const std::string& s)
 
 std::string RawRequest::normalizePath(const std::string& rawUri)
 {
-	if (rawUri.empty() || rawUri[0] != '/')
-		throw std::invalid_argument("Invalid raw URI");
+    if (rawUri.empty() || rawUri[0] != '/')
+        throw std::invalid_argument("Invalid raw URI");
 
-	// Fully decode percent-encoded sequences first
-	std::string decoded = fullyDecodePercent(rawUri);
+    // Fully decode percent-encoded sequences first
+    std::string decoded = fullyDecodePercent(rawUri);
 
-	std::vector<std::string> stack;
-	std::istringstream iss(decoded);
-	std::string segment;
+    std::vector<std::string> stack;
+    std::istringstream iss(decoded);
+    std::string segment;
 
-	while (std::getline(iss, segment, '/'))
-	{
-		if (segment.empty() || segment == ".")
-			continue;
+    while (std::getline(iss, segment, '/'))
+    {
+        if (segment.empty() || segment == ".")
+            continue;
 
-		if (segment == "..")
-		{
-			if (stack.empty())
-			{
-				std::cout << "[normalizePath] Bad request: path escapes root: \""
-					<< rawUri << "\"\n";
-				throw std::runtime_error("Bad request: path escapes root");
-			}
-			stack.pop_back();
-		}
-		else
-		{
-			stack.push_back(segment);
-		}
-	}
+        if (segment == "..")
+        {
+            if (stack.empty())
+            {
+                DBG("[normalizePath] Bad request: path escapes root: \"" << rawUri << "\"");
+                throw std::runtime_error("Bad request: path escapes root");
+            }
+            stack.pop_back();
+        }
+        else
+        {
+            stack.push_back(segment);
+        }
+    }
 
-	// Rebuild normalized path
-	std::ostringstream oss;
-	oss << "/";
-	for (size_t i = 0; i < stack.size(); ++i)
-	{
-		oss << stack[i];
-		if (i + 1 < stack.size())
-			oss << "/";
-	}
+    // Rebuild normalized path
+    std::ostringstream oss;
+    oss << "/";
+    for (size_t i = 0; i < stack.size(); ++i)
+    {
+        oss << stack[i];
+        if (i + 1 < stack.size())
+            oss << "/";
+    }
 
-	// Preserve trailing slash if original URI had it
-	if (rawUri.size() > 1 && rawUri.back() == '/' && !stack.empty())
-		oss << "/";
+    // Preserve trailing slash if original URI had it
+    if (rawUri.size() > 1 && rawUri.back() == '/' && !stack.empty())
+        oss << "/";
 
-	return oss.str();
+    DBG("[normalizePath] normalized path: " << oss.str());
+    return oss.str();
 }
 
 RequestData RawRequest::buildRequestData() const
 {
 	RequestData data;
 
-	data.method = stringToHttpMethod(_method);
+	data.method = _method;
 	data.uri = _uri;
 	data.query = _query;
 	data.httpVersion = _httpVersion;
@@ -673,44 +645,32 @@ std::string RawRequest::getHost() const
 	return (it != _headers.end()) ? it->second : "";
 }
 
-
 void RawRequest::printRequest(size_t idx) const
 {
-	std::cout << ORANGE << "[RawRequest #" << idx << "]" << RESET << "\n"
-		<< YELLOW << "Method: " << RESET << _method << "\n"
-		<< YELLOW << "URI: " << RESET << _uri << "\n"
-		<< YELLOW << "Query: " << RESET << _query << "\n"
-		<< YELLOW << "HTTP Version: " << RESET << _httpVersion << "\n"
-		<< YELLOW << "Body Type: " << RESET << bodyTypeToString(_bodyType) << "\n"
-		<< YELLOW << "Body Length: " << RESET << _body.size() << "\n"
-		<< YELLOW << "Headers Done: " << RESET << (_headersDone ? "true" : "false") << "\n"
-		<< YELLOW << "Body Done: " << RESET << (_bodyDone ? "true" : "false") << "\n"
-		<< YELLOW << "Request Done: " << RESET << (_requestDone ? "true" : "false") << "\n";
+    (void)idx;
+    DBG("\n" << ORANGE << "[RawRequest]" << RESET
+        << "\nMethod: " << _method
+        << "\nURI: " << _uri
+        << "\nQuery: " << _query
+        << "\nHTTP Version: " << _httpVersion
+        << "\nBody Type: " << bodyTypeToString(_bodyType)
+        << "\nBody Length: " << _body.size()
+        << "\nHeaders Done: " << (_headersDone ? "true" : "false")
+        << "\nBody Done: " << (_bodyDone ? "true" : "false")
+        << "\nRequest Done: " << (_requestDone ? "true" : "false"));
 }
 
-void RawRequest::printHeaders() const
+void RawRequest::setMethod(HttpMethod method)
 {
-	std::cout << ORANGE << "[Headers]" << RESET << "\n";
-	for (std::unordered_map<std::string, std::string>::const_iterator it = _headers.begin();
-		 it != _headers.end(); ++it)
-	{
-		std::cout << GREEN << it->first << RESET << ": " << it->second << "\n";
-	}
-}
-
-void RawRequest::printAllBuffers() const
-{
-	std::cout << ORANGE << "[Buffers]" << RESET << "\n"
-		<< "TempBuffer: " << (_tempBuffer.empty() ? "(empty)" : _tempBuffer) << "\n"
-		<< "RL+Headers Buffer: " << (_rlAndHeadersBuffer.empty() ? "(empty)" : _rlAndHeadersBuffer) << "\n"
-		<< "Chunked Buffer: " << (_chunkedBuffer.empty() ? "(empty)" : _chunkedBuffer) << "\n"
-		<< "Content-Length Buffer: " << (_conLenBuffer.empty() ? "(empty)" : _conLenBuffer) << "\n"
-		<< "Body: " << (_body.empty() ? "(empty)" : _body) << "\n";
+    _method = method;
 }
 
 void RawRequest::setMethod(const std::string& method)
 {
-	_method = method;
+    if (method == "GET")       _method = HttpMethod::GET;
+    else if (method == "POST") _method = HttpMethod::POST;
+    else if (method == "DELETE") _method = HttpMethod::DELETE;
+    else                       _method = HttpMethod::NONE;
 }
 
 void RawRequest::setUri(const std::string& uri)

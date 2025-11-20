@@ -84,8 +84,6 @@ class RawResponse
 	void handleCgiScript();
 	void handleExternalRedirect(const std::string& reqUri);
 	
-	static std::string httpMethodToString(HttpMethod method);
-	
 	void sendFile(const std::string &filePath, const std::string &mimeType);
 	bool hasHeader(const std::string& key) const;
 	std::string getHeader(const std::string& key) const;

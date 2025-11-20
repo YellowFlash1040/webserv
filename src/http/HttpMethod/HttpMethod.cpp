@@ -1,76 +1,20 @@
-// #include "HttpMethod.hpp"
+#include "HttpMethod.hpp"
 
-// // -----------------------CONSTRUCTION AND
-// DESTRUCTION-------------------------
+std::string httpMethodToString(HttpMethod method)
+{
+    switch (method)
+    {
+        case HttpMethod::GET:    return "GET";
+        case HttpMethod::POST:   return "POST";
+        case HttpMethod::DELETE: return "DELETE";
+        default:                 return "NONE";
+    }
+}
 
-// HttpMethod::HttpMethod()
-//   : m_value(HttpMethodEnum::NONE)
-// {
-// }
-
-// HttpMethod::HttpMethod(const std::string& value)
-//   : m_value(stringToEnum(value))
-// {
-// }
-
-// // ---------------------------ACCESSORS-----------------------------
-
-// HttpMethodEnum HttpMethod::value() const
-// {
-//     return m_value;
-// }
-
-// std::string HttpMethod::toString() const
-// {
-//     return enumToString(m_value);
-// }
-
-// // ---------------------------METHODS-----------------------------
-
-// HttpMethodEnum HttpMethod::stringToEnum(const std::string& value)
-// {
-//     static const std::unordered_map<std::string, HttpMethodEnum> map
-//         = {{"GET", HttpMethodEnum::GET},
-//            {"POST", HttpMethodEnum::POST},
-//            {"PUT", HttpMethodEnum::PUT},
-//            {"DELETE", HttpMethodEnum::DELETE}};
-
-//     auto it = map.find(value);
-//     if (it != map.end())
-//         return it->second;
-
-//     throw std::invalid_argument("Invalid HTTP method: " + value);
-// }
-
-// std::string HttpMethod::enumToString(HttpMethodEnum method)
-// {
-//     static const std::unordered_map<HttpMethodEnum, std::string> map
-//         = {{HttpMethodEnum::GET, "GET"},
-//            {HttpMethodEnum::POST, "POST"},
-//            {HttpMethodEnum::PUT, "PUT"},
-//            {HttpMethodEnum::DELETE, "DELETE"},
-//            {HttpMethodEnum::NONE, "NONE"}};
-
-//     auto it = map.find(method);
-//     if (it != map.end())
-//         return it->second;
-
-//     return "NONE"; // fallback
-// }
-
-// bool HttpMethod::isValid(const std::string& value)
-// {
-//     static const std::unordered_map<std::string, HttpMethodEnum> map
-//         = {{"GET", HttpMethodEnum::GET},
-//            {"POST", HttpMethodEnum::POST},
-//            {"PUT", HttpMethodEnum::PUT},
-//            {"DELETE", HttpMethodEnum::DELETE}};
-//     return map.count(value) > 0;
-// }
-
-// void HttpMethod::setDefaultHttpMethods(std::vector<HttpMethod>& httpMethods)
-// {
-//     httpMethods.emplace_back("GET");
-//     httpMethods.emplace_back("POST");
-//     httpMethods.emplace_back("DELETE");
-// }
+HttpMethod stringToHttpMethod(const std::string& method)
+{
+    if (method == "GET") return HttpMethod::GET;
+    if (method == "POST") return HttpMethod::POST;
+    if (method == "DELETE") return HttpMethod::DELETE;
+    return HttpMethod::NONE;
+}

@@ -3,6 +3,8 @@
 
 #include "../HttpMethod/HttpMethod.hpp"
 #include "../RequestData/RequestData.hpp"
+#include "debug.hpp"
+
 #include <string>
 #include <unordered_map>
 #include <iostream>
@@ -34,7 +36,7 @@ class RawRequest
 		std::string _body;
 		std::string _chunkedBuffer;
 		std::string _conLenBuffer;
-		std::string _method;
+		HttpMethod _method;
 		std::string _rawUri;
 		std::string _uri;
 		std::string _query;  // optional query string (part after '?')
@@ -51,7 +53,6 @@ class RawRequest
 		bool _isBadRequest;
 	
 		// Helpers
-		static HttpMethod stringToHttpMethod(const std::string& method);
 		static std::string bodyTypeToString(BodyType t);
 		static std::string fullyDecodePercent(const std::string& rawUri);
 		static std::string decodePercentOnce(const std::string& s);
@@ -67,8 +68,6 @@ class RawRequest
 		void parseRequestLine(const std::string& firstLine);
 		void parseHeaders(std::istringstream& stream);
 		
-		void printAllBuffers() const;
-		void printHeaders() const;
 		void appendToBody(const std::string& data);
 		void addHeader(const std::string& name, const std::string& value);
 		void setChunkedBuffer(std::string&& newBuffer);
@@ -84,6 +83,7 @@ class RawRequest
 
 		
 		const std::string getHeader(const std::string& name) const;
+		HttpMethod getMethod() const;
 		bool conLenReached() const;
 		void setHeadersDone();
 		void setBodyDone();
@@ -108,7 +108,8 @@ class RawRequest
 
 		void printRequest(size_t idx = 0) const;
 		
-		void setMethod(const std::string& method);
+		void setMethod(HttpMethod method);
+    	void setMethod(const std::string& method);
 		void setUri(const std::string& uri);
 		
 
