@@ -17,10 +17,24 @@ ParsedCGI CGIParser::run()
 
     size_t sep = findSeparator();
     std::string_view header_part = _raw.substr(0, sep);
-    out.body = std::string(_raw.substr(sep + _delimiter_len));
 
     parseHeaders(header_part, out);
     validate(out);
+
+    std::string_view body_part = _raw.substr(sep + _delimiter_len);
+
+    auto it = out.headers.find("Content-Length");
+    if (it != out.headers.end())
+    {
+        size_t contentLength = std::stoul(it->second);
+        if (contentLength > body_part.size())
+            throw std::runtime_error("CGI body is shorter than Content-Length");
+        out.body = std::string(body_part.substr(0, contentLength));
+    }
+    else
+    {
+        out.body = std::string(body_part);
+    }
 
     return out;
 }
