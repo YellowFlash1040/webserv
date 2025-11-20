@@ -22,12 +22,11 @@ class FileHandler
 {
 	private:
 	std::string _root;
-	// bool _autoindex;
 	std::vector<std::string> _indexFiles;
 	
 	public:
 	FileHandler() = delete;
-	FileHandler(bool autoindex, const std::vector<std::string> &indexFiles);
+	FileHandler(const std::vector<std::string> &indexFiles);
 	FileHandler(const FileHandler &) = default;
 	FileHandler &operator=(const FileHandler &) = default;
 	~FileHandler() = default;
@@ -36,6 +35,7 @@ class FileHandler
 	static bool pathExists(const std::string& path);
 	static bool existsAndIsFile(const std::string& path);
 	static bool existsAndIsDirectory(const std::string& path);
+	static bool hasReadPermission(const std::string& path);
 	static bool hasWritePermission(const std::string& path);
 	static bool deleteFile(const std::string& path);
 

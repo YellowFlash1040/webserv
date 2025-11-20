@@ -201,7 +201,7 @@ void ConnectionManager::genResps(int clientId, const NetworkEndpoint& endpoint)
 			std::cout << "[genRespsForReadyReqs] Generated new ctx\n";
 			
 			
-			FileHandler fileHandler(newCtx.autoindex_enabled, newCtx.index_files);
+			FileHandler fileHandler(newCtx.index_files);
 			if (!fileHandler.existsAndIsFile(newCtx.resolved_path))
 			{
 				std::cout << "Resolved error_page file does not exist\n";
@@ -232,7 +232,7 @@ void ConnectionManager::genResps(int clientId, const NetworkEndpoint& endpoint)
 			RawResponse nextResp = clientState.popNextRawResponse();
 			
 			// Giving the served error page and error code instead of 200
-			std::cout << "[genRespsForReadyReqs] Giving the served error page and error code instead of 200, new code: " << static_cast<int>(curRawResp.getStatusCode()) << "\n";
+			std::cout << "[genRespsForReadyReqs] Changing code 200 to code: " << static_cast<int>(curRawResp.getStatusCode()) << "\n";
 			nextResp.setStatusCode(curRawResp.getStatusCode());
 			
 			ResponseData curResData = nextResp.toResponseData();

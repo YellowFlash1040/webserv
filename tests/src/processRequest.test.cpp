@@ -29,7 +29,7 @@ TEST_F(RequestHandlerTest, GoodRequest)
     rawReq.setMethod("GET");
     rawReq.setUri("/");
 
-    ctx.resolved_path = "./www/site1/";
+    ctx.resolved_path = "./assets/www/site1/";
     ctx.allowed_methods = { HttpMethod::GET };
     ctx.client_max_body_size = 1024;
     ctx.index_files = { "index.html" };
@@ -48,7 +48,7 @@ TEST_F(RequestHandlerTest, FileMissing)
     rawReq.setMethod("GET");
     rawReq.setUri("non_existing.html");
 
-    ctx.resolved_path = "./www/site1/non_existing.html";
+    ctx.resolved_path = "./assets/www/site1/non_existing.html";
     ctx.allowed_methods = { HttpMethod::GET };
     ctx.client_max_body_size = 1024;
     ctx.index_files = { "index.html" };
@@ -67,7 +67,7 @@ TEST_F(RequestHandlerTest, DirectoryMissing)
     rawReq.setMethod("GET");
     rawReq.setUri("/non_existing");
 
-    ctx.resolved_path = "./www/site1/non_existing/";
+    ctx.resolved_path = "./assets/www/site1/non_existing/";
     ctx.allowed_methods = { HttpMethod::GET };
     ctx.client_max_body_size = 1024;
     ctx.index_files = { "index.html" };
@@ -87,7 +87,7 @@ TEST_F(RequestHandlerTest, DirWithBadIndexFileAutoindexOff)
     rawReq.setUri("/");
 
     RequestContext ctx;
-    ctx.resolved_path = "./www/site1/";
+    ctx.resolved_path = "./assets/www/site1/";
     ctx.allowed_methods = { HttpMethod::GET };
     ctx.client_max_body_size = 1024;
     ctx.index_files = { "non_existing.html" };
@@ -108,7 +108,7 @@ TEST_F(RequestHandlerTest, DirWithBadIndexFileAutoindexOn) //directory listing
     rawReq.setUri("/");
 
     RequestContext ctx;
-    ctx.resolved_path = "./www/site1/";
+    ctx.resolved_path = "./assets/www/site1/";
     ctx.allowed_methods = { HttpMethod::GET };
     ctx.client_max_body_size = 1024;
     ctx.index_files = { "non_existing.html" };
@@ -128,7 +128,7 @@ TEST_F(RequestHandlerTest, SecondIndexOk)
     rawReq.setMethod("GET");
     rawReq.setUri("/");
 
-    ctx.resolved_path = "./www/site1/";
+    ctx.resolved_path = "./assets/www/site1/";
     ctx.allowed_methods = { HttpMethod::GET };
     ctx.client_max_body_size = 1024;
     ctx.index_files = { "wrong_index.html" ,"index.html" };

@@ -1,9 +1,8 @@
 #include "FileHandler.hpp"
 
-FileHandler::FileHandler(bool autoindex, const std::vector<std::string> &indexFiles)
-	{(void) autoindex; 
-	(void)indexFiles;
-
+FileHandler::FileHandler(const std::vector<std::string>& indexFiles)
+	: _indexFiles(indexFiles)
+{
 }
 
 bool FileHandler::pathExists(const std::string &path)
@@ -28,6 +27,11 @@ bool FileHandler::existsAndIsDirectory(const std::string &path)
 	return stat(path.c_str(), &s) == 0 && S_ISDIR(s.st_mode);
 }
 
+bool FileHandler::hasReadPermission(const std::string &path)
+{
+    return (access(path.c_str(), R_OK) == 0);
+}
+
 bool FileHandler::hasWritePermission(const std::string& path)
 {
 	return access(path.c_str(), W_OK) == 0;
@@ -39,6 +43,7 @@ bool FileHandler::deleteFile(const std::string& path)
 }
 
 //already setting size at this stage to avoid multimple stat calls, might be a mistake
+// st_size is a off_t, which on 64-bit systems is ALSO 64-bit
 DeliveryInfo FileHandler::getDeliveryInfo(const std::string &path, size_t maxInMemory)
 {
 	struct stat s;
@@ -137,7 +142,7 @@ std::string FileHandler::getIndexFilePath(const std::string &dirPath) const
 		if (!indexPath.empty() && indexPath.back() != '/')
 			indexPath += '/';
 		indexPath += idx;
-
+		
 		bool exists = existsAndIsFile(indexPath);
 		std::cout << "[getIndexFilePath] Checking index file: " << indexPath
 				  << " -> " << (exists ? "exists" : "not found") << "\n";
@@ -148,15 +153,5 @@ std::string FileHandler::getIndexFilePath(const std::string &dirPath) const
 
 	std::cout << "[getIndexFilePath] No index file found\n";
 	return "";
-}  
-
-// FileResult FileHandler::internalServerError()
-// {
-// 	FileResult result;
-// 	result.path = ""; 
-// 	result.mimeType = "text/html";
-// 	result.mode = FileDeliveryMode::InMemory;
-// 	result.content = "<html><body><h1>500 Internal Server Error</h1></body></html>";
-// 	return result;
-// }
+}
 

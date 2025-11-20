@@ -14,10 +14,10 @@ size_t ClientState::getRawReqCount() const
 	return _rawRequests.size();
 }
 
-size_t ClientState::getRequestCount() const
-{
-	return _requestsData.size();
-}
+// size_t ClientState::getRequestCount() const
+// {
+// 	return _requestsData.size();
+// }
 
 
 bool ClientState::latestRawReqNeedsBody() const
@@ -88,16 +88,6 @@ const RawRequest& ClientState::getRawRequest(size_t idx) const
 	return _rawRequests.at(idx);
 }
 
-RequestData& ClientState::getRequest(size_t idx)
-{
-	if (idx >= _requestsData.size()) 
-	{
-		std::cout << "Tried to access request " << idx << " but size=" << _requestsData.size() << "\n";
-		throw std::out_of_range("getRequest index out of bounds");
-	}
-	return _requestsData[idx];
-}
-
 size_t ClientState::getLatestRawReqIndex() const
 {
 	return _rawRequests.empty() ? 0 : _rawRequests.size() - 1;
@@ -131,44 +121,9 @@ RawRequest ClientState::popRawReq()
 	throw std::runtime_error("No finished request found");
 }
 
-RequestData ClientState::popRequestData()
+bool ClientState::hasCompleteRawRequest() const
 {
-	std::cout << YELLOW << "DEBUG: popRequestData" << RESET << std::endl;
-	std::cout << "[popRequestData]: _requestsData size = " << _requestsData.size() << "\n";
-
-	for (size_t idx = 0; idx < _requestsData.size(); ++idx)
-	{
-		auto& req = _requestsData[idx];
-
-		{
-			std::cout << RED << "[popRequestData]: Popping finished ready request #" << idx << RESET
-				// << ", Method = " << req. //print the enum
-				<< ", URI = " << req.uri
-				<< ", Query = " << req.query
-				<< ", Body = |" << req.body << "|"
-				<< "\n\n";
-
-			RequestData finished = std::move(req);
-			_requestsData.erase(_requestsData.begin() + idx);
-			return finished;
-		}
-	}
-
-	std::cout << "No finished request found in _rawRequests\n";
-	throw std::runtime_error("No finished request found");
-	
-}
-
-
-
-void ClientState::addRequestData(const RequestData& requestData)
-{
-	std::cout << RED << "added Request to _requestData" << RESET << "\n";
-	 _requestsData.emplace_back(std::move(requestData));
-}
-
-bool ClientState::hasCompleteRawRequest() const {
-	for (std::vector<RawRequest>::const_iterator it = _rawRequests.begin(); it != _rawRequests.end(); ++it) {
+	for (std::deque<RawRequest>::const_iterator it = _rawRequests.begin(); it != _rawRequests.end(); ++it) {
 		if (it->isRequestDone())
 			return true;
 	}
