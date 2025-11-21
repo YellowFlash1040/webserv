@@ -75,7 +75,7 @@ class ClientState
 		ResponseData& frontResponseData();
 		void popFrontResponseData();
 
-		void enqueueRawResponse(const RawResponse& resp);
+		void enqueueRawResponse(const RawResponse& resp, bool shouldClose);
 		RawResponse& peekLastRawResponse();
 		RawResponse popNextRawResponse();
 		

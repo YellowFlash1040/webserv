@@ -148,10 +148,14 @@ void ClientState::popFrontResponseData()
 }
 
 
-void ClientState::enqueueRawResponse(const RawResponse& resp)
+void ClientState::enqueueRawResponse(const RawResponse& resp, bool shouldClose)
 {
-	DBG("[enqueueRawResponse]: enqueued");
-	_rawResponsesQueue.push_back(resp);
+    RawResponse r = resp; // copy
+    if (shouldClose)
+        r.addHeader("Connection", "close");
+
+    DBG("[enqueueRawResponse]: enqueued");
+    _rawResponsesQueue.push_back(r);
 }
 
 RawResponse& ClientState::peekLastRawResponse()

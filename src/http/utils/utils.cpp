@@ -32,7 +32,7 @@ void printReqContext(const RequestContext& ctx)
 
     DBG("allowed_methods:");
     for (size_t i = 0; i < ctx.allowed_methods.size(); ++i)
-        DBG("  " << RawResponse::httpMethodToString(ctx.allowed_methods[i]));
+        DBG("  " << httpMethodToString(ctx.allowed_methods[i]));
 
     DBG("redirection: " << static_cast<int>(ctx.redirection.statusCode)
         << " " << ctx.redirection.url);
@@ -42,44 +42,13 @@ void printReqContext(const RequestContext& ctx)
     DBG(TEAL << "------------------------" << RESET << "\n");
 }
 
-void printAllResponses(const ClientState& clientState)
+
+
+bool equalsIgnoreCase(const std::string& a, const std::string& b)
 {
-    DBG("=== Response Queue (" << clientState.getResponseQueue().size() << " items) ===");
-
-    std::queue<ResponseData> tempQueue = clientState.getResponseQueue();
-    size_t index = 0;
-    (void)index; // prevent unused-variable warning in case DBG is disabled
-
-    while (!tempQueue.empty())
-    {
-        const ResponseData& resp = tempQueue.front();
-
-        DBG("---- Response " << index++ << " ----");
-        DBG("Status: " << resp.statusCode << " " << resp.statusText);
-        DBG("Should Close: " << std::boolalpha << resp.shouldClose);
-
-        DBG("Headers:");
-        std::string contentType;
-        for (const auto& [key, value] : resp.headers)
-        {
-            DBG("  " << key << ": " << value);
-            if (key == "Content-Type")
-                contentType = value;
-        }
-
-        DBG("Body (length=" << resp.body.size() << "):");
-        if (contentType.find("text") != std::string::npos || contentType.empty())
-        {
-            DBG(resp.body);
-        }
-        else
-        {
-            DBG("[binary content, not displayed]");
-        }
-
-        tempQueue.pop();
-    }
-
-    DBG("=== End of Queue ===");
+    if (a.size() != b.size()) return false;
+    for (size_t i = 0; i < a.size(); ++i)
+        if (std::tolower((unsigned char)a[i]) != std::tolower((unsigned char)b[i]))
+            return false;
+    return true;
 }
-

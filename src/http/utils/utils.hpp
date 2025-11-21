@@ -2,9 +2,9 @@
 #define UTILS_HPP
 
 #include "../../config/Config/request_resolving/RequestContext/RequestContext.hpp"
-#include "../ConnectionManager/ClientState/ClientState.hpp"
 #include "../RawRequest/RawRequest.hpp"
 #include "../Response/RawResponse/RawResponse.hpp"
+#include "../HttpMethod/HttpMethod.hpp"
 #include <iostream>
 
 #define GREEN "\033[0;32m"
@@ -17,6 +17,7 @@
 #define RESET "\033[0m"
 
 void printReqContext(const RequestContext& ctx);
-void printAllResponses(const ClientState& clientState);
+bool equalsIgnoreCase(const std::string& a, const std::string& b);
+
 
 #endif

@@ -129,8 +129,6 @@ size_t ConnectionManager::processReqs(int clientId, const std::string& data)
 
 void ConnectionManager::genResps(int clientId, const NetworkEndpoint& endpoint)
 {
-	 DBG("[ConnectionManager::genResps] START");
-
 	// Find the client state in the map
 	auto it = m_clients.find(clientId);
 	if (it == m_clients.end())
@@ -145,13 +143,7 @@ void ConnectionManager::genResps(int clientId, const NetworkEndpoint& endpoint)
 		RawRequest rawReq = clientState.popFirstCompleteRawRequest();
 		
 		rawReq.printRequest();
-		// Convert raw request into structured request data
-		//RequestData reqData = rawReq.buildRequestData();
-		
-		// Resolve context using the host and URI from the request and NetworkEndpoint
-		// NetworkInterface iface("0.0.0.0");
-		// NetworkEndpoint endpoint(iface, 8081);
-		
+
 		DBG("[genResps] Creating RequestContext with host: "
             << rawReq.getHost() << ", uri: " << rawReq.getUri());
 		
@@ -186,22 +178,24 @@ void ConnectionManager::genResps(int clientId, const NetworkEndpoint& endpoint)
 		if (curRawResp.isInternalRedirect())
 		{	
 			DBG("[genResps] INTERNAL REDIRECTION detected");
+			
+			// Remember if the connection should be closed
+			bool shouldClose = rawReq.shouldClose();
 			std::string newUri = reqHandler.getErrorPageUri(ctx, curRawResp.getStatusCode());
 			DBG("[genResps] newUri = " << newUri);
 			
 			RequestContext newCtx = m_config.createRequestContext(endpoint, rawReq.getHost(), newUri);
 			DBG("[genResps] Generated new ctx");
 			
-			FileHandler fileHandler(newCtx.index_files);
-			if (!fileHandler.existsAndIsFile(newCtx.resolved_path))
+			if (!FileUtils::existsAndIsFile(newCtx.resolved_path))
 			{
 				DBG("[genResps] Resolved error_page file does not exist");
 				
 				RawResponse redirResp;
-				redirResp.addDefaultErrorDetails(curRawResp.getStatusCode());
-				redirResp.addHeader("Content-Type", "text/html");
+				redirResp.addDefaultError(curRawResp.getStatusCode());
+				
 				redirResp.setInternalRedirect(false);
-				clientState.enqueueRawResponse(redirResp);
+				clientState.enqueueRawResponse(redirResp, shouldClose);
 							
 				DBG("[genResps] Trying to serve CUSTOM error page for code "
                     << static_cast<int>(curRawResp.getStatusCode())
@@ -216,7 +210,7 @@ void ConnectionManager::genResps(int clientId, const NetworkEndpoint& endpoint)
                 DBG("[genResps] Error page path for this code: "
                     << ctx.error_pages[curRawResp.getStatusCode()]);
 				
-				enqueueInternRedirResp(newUri, newCtx, reqHandler, endpoint, clientState);
+				enqueueInternRedirResp(newUri, newCtx, reqHandler, endpoint, clientState, shouldClose);
 
 			}
 	
@@ -236,15 +230,26 @@ void ConnectionManager::genResps(int clientId, const NetworkEndpoint& endpoint)
 		else if (curRawResp.isExternalRedirect())
 		{
 			DBG("[genResps] External redirect detected");
-
+			
+			// Remember if the connection should be closed
+			bool shouldClose = rawReq.shouldClose();
+			DBG("[genResps] shouldClose? " << shouldClose);
+			
 			//External redirect is looping
 			DBG("[genResps]: curRawResp.getRedirectTarget(): " << ctx.redirection.url);
+			DBG("[genResps!]  external redirection, the code is now "
+					<< codeToText(ctx.redirection.statusCode) 
+					<< static_cast<int>(ctx.redirection.statusCode));
+			
 			DBG("[genResps]: rawReq.uri: " << rawReq.getUri());
 			if (curRawResp.getRedirectTarget() == rawReq.getUri())
 			{
  				DBG("[genResps] Trying to externally loop. No! " << curRawResp.getRedirectTarget());
-				reqHandler.enqueueErrorResponse(ctx, HttpStatusCode::MovedPermanently);
-				
+				reqHandler.enqueueErrorResponse(ctx, HttpStatusCode::MovedPermanently, shouldClose);
+				RawResponse nextResp = clientState.popNextRawResponse();
+				ResponseData curResData = nextResp.toResponseData();
+				clientState.enqueueResponseData(curResData);
+			
 			}
 			else
 			{
@@ -253,11 +258,19 @@ void ConnectionManager::genResps(int clientId, const NetworkEndpoint& endpoint)
 				RequestContext newCtx = m_config.createRequestContext(endpoint, rawReq.getHost(), newUri);
 				//for the next request:
 				// ctx.redirection.isSet = false;
-				enqueueExternRedirResp(rawReq.getMethod(), newCtx, reqHandler, endpoint);
+				
+				enqueueExternRedirResp(rawReq.getMethod(), newCtx, reqHandler, endpoint, shouldClose);
 				RawResponse nextResp = clientState.popNextRawResponse();
+				
+				nextResp.setStatusCode(ctx.redirection.statusCode);
+				DBG("[genResps] after external redirection, the code is now "
+					<< codeToText(ctx.redirection.statusCode));
+				
 				ResponseData curResData = nextResp.toResponseData();
 				clientState.enqueueResponseData(curResData);
 			}
+			
+			
 		}
 		
 		else
@@ -273,7 +286,7 @@ void ConnectionManager::enqueueInternRedirResp(const std::string& newUri,
                                                const RequestContext& ctx,
                                                RequestHandler& reqHandler,
                                                const NetworkEndpoint& endpoint, 
-                                               ClientState& clientState)
+                                               ClientState& clientState, bool shouldClose)
 {
 	
 	(void)clientState;
@@ -288,33 +301,34 @@ void ConnectionManager::enqueueInternRedirResp(const std::string& newUri,
     RawRequest dummyReq;
 	dummyReq.setMethod("GET");
 	dummyReq.setUri(newUri);
+	dummyReq.setShouldClose(shouldClose);
 
 	DBG("[enqueueInternRedirResp] dummyReq URI to GET: " << dummyReq.getUri());
 
 	reqHandler.processRequest(dummyReq, endpoint, mutableCtx); 
 }
 
-void ConnectionManager::enqueueExternRedirResp(HttpMethod method, const RequestContext& newCtx, RequestHandler& reqHandler, const NetworkEndpoint& endpoint)
+void ConnectionManager::enqueueExternRedirResp(HttpMethod method, const RequestContext& newCtx, RequestHandler& reqHandler,
+												const NetworkEndpoint& endpoint, bool shouldClose)
 {
-	DBG("[enqueueExternRedirResp] External redirect to " << newUri);
+	DBG("[enqueueExternRedirResp] External redirect to " << newCtx.resolved_path);
 
 	RawRequest redirReq;
-;
+
 	redirReq.setMethod(method);
+	
+	/// Set Connection header if the previous response indicated close
+    if (shouldClose)
+    {
+        redirReq.addHeader("Connection", "close");
+		redirReq.setShouldClose(true);
+        DBG("[enqueueExternRedirResp] Added Connection header: close");
+    }
 
-	// Optional: debug connection header if you add it
-	// redirReq.addHeader("Connection", "keep-alive");
-	// DBG("[enqueueExternRedirResp] Added Connection header: " << redirReq.getHeader("Connection"));
-
-	// Debug: final state before processing
-	DBG("[enqueueExternRedirResp] redirReq ready to process: reslved_path is " << newCtx.resolved_path);
+	DBG("[enqueueExternRedirResp] redirReq ready to process: resolved_path is " << newCtx.resolved_path);
 
 	reqHandler.processRequest(redirReq, endpoint, newCtx); // enqueues
 }
-
-
-
-
 
 ResponseData toResponseData(const RawResponse& rawResp)
 {
@@ -336,8 +350,49 @@ ResponseData toResponseData(const RawResponse& rawResp)
 		data.shouldClose = false;
 
 	DBG("[toResponseData] Enqueued RawResponse as ResponseData, status="
-        << data.statusCode << ", body_length=" << data.body.size());
+        << data.statusCode << ", body_length=" << data.body.size()
+		<< "should close? " << data.shouldClose);
 
 	return data;
 }
 
+void ConnectionManager::printAllResponses(const ClientState& clientState)
+{
+    DBG("=== Response Queue (" << clientState.getResponseQueue().size() << " items) ===");
+
+    std::queue<ResponseData> tempQueue = clientState.getResponseQueue();
+    size_t index = 0;
+    (void)index; // prevent unused-variable warning in case DBG is disabled
+
+    while (!tempQueue.empty())
+    {
+        const ResponseData& resp = tempQueue.front();
+
+        DBG("---- Response " << index++ << " ----");
+        DBG("Status: " << resp.statusCode << " " << resp.statusText);
+        DBG("Should Close: " << std::boolalpha << resp.shouldClose);
+
+        DBG("Headers:");
+        std::string contentType;
+        for (const auto& [key, value] : resp.headers)
+        {
+            DBG("  " << key << ": " << value);
+            if (key == "Content-Type")
+                contentType = value;
+        }
+
+        DBG("Body (length=" << resp.body.size() << "):");
+        if (contentType.find("text") != std::string::npos || contentType.empty())
+        {
+            DBG(resp.body);
+        }
+        else
+        {
+            DBG("[binary content, not displayed]");
+        }
+
+        tempQueue.pop();
+    }
+
+    DBG("=== End of Queue ===");
+}

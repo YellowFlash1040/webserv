@@ -15,14 +15,14 @@ static void trimLeadingWhitespace(std::string& str)
 	);
 }
 
-static bool iequals(const std::string& a, const std::string& b)
-{
-	if (a.size() != b.size()) return false;
-	for (size_t i = 0; i < a.size(); ++i)
-		if (std::tolower(a[i]) != std::tolower(b[i]))
-			return false;
-	return true;
-}
+// static bool iequals(const std::string& a, const std::string& b)
+// {
+// 	if (a.size() != b.size()) return false;
+// 	for (size_t i = 0; i < a.size(); ++i)
+// 		if (std::tolower(a[i]) != std::tolower(b[i]))
+// 			return false;
+// 	return true;
+// }
 
 bool isHex(char c)
 {
@@ -31,11 +31,11 @@ bool isHex(char c)
 		   (c >= 'a' && c <= 'f');
 }
 
-// --- Canonical form ---
+
 RawRequest::RawRequest()
 	: _tempBuffer(), _rlAndHeadersBuffer(), _body(), _chunkedBuffer(), _conLenBuffer(), _method(), _uri(), _httpVersion(),
 	_headers(), _bodyType(BodyType::NO_BODY), _errorMessage(), _headersDone(false), _terminatingZeroMet(false), _bodyDone(false),
-	_requestDone(false), _isBadRequest(false) {}
+	_requestDone(false), _isBadRequest(false), _shouldClose(false) {}
 
 RawRequest::~RawRequest() = default;
 
@@ -59,6 +59,9 @@ const std::string& RawRequest::getTempBuffer() const
 bool RawRequest::isRequestDone() const { return _requestDone ;}
 bool RawRequest::isHeadersDone() const { return _headersDone; }
 bool RawRequest::isBodyDone() const { return _bodyDone; }
+bool RawRequest::shouldClose() const { return _shouldClose; }
+void RawRequest::setShouldClose(bool value) { _shouldClose = value; }
+
 
 void RawRequest::addHeader(const std::string& name, const std::string& value)
 {
@@ -66,7 +69,7 @@ void RawRequest::addHeader(const std::string& name, const std::string& value)
 	if (it != _headers.end())
 	{
 		// Header already exists
-		if (!iequals(it->second, value))
+		if (!equalsIgnoreCase(it->second, value))
 		{
 			// Conflict: same header with different values
 			_bodyType = BodyType::ERROR;
@@ -127,25 +130,25 @@ std::string RawRequest::bodyTypeToString(BodyType t)
 
 void RawRequest::parseRequestLineAndHeaders(const std::string& headerPart)
 {
-    try
-    {
-        std::istringstream stream(headerPart);
-        std::string line;
-        if (!std::getline(stream, line))
-            throw std::runtime_error("Malformed request: missing request line");
+	try
+	{
+		std::istringstream stream(headerPart);
+		std::string line;
+		if (!std::getline(stream, line))
+			throw std::runtime_error("Malformed request: missing request line");
 
-        removeCarriageReturns(line);
+		removeCarriageReturns(line);
 
-        DBG("[parseRequestLineAndHeaders] Request line: " << line);
+		DBG("[parseRequestLineAndHeaders] Request line: " << line);
 
-        parseRequestLine(line);
-        parseHeaders(stream);
-    }
-    catch(const std::exception& e)
-    {
-        DBG("[parseRequestLineAndHeaders] Bad request: " << e.what());
-        markBadRequest(e.what()); // sets _requestDone and prepares 400 response
-    }
+		parseRequestLine(line);
+		parseHeaders(stream);
+	}
+	catch(const std::exception& e)
+	{
+		DBG("[parseRequestLineAndHeaders] Bad request: " << e.what());
+		markBadRequest(e.what()); // sets _requestDone and prepares 400 response
+	}
 }
 	
 void RawRequest::parseHeaders(std::istringstream& stream)
@@ -172,26 +175,32 @@ void RawRequest::parseHeaders(std::istringstream& stream)
 	}
 
 	// Decide body type
-	if (iequals(getHeader("Transfer-Encoding"), "chunked"))
+	if (equalsIgnoreCase(getHeader("Transfer-Encoding"), "chunked"))
 	{
 		_bodyType = BodyType::CHUNKED;
 	}
 	else if (!getHeader("Content-Length").empty())
 	{
 		_bodyType = BodyType::SIZED;
-	} 
+	}
+	
+	//
+	if (equalsIgnoreCase(getHeader("Connection"), "close"))
+	{
+		_shouldClose = true;
+	}
 
 	_headersDone = true;
 }
 
 void RawRequest::appendToChunkedBuffer(const std::string& data)
 {
-    DBG("\n" << YELLOW << "[appendToChunkedBuffer]" << RESET
-        << "\nBefore append, _chunkedBuffer size = " << _chunkedBuffer.size());
+	DBG("\n" << YELLOW << "[appendToChunkedBuffer]" << RESET
+		<< "\nBefore append, _chunkedBuffer size = " << _chunkedBuffer.size());
 
-    _chunkedBuffer += data;
+	_chunkedBuffer += data;
 
-    DBG("[appendToChunkedBuffer] After append, _chunkedBuffer size = " << _chunkedBuffer.size());
+	DBG("[appendToChunkedBuffer] After append, _chunkedBuffer size = " << _chunkedBuffer.size());
 }
 
 std::string RawRequest::decodeChunkedBody(size_t& bytesProcessed)
@@ -331,7 +340,7 @@ size_t RawRequest::remainingConLen() const
 void RawRequest::consumeTempBuffer(size_t n)
 {
 	DBG("[consumeTempBuffer]: _tempBuffer before: |" << _tempBuffer 
-        << "|, size = " << _tempBuffer.size());
+		<< "|, size = " << _tempBuffer.size());
 
 	if (n >= _tempBuffer.size())
 	{
@@ -343,26 +352,26 @@ void RawRequest::consumeTempBuffer(size_t n)
 	}
 
 	DBG("[consumeTempBuffer]: after consuming: |" << _tempBuffer 
-        << "|, size = " << _tempBuffer.size());
+		<< "|, size = " << _tempBuffer.size());
 }
 
 void RawRequest::appendToBody(const std::string& data)
 {
-    DBG("[appendToBody]: Appending " << data.size() << " bytes to _body");
+	DBG("[appendToBody]: Appending " << data.size() << " bytes to _body");
 
-    _body += data;
+	_body += data;
 
-    DBG("[appendToBody]: _body now = |" << _body << "|");
+	DBG("[appendToBody]: _body now = |" << _body << "|");
 }
 
 void RawRequest::setChunkedBuffer(std::string&& newBuffer)
 {
-    DBG("[setChunkedBuffer]: old size of _chunkedBuffer = " << _chunkedBuffer.size());
+	DBG("[setChunkedBuffer]: old size of _chunkedBuffer = " << _chunkedBuffer.size());
 
-    _chunkedBuffer = std::move(newBuffer);
+	_chunkedBuffer = std::move(newBuffer);
 
-    DBG("[setChunkedBuffer]: new size of _chunkedBuffer = " << _chunkedBuffer.size()
-        << ", content = |" << _chunkedBuffer << "|");
+	DBG("[setChunkedBuffer]: new size of _chunkedBuffer = " << _chunkedBuffer.size()
+		<< ", content = |" << _chunkedBuffer << "|");
 }
 
 void RawRequest::appendBodyBytes(const std::string& data)
@@ -394,7 +403,7 @@ void RawRequest::appendBodyBytes(const std::string& data)
 		{
 			appendToChunkedBuffer(_tempBuffer);
 			DBG("[appendBodyBytes]: appended _chunkedBuffer with data from _tempBuffer, _chunkedBuffer size = " 
-                << _chunkedBuffer.size());
+				<< _chunkedBuffer.size());
 			
 			setTempBuffer(""); // consumed for decoding
 			size_t bytesProcessed = 0;
@@ -476,41 +485,41 @@ void RawRequest::separateHeadersFromBody()
 
 void RawRequest::parseRequestLine(const std::string& firstLine)
 {
-    std::istringstream reqLine(firstLine);
+	std::istringstream reqLine(firstLine);
 	std::string methodStr;
 	
-    reqLine >> methodStr >> _rawUri >> _httpVersion;
+	reqLine >> methodStr >> _rawUri >> _httpVersion;
 
 	if (methodStr.empty() || _rawUri.empty() || _httpVersion.empty())
 		throw std::runtime_error("Invalid request line");
 
 	_method = stringToHttpMethod(methodStr);
-    if (_method == HttpMethod::NONE)
-        throw std::invalid_argument("Unsupported HTTP method: " + httpMethodToString(_method));
+	if (_method == HttpMethod::NONE)
+		throw std::invalid_argument("Unsupported HTTP method: " + httpMethodToString(_method));
 
-    if (_httpVersion != "HTTP/1.0" && _httpVersion != "HTTP/1.1")
-        throw std::invalid_argument("Unsupported HTTP version: " + _httpVersion);
+	if (_httpVersion != "HTTP/1.0" && _httpVersion != "HTTP/1.1")
+		throw std::invalid_argument("Unsupported HTTP version: " + _httpVersion);
 
-    if (_rawUri[0] != '/')
-    {
-        throw std::invalid_argument("Invalid request URI: " + _rawUri);
-        // 400 Bad Request
-    }
+	if (_rawUri[0] != '/')
+	{
+		throw std::invalid_argument("Invalid request URI: " + _rawUri);
+		// 400 Bad Request
+	}
 
-    // --- Split URI into path + query ---
-    size_t qpos = _rawUri.find('?');
-    if (qpos != std::string::npos)
-    {
-        _uri = _rawUri.substr(0, qpos);
-        _query = _rawUri.substr(qpos + 1);
-    }
-    else
-    {
-        _uri = _rawUri;
-        _query.clear();
-    }
+	// --- Split URI into path + query ---
+	size_t qpos = _rawUri.find('?');
+	if (qpos != std::string::npos)
+	{
+		_uri = _rawUri.substr(0, qpos);
+		_query = _rawUri.substr(qpos + 1);
+	}
+	else
+	{
+		_uri = _rawUri;
+		_query.clear();
+	}
 
-    DBG("[parseRequestLine]: _uri is " << _uri);
+	DBG("[parseRequestLine]: _uri is " << _uri);
 }
 
 
@@ -559,52 +568,52 @@ std::string RawRequest::decodePercentOnce(const std::string& s)
 
 std::string RawRequest::normalizePath(const std::string& rawUri)
 {
-    if (rawUri.empty() || rawUri[0] != '/')
-        throw std::invalid_argument("Invalid raw URI");
+	if (rawUri.empty() || rawUri[0] != '/')
+		throw std::invalid_argument("Invalid raw URI");
 
-    // Fully decode percent-encoded sequences first
-    std::string decoded = fullyDecodePercent(rawUri);
+	// Fully decode percent-encoded sequences first
+	std::string decoded = fullyDecodePercent(rawUri);
 
-    std::vector<std::string> stack;
-    std::istringstream iss(decoded);
-    std::string segment;
+	std::vector<std::string> stack;
+	std::istringstream iss(decoded);
+	std::string segment;
 
-    while (std::getline(iss, segment, '/'))
-    {
-        if (segment.empty() || segment == ".")
-            continue;
+	while (std::getline(iss, segment, '/'))
+	{
+		if (segment.empty() || segment == ".")
+			continue;
 
-        if (segment == "..")
-        {
-            if (stack.empty())
-            {
-                DBG("[normalizePath] Bad request: path escapes root: \"" << rawUri << "\"");
-                throw std::runtime_error("Bad request: path escapes root");
-            }
-            stack.pop_back();
-        }
-        else
-        {
-            stack.push_back(segment);
-        }
-    }
+		if (segment == "..")
+		{
+			if (stack.empty())
+			{
+				DBG("[normalizePath] Bad request: path escapes root: \"" << rawUri << "\"");
+				throw std::runtime_error("Bad request: path escapes root");
+			}
+			stack.pop_back();
+		}
+		else
+		{
+			stack.push_back(segment);
+		}
+	}
 
-    // Rebuild normalized path
-    std::ostringstream oss;
-    oss << "/";
-    for (size_t i = 0; i < stack.size(); ++i)
-    {
-        oss << stack[i];
-        if (i + 1 < stack.size())
-            oss << "/";
-    }
+	// Rebuild normalized path
+	std::ostringstream oss;
+	oss << "/";
+	for (size_t i = 0; i < stack.size(); ++i)
+	{
+		oss << stack[i];
+		if (i + 1 < stack.size())
+			oss << "/";
+	}
 
-    // Preserve trailing slash if original URI had it
-    if (rawUri.size() > 1 && rawUri.back() == '/' && !stack.empty())
-        oss << "/";
+	// Preserve trailing slash if original URI had it
+	if (rawUri.size() > 1 && rawUri.back() == '/' && !stack.empty())
+		oss << "/";
 
-    DBG("[normalizePath] normalized path: " << oss.str());
-    return oss.str();
+	DBG("[normalizePath] normalized path: " << oss.str());
+	return oss.str();
 }
 
 RequestData RawRequest::buildRequestData() const
@@ -622,10 +631,10 @@ RequestData RawRequest::buildRequestData() const
 
 void RawRequest::markBadRequest(const std::string& msg = "")
 {
-    _isBadRequest = true;
+	_isBadRequest = true;
 	_headersDone = true;
-    _bodyDone = true;
-    _requestDone = true;
+	_bodyDone = true;
+	_requestDone = true;
 	_errorMessage = msg;
 }
 
@@ -647,30 +656,35 @@ std::string RawRequest::getHost() const
 
 void RawRequest::printRequest(size_t idx) const
 {
-    (void)idx;
-    DBG("\n" << ORANGE << "[RawRequest]" << RESET
-        << "\nMethod: " << _method
-        << "\nURI: " << _uri
-        << "\nQuery: " << _query
-        << "\nHTTP Version: " << _httpVersion
-        << "\nBody Type: " << bodyTypeToString(_bodyType)
-        << "\nBody Length: " << _body.size()
-        << "\nHeaders Done: " << (_headersDone ? "true" : "false")
-        << "\nBody Done: " << (_bodyDone ? "true" : "false")
-        << "\nRequest Done: " << (_requestDone ? "true" : "false"));
+	(void)idx;
+	DBG("\n" << ORANGE << "[RawRequest]" << RESET
+		<< "\nMethod: " << httpMethodToString(_method)
+		<< "\nURI: " << _uri
+		<< "\nQuery: " << _query
+		<< "\nHTTP Version: " << _httpVersion
+		<< "\nBody Type: " << bodyTypeToString(_bodyType)
+		<< "\nBody Length: " << _body.size()
+		<< "\nHeaders Done: " << (_headersDone ? "true" : "false")
+		<< "\nBody Done: " << (_bodyDone ? "true" : "false")
+		<< "\nRequest Done: " << (_requestDone ? "true" : "false"));
+		
+		for (const auto& header : _headers)
+		{
+			DBG("  " << header.first << ": " << header.second);
+		}
 }
 
 void RawRequest::setMethod(HttpMethod method)
 {
-    _method = method;
+	_method = method;
 }
 
 void RawRequest::setMethod(const std::string& method)
 {
-    if (method == "GET")       _method = HttpMethod::GET;
-    else if (method == "POST") _method = HttpMethod::POST;
-    else if (method == "DELETE") _method = HttpMethod::DELETE;
-    else                       _method = HttpMethod::NONE;
+	if (method == "GET")       _method = HttpMethod::GET;
+	else if (method == "POST") _method = HttpMethod::POST;
+	else if (method == "DELETE") _method = HttpMethod::DELETE;
+	else                       _method = HttpMethod::NONE;
 }
 
 void RawRequest::setUri(const std::string& uri)

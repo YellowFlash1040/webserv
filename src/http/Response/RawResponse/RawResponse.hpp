@@ -11,20 +11,12 @@
 #include "../../../config/Config/request_resolving/RequestContext/RequestContext.hpp"
 #include "../ResponseData/ResponseData.hpp"
 #include "../FileDeliveryMode/FileDeliveryMode.hpp"
-
-struct DeliveryInfo
-{
-	FileDeliveryMode mode;
-	size_t size;
-	
-	DeliveryInfo(FileDeliveryMode m, size_t s) : mode(m), size(s) {}
-};
+#include "../HttpMethod/HttpMethod.hpp"
+#include "../HttpStatusCode/HttpStatusCode.hpp"
 
 class RawResponse
 {
 	private:
-	RequestData _req;
-	RequestContext _ctx;
 	HttpStatusCode _statusCode;
 	std::string _statusText;
 	std::unordered_map<std::string, std::string> _headers;
@@ -40,8 +32,8 @@ class RawResponse
 	
 	public:
 
-	RawResponse() = default; //will be used for bad requests
-	RawResponse(const RequestData& req, const RequestContext& ctx); 
+	RawResponse();
+	
 	~RawResponse() = default;
 	RawResponse(const RawResponse&) = default;
 	RawResponse& operator=(const RawResponse&) = default;
@@ -72,19 +64,14 @@ class RawResponse
 	void setBody(const std::string& body);
 	void setRedirectTarget(const std::string& uri);
 	void setInternalRedirect(bool flag);
+	void setExternalRedirect(bool flag);
 
-	std::string codeToText(HttpStatusCode code);
-
-	
-	std::string allowedMethodsToString(const std::vector<HttpMethod>& allowed_methods);
-
-	void addDefaultErrorDetails(HttpStatusCode code);
+	void addDefaultError(HttpStatusCode code);
 	bool shouldClose() const;
 	
 	void handleCgiScript();
-	void handleExternalRedirect(const std::string& reqUri);
+
 	
-	void sendFile(const std::string &filePath, const std::string &mimeType);
 	bool hasHeader(const std::string& key) const;
 	std::string getHeader(const std::string& key) const;
 	

@@ -1,6 +1,7 @@
 #ifndef RAWREQUEST_HPP
 #define RAWREQUEST_HPP
 
+#include "../utils/utils.hpp"
 #include "../HttpMethod/HttpMethod.hpp"
 #include "../RequestData/RequestData.hpp"
 #include "debug.hpp"
@@ -39,7 +40,7 @@ class RawRequest
 		HttpMethod _method;
 		std::string _rawUri;
 		std::string _uri;
-		std::string _query;  // optional query string (part after '?')
+		std::string _query; // part after '?'
 		std::string _httpVersion;
 		std::unordered_map<std::string, std::string> _headers;
 		BodyType _bodyType;
@@ -51,6 +52,7 @@ class RawRequest
 		bool _bodyDone;
 		bool _requestDone;
 		bool _isBadRequest;
+		bool _shouldClose;
 	
 		// Helpers
 		static std::string bodyTypeToString(BodyType t);
@@ -69,7 +71,7 @@ class RawRequest
 		void parseHeaders(std::istringstream& stream);
 		
 		void appendToBody(const std::string& data);
-		void addHeader(const std::string& name, const std::string& value);
+		
 		void setChunkedBuffer(std::string&& newBuffer);
 		
 
@@ -80,7 +82,9 @@ class RawRequest
 		RawRequest& operator=(const RawRequest& other);
 		RawRequest(RawRequest&& other) noexcept;
 		RawRequest& operator=(RawRequest&& other) noexcept;
-
+		
+		//can be made private when unitests are no longer needed
+		void addHeader(const std::string& name, const std::string& value);
 		
 		const std::string getHeader(const std::string& name) const;
 		HttpMethod getMethod() const;
@@ -94,6 +98,9 @@ class RawRequest
 		
 		void setRequestDone();
 		void setTempBuffer(const std::string& buffer);
+		
+		bool shouldClose() const;
+        void setShouldClose(bool value);
 		
 		void appendBodyBytes(const std::string& data);
 		void separateHeadersFromBody();

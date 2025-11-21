@@ -1,4 +1,5 @@
 #include "RequestHandler.hpp"
+#include "../utils/utils.hpp"
 
 void RequestHandler::processRequest(RawRequest& rawReq,
 									const NetworkEndpoint& endpoint,
@@ -9,47 +10,48 @@ void RequestHandler::processRequest(RawRequest& rawReq,
 	// 0. Bad request
 	if (rawReq.isBadRequest())
 	{
-		serveBadRequest(rawReq, endpoint, ctx);
+		enqueueBadResponse();
 		return;
 	}
-
+	
+	bool shouldClose = rawReq.shouldClose();
+	
 	RequestData req = rawReq.buildRequestData();
-
+	
 	// 1. External redirection
 	if (ctx.redirection.isSet)
 	{
-		RawResponse resp(req, ctx);
-		resp.handleExternalRedirect(req.uri);
-		clientState.enqueueRawResponse(resp);
+		RawResponse resp;
+		handleExternalRedirect(ctx, req.uri, resp);
+		clientState.enqueueRawResponse(resp, shouldClose);
 		return;
 	}
 
 	// 2. Method not allowed
-	if (rawReq.getUri() != "/favicon.ico"
-		&& !isMethodAllowed(req.method, ctx.allowed_methods))
+	if (!isMethodAllowed(req.method, ctx.allowed_methods))
 	{
 		DBG("[processRequest] Method not allowed "
 				  << static_cast<int>(req.method));
 
-		enqueueErrorResponse(ctx, HttpStatusCode::MethodNotAllowed);
+		enqueueErrorResponse(ctx, HttpStatusCode::MethodNotAllowed, shouldClose);
 		DBG("[processRequest] Enqueue \"Method Not Allowed\" response");
 
 		return;
 	}
 
 	// 3. Dispatch by method
-	RawResponse resp(req, ctx);
+	RawResponse resp;
 
 	switch (req.method)
 	{
 	case HttpMethod::GET:
-		processGet(req, endpoint, ctx, resp);
+		processGet(req.uri, ctx, resp);
 		break;
 	case HttpMethod::POST:
 		processPost(req, endpoint, ctx, resp);
 		break;
 	case HttpMethod::DELETE:
-		processDelete(req, endpoint, ctx, resp);
+		processDelete(ctx, resp);
 		break;
 	default:
 		addGeneralErrorDetails(resp, ctx, HttpStatusCode::MethodNotAllowed);
@@ -57,32 +59,28 @@ void RequestHandler::processRequest(RawRequest& rawReq,
 	}
 
 	// Enqueue the response for sending
-	clientState.enqueueRawResponse(resp);
+	clientState.enqueueRawResponse(resp, shouldClose);
 }
 
-void RequestHandler::serveBadRequest(RawRequest& rawReq,
-									 const NetworkEndpoint& endpoint,
-									 const RequestContext& ctx)
+void RequestHandler::enqueueBadResponse()
 {
-	(void)endpoint;
-	(void)ctx;
-	(void)rawReq;
-	RawResponse resp; // default constructor, OK for bad requests
+	RawResponse resp;
+	
 	resp.setStatus(HttpStatusCode::BadRequest);
-	resp.addDefaultErrorDetails(HttpStatusCode::BadRequest);
-	clientState.enqueueRawResponse(resp);
+	resp.addDefaultError(HttpStatusCode::BadRequest);
+	clientState.enqueueRawResponse(resp, false); //keep alive
 }
 
 bool RequestHandler::isMethodAllowed(
     HttpMethod method, const std::vector<HttpMethod>& allowed_methods)
 {
-    DBG("[isMethodAllowed] Checking if method " << RawResponse::httpMethodToString(method)
-        << " is allowed among " << allowed_methods.size() << " methods");
+    DBG("[isMethodAllowed] Checking if method " << httpMethodToString(method)
+        << " is allowed");
 
     for (std::vector<HttpMethod>::const_iterator it = allowed_methods.begin();
          it != allowed_methods.end(); ++it)
     {
-        DBG("[isMethodAllowed] Comparing with allowed method: " << RawResponse::httpMethodToString(*it));
+        DBG("[isMethodAllowed] Comparing with allowed method: " << httpMethodToString(*it));
         if (*it == method)
         {
             DBG("[isMethodAllowed] Method allowed!");
@@ -94,14 +92,8 @@ bool RequestHandler::isMethodAllowed(
     return false;
 }
 
-void RequestHandler::processGet(RequestData& req,
-								const NetworkEndpoint& endpoint,
-								const RequestContext& ctx, RawResponse& rawResp)
+void RequestHandler::processGet(const std::string& uri, const RequestContext& ctx, RawResponse& rawResp)
 {
-	(void)endpoint;
-	(void)req;
-
-	FileHandler fileHandler(ctx.index_files);
 
 	DBG("[processGet] Processing request for resolved path: " << ctx.resolved_path);
 
@@ -109,7 +101,7 @@ void RequestHandler::processGet(RequestData& req,
 	if (!ctx.cgi_pass.empty())
 	{
 		HttpStatusCode status;
-		std::string interpreter = getCgiPathFromUri(req.uri, ctx.cgi_pass, status);
+		std::string interpreter = getCgiPathFromUri(uri, ctx.cgi_pass, status);
 		
 		DBG("[processGet] CGI interpreter path: \"" << interpreter
 			<< "\", status: " << static_cast<int>(status));
@@ -120,18 +112,9 @@ void RequestHandler::processGet(RequestData& req,
 			return;
 		}
 
-		switch (status)
-		{
-			case HttpStatusCode::None: DBG("None"); break;
-			case HttpStatusCode::OK: DBG("OK"); break;
-			case HttpStatusCode::BadGateway: DBG("BadGateway"); break;
-			case HttpStatusCode::Forbidden: DBG("Forbidden"); break;
-			default: DBG("Other"); break;
-		}	
-
 		DBG("[processGet] interpreter detected, checking file " << ctx.resolved_path << " for validity...");
 
-		if (!fileHandler.existsAndIsFile(ctx.resolved_path))
+		if (!FileUtils::existsAndIsFile(ctx.resolved_path))
 		{
 			DBG("[processGet] CGI Uri not found: " << ctx.resolved_path);
 			addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::NotFound);
@@ -147,19 +130,16 @@ void RequestHandler::processGet(RequestData& req,
 		if (status == HttpStatusCode::OK)
 		{
 			DBG("Executing CGI interpreter: " << interpreter << " for script: " << ctx.resolved_path);
-			std::string cgiResult = handleCGI(req, endpoint, interpreter, ctx.resolved_path);
+			//std::string cgiResult = handleCGI(req, endpoint, interpreter, ctx.resolved_path);
 
-			rawResp.setBody(cgiResult);
-			rawResp.setStatus(HttpStatusCode::OK);
-			rawResp.setMimeType("text/plain");
 			return;
 		}
 	}
 
-	// status == None -> no CGI mapping -> continue to static file handling
+	//no CGI mapping -> continue to static file handling
 
 	// 2. Static file handling
-	if (fileHandler.existsAndIsFile(ctx.resolved_path))
+	if (FileUtils::existsAndIsFile(ctx.resolved_path))
 	{
 		DBG("[processGet] Detected: file: " << ctx.resolved_path);
 
@@ -170,47 +150,34 @@ void RequestHandler::processGet(RequestData& req,
 			return;
 		}
 
-		DBG("[processGet] setting status to OK");
-		rawResp.setStatus(HttpStatusCode::OK);
-
-		rawResp.setMimeType(fileHandler.detectMimeType(ctx.resolved_path));
-		setFileDelivery(rawResp, ctx.resolved_path, fileHandler);
-
-		DBG("[processGet] Served static file with status: " << static_cast<int>(rawResp.getStatusCode()));
-		DBG("[processGet] might change later if it is an internal redirection");
-		return;
+		fillSuccessfulResponse(rawResp, ctx.resolved_path);
+		
+		DBG("[processGet] Served static file with status: " << static_cast<int>(rawResp.getStatusCode())
+		 << " (might change later if it is an internal redirection");
+		
+		 return;
 	}
 
 	// 3. Directory handling
-	if (fileHandler.existsAndIsDirectory(ctx.resolved_path))
+	if (FileUtils::existsAndIsDirectory(ctx.resolved_path))
 	{
 		DBG("[processGet] Detected: directory: " << ctx.resolved_path);
 
 		// Try to find index file
-		std::string indexPath = fileHandler.getIndexFilePath(ctx.resolved_path);
+		std::string indexPath = FileUtils::getFirstValidIndexFile(ctx.resolved_path, ctx.index_files);
 		if (!indexPath.empty())
 		{
 			// Serve index file as static file
-			DBG("[processGet] Found index file: " << indexPath);
-			rawResp.setStatus(HttpStatusCode::OK);
-			rawResp.setMimeType(fileHandler.detectMimeType(indexPath));
-			setFileDelivery(rawResp, indexPath, fileHandler);
-
+			fillSuccessfulResponse(rawResp, indexPath);
 			return;
 		}
 
-		// generate autoindex
+		// Generate autoindex
 		if (ctx.autoindex_enabled)
 		{
 			DBG("[processGet] No index file found, generating autoindex...");
-			rawResp.setStatus(HttpStatusCode::OK);
-			rawResp.setMimeType("text/html");
-			rawResp.setFileMode(FileDeliveryMode::InMemory);
-
-			// ADD catching
-			rawResp.setBody(fileHandler.generateAutoindex(ctx.resolved_path));
-			rawResp.addHeader("Content-Length",
-							  std::to_string(rawResp.getBody().size()));
+	
+			fillAutoindexResponse(rawResp, ctx.resolved_path);
 			return;
 		}
 		// No index, autoindex disabled: 403 Forbidden
@@ -294,106 +261,45 @@ std::string RequestHandler::getCgiPathFromUri(
     return "";
 }
 
-std::string RequestHandler::handleCGI(RequestData& req,
-									  const NetworkEndpoint& endpoint,
-									  const std::string& interpreter,
-									  const std::string& scriptPath)
+void RequestHandler::processDelete(const RequestContext& ctx, RawResponse& resp)
 {
-	DBG("[handleCGI] scriptPath = " << scriptPath
-		  << ", interpreter = " << interpreter);
-
-	std::vector<std::string> args;
-	args.push_back(scriptPath);
-
-	std::vector<std::string> env = CGI::buildEnvFromRequest(req);
-	env.push_back("SCRIPT_FILENAME=" + scriptPath);
-
-	NetworkInterface localIp = endpoint.ip();
-	int localPort = endpoint.port();
-
-	env.push_back("SERVER_ADDR=" + static_cast<std::string>(localIp));
-	env.push_back("SERVER_PORT=" + std::to_string(localPort));
-
-	env.push_back("REMOTE_ADDR="); // TODO: add client IP
-	env.push_back("REMOTE_PORT="); // TODO: addd client port
-
-	std::string host = req.getHeader("Host");
-	if (!host.empty())
-		env.push_back("SERVER_NAME=" + host);
-	else
-		env.push_back("SERVER_NAME=" + static_cast<std::string>(localIp));
-
-	const std::string& input = req.body;
-
-	try
-	{
-		return CGI::execute(interpreter, args, env, input, "./www/site1/py");
-	}
-	catch (const std::exception& e)
-	{
-		return std::string("Content-Type: text/plain\r\n\r\nCGI error: ") + e.what();
-	}
-}
-
-void RequestHandler::setFileDelivery(RawResponse& resp, const std::string& path,
-									 FileHandler& fileHandler)
-{
-	DeliveryInfo info = fileHandler.getDeliveryInfo(path, 1024 * 1024);
-	
-	resp.setFileMode(info.mode);       // always set mode
-    resp.setFileSize(info.size);       // store file size
-	
-	if (info.mode == FileDeliveryMode::InMemory)
-	{
-		resp.setBody(readFileToString(path));
-		resp.addHeader("Content-Length", std::to_string(info.size));
-	}
-	else
-	{
-		resp.setFilePath(path);
-		//body is left empty; Content-Length comes from _fileSize
-	}
-}
-
-void RequestHandler::processDelete(RequestData& req,
-								   const NetworkEndpoint& endpoint,
-								   const RequestContext& ctx, RawResponse& resp)
-{
-	(void)req;
-	(void)resp;
-	(void)endpoint;
 
 	DBG("[processDelete] Processing DELETE for path: "
 			  << ctx.resolved_path);
 
-	if (!FileHandler::pathExists(ctx.resolved_path))
+	if (!FileUtils::pathExists(ctx.resolved_path))
 	{
 		DBG("[processDelete] Path does not exist: "
 				  << ctx.resolved_path);
-		enqueueErrorResponse(ctx, HttpStatusCode::NotFound);
+				  
+		addGeneralErrorDetails(resp, ctx, HttpStatusCode::NotFound);
+
 		resp.addHeader("Content-Length", "0");
 		return;
 	}
 
-	if (FileHandler::existsAndIsDirectory(ctx.resolved_path))
+	if (FileUtils::existsAndIsDirectory(ctx.resolved_path))
 	{
 		DBG("[processDelete] Path is a directory, forbidden to delete: "
 			<< ctx.resolved_path);
-		enqueueErrorResponse(ctx, HttpStatusCode::Forbidden);
+			
+		addGeneralErrorDetails(resp, ctx, HttpStatusCode::Forbidden);
+		
 		resp.addHeader("Content-Length", "0");
 		return;
 	}
 
-	if (!FileHandler::hasWritePermission(ctx.resolved_path))
+	if (!FileUtils::hasWritePermission(ctx.resolved_path))
 	{
 		DBG("[processDelete] No write permission for path: "
 				  << ctx.resolved_path);
-		enqueueErrorResponse(ctx, HttpStatusCode::Forbidden);
+				  
+		addGeneralErrorDetails(resp, ctx, HttpStatusCode::Forbidden);
 		resp.addHeader("Content-Length", "0");
 		return;
 	}
 
-	if (FileHandler::deleteFile(ctx.resolved_path))
+	if (FileUtils::deleteFile(ctx.resolved_path))
 	{
 		DBG("[processDelete] File deleted successfully: "
 				  << ctx.resolved_path);
@@ -404,14 +310,14 @@ void RequestHandler::processDelete(RequestData& req,
 	{
 		DBG("[processDelete] Failed to delete file: "
 				  << ctx.resolved_path);
-		enqueueErrorResponse(ctx, HttpStatusCode::InternalServerError);
+		
+		addGeneralErrorDetails(resp, ctx, HttpStatusCode::InternalServerError);
+		
 		resp.addHeader("Content-Length", "0");
 	}
 
 	return;
 }
-
-
 
 // Body size gets filled for the default errors
 void RequestHandler::addGeneralErrorDetails(RawResponse& resp,
@@ -454,15 +360,18 @@ void RequestHandler::addGeneralErrorDetails(RawResponse& resp,
 	DBG("[addGeneralErrorDetails] Generating DEFAULT error page for "
 		<< static_cast<int>(code));
 
-	resp.addDefaultErrorDetails(code);
+	resp.addDefaultError(code);
 	resp.addHeader("Content-Type", "text/html");
 }
 
 void RequestHandler::enqueueErrorResponse(const RequestContext& ctx,
-										  HttpStatusCode status)
+										  HttpStatusCode status,  bool shouldClose)
 {
 	RawResponse rawResp;
 	rawResp.setStatus(status);
+	
+	if (shouldClose)
+        rawResp.addHeader("Connection", "close");
 
 	DBG("[enqueueErrorResponse] Called with status "
 			  << static_cast<int>(status));
@@ -480,14 +389,14 @@ void RequestHandler::enqueueErrorResponse(const RequestContext& ctx,
 		rawResp.setFilePath(pageUri); // optional debug
 
 		DBG("[enqueueErrorResponse] Internal redirect set, custom page will be handled in ConnectionManager");
-		clientState.enqueueRawResponse(rawResp); // still enqueue signal
+		clientState.enqueueRawResponse(rawResp, shouldClose); // still enqueue signal
 		return;
 	}
 
 	// No custom page, generate default
-	rawResp.addDefaultErrorDetails(status);
+	rawResp.addDefaultError(status);
 	rawResp.addHeader("Content-Type", "text/html");
-	clientState.enqueueRawResponse(rawResp);
+	clientState.enqueueRawResponse(rawResp, shouldClose);
 
 	DBG("[enqueueErrorResponse] No custom page, default error page "
 				 "generated for status "
@@ -516,21 +425,24 @@ void RequestHandler::processPost(RequestData& req,
 	{
 		DBG("[processPost] Body too large: " << req.body.size()
 				  << " > " << ctx.client_max_body_size);
-		enqueueErrorResponse(ctx, HttpStatusCode::PayloadTooLarge);
+		
+		addGeneralErrorDetails(resp, ctx, HttpStatusCode::PayloadTooLarge);
+
 		return;
 	}
 
 	if (!ctx.cgi_pass.empty())
 	{
 		DBG("[processPost] CGI configured, executing...");
-		//handleCGI(req, endpoint, interpreter, ctx.resolved_path);
+		
 		return;
 	}
 
 	if (ctx.upload_store.empty())
 	{
 		DBG("[processPost] Upload store not configured, forbidden");
-		enqueueErrorResponse(ctx, HttpStatusCode::Forbidden);
+		
+		addGeneralErrorDetails(resp, ctx, HttpStatusCode::Forbidden);
 		return;
 	}
 
@@ -551,20 +463,7 @@ void RequestHandler::processUpload(RequestData& req, const RequestContext& ctx,
 
 }
 
-std::string RequestHandler::readFileToString(const std::string& path)
-{
-	std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
-	if (!file)
-	{
-		DBG("[readFileToString] Failed to open: " << path);
-		return "";
-	}
-	std::ostringstream contents;
-	contents << file.rdbuf();
-	DBG("[readFileToString] Read " << contents.str().size()
-			  << " bytes from " << path);
-	return contents.str();
-}
+
 
 std::string RequestHandler::httpMethodToString(HttpMethod method)
 {
@@ -576,3 +475,76 @@ std::string RequestHandler::httpMethodToString(HttpMethod method)
 		default:                 return "NONE";
 	}
 }
+
+void RequestHandler::fillSuccessfulResponse(RawResponse& resp, const std::string& filePath)
+{
+	resp.setStatus(HttpStatusCode::OK);
+	
+    // Set MIME type
+    resp.setMimeType(FileUtils::detectMimeType(filePath));
+
+    // Decide delivery mode and set body or file path
+    struct stat s;
+    if (stat(filePath.c_str(), &s) != 0)
+    {
+        // Fallback if file disappears between checks
+        resp.setFileMode(FileDeliveryMode::Streamed);
+        resp.setFileSize(0);
+        resp.setFilePath(filePath);
+        return;
+    }
+
+    size_t fileSize = static_cast<size_t>(s.st_size);
+    FileDeliveryMode mode = (fileSize <= MAX_IN_MEMORY_FILE_SIZE)
+                                ? FileDeliveryMode::InMemory
+                                : FileDeliveryMode::Streamed;
+    resp.setFileMode(mode);
+    resp.setFileSize(fileSize);
+
+    if (mode == FileDeliveryMode::InMemory)
+    {
+        resp.setBody(FileUtils::readFileToString(filePath));
+        resp.addHeader("Content-Length", std::to_string(fileSize));
+    }
+    else
+    {
+        resp.setFilePath(filePath);
+    }
+}
+
+void RequestHandler::fillAutoindexResponse(RawResponse& resp, const std::string& dirPath)
+{
+    resp.setStatus(HttpStatusCode::OK);
+    resp.setMimeType("text/html");
+    resp.setFileMode(FileDeliveryMode::InMemory);
+
+    std::string body = FileUtils::generateAutoindex(dirPath);
+	//add catch?
+    resp.setBody(body);
+    resp.addHeader("Content-Length", std::to_string(resp.getBody().size()));
+}
+
+void RequestHandler::handleExternalRedirect(const RequestContext& ctx, std::string& reqUri, RawResponse& rawResp)
+{
+	if (ctx.redirection.url == reqUri)
+	{
+		// Handle self-redirect differently
+		rawResp.setStatus(HttpStatusCode::LoopDetected);
+		rawResp.setBody("<html><head><title>Error</title></head>"
+				"<body>Redirection loop detected for " + ctx.redirection.url + "</body></html>");
+	}
+	else
+	{
+		// Standard external redirection
+		rawResp.setExternalRedirect(true);
+		rawResp.setRedirectTarget(ctx.redirection.url);
+		rawResp.setStatus(ctx.redirection.statusCode);
+		rawResp.setBody("<html><head><title>Moved</title></head>"
+				"<body>Redirection in progress. <a href=\"" + ctx.redirection.url + "\">Click here</a></body></html>");
+
+	}
+	rawResp.addHeader("Location", ctx.redirection.url);
+	rawResp.addHeader("Content-Length", std::to_string(rawResp.getBody().size()));
+	rawResp.addHeader("Content-Type", "text/html");
+}
+

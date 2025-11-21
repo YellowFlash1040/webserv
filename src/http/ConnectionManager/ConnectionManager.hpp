@@ -7,8 +7,8 @@
 #include "../config/Config/Config.hpp"
 #include "../../network/NetworkEndpoint/NetworkEndpoint.hpp"
 #include "../RequestHandler/RequestHandler.hpp"
-#include "../Response/FileHandler/FileHandler.hpp"
-#include "debug.hpp" 
+#include "../FileUtils/FileUtils.hpp"
+#include "debug.hpp"
 
 #include <unordered_map>
 #include <string>
@@ -61,11 +61,13 @@ class ConnectionManager
                                                const RequestContext& ctx,
                                                RequestHandler& reqHandler,
                                                const NetworkEndpoint& endpoint, 
-											   ClientState& clientState);
+											   ClientState& clientState, bool shouldClose);
 		
 		
-		void enqueueExternRedirResp(HttpMethod method, const RequestContext& newCtx, RequestHandler& reqHandler, const NetworkEndpoint& endpoint);
+		void enqueueExternRedirResp(HttpMethod method, const RequestContext& newCtx, RequestHandler& reqHandler,
+									const NetworkEndpoint& endpoint, bool shouldClose);
 	
+		void printAllResponses(const ClientState& clientState);
 		
 	};
 
