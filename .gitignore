@@ -12,7 +12,10 @@
 !.clang-format
 !*.conf
 !*.py
+!*.pl
 !*.html
 !*.ico
 !*.css
 !*.js
+!*.vscode
+!*.json

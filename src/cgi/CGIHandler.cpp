@@ -34,8 +34,6 @@ void CGIHandler::processCGI(const RequestData& req,
         rawResp.setMimeType("text/plain");
         rawResp.setBody(std::string("CGI parse error: ") + e.what());
     }
-	// if use enqueueRawResponse - I got same response in .py and .pl scripts running in 2 tabs
-	// clientState.enqueueRawResponse(rawResp);
 }
 
 std::string CGIHandler::handleCGI(const RequestData& req, const NetworkEndpoint& endpoint, const std::string& interpreter, const std::string& scriptPath)
