@@ -142,6 +142,8 @@ void RequestHandler::processGet(RequestData& req,
 		
 		if (status == HttpStatusCode::OK)
 		{
+			printRequestData(req);
+
 			std::cout << "Executing CGI interpreter: " << interpreter <<		
 				" for script: " << ctx.resolved_path << std::endl;
 			CGIHandler::processCGI(req, endpoint, interpreter, ctx.resolved_path, rawResp);
@@ -532,3 +534,18 @@ std::string RequestHandler::readFileToString(const std::string& path)
 	return contents.str();
 }
 
+void RequestHandler::printRequestData(const RequestData& req)
+{
+    std::cout << "=== Request Data ===\n";
+    std::cout << "URI: " << req.uri << "\n";
+    std::cout << "Query: " << req.query << "\n";
+    std::cout << "HTTP Version: " << req.httpVersion << "\n";
+    std::cout << "Headers:\n";
+    for (const auto& [key, value] : req.headers)
+    {
+        std::cout << "  " << key << ": " << value << "\n";
+    }
+    std::cout << "Body:\n" << req.body << "\n";
+    std::cout << "Bytes Sent: " << req.bytesSent << "\n";
+    std::cout << "===================\n";
+}

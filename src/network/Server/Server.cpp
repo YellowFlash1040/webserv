@@ -42,10 +42,10 @@ void Server::run(void)
         throw std::runtime_error("epoll_create");
 
     m_timerfd = createTimerFd(5);
-    addSocketToEPoll(m_timerfd, EPOLLIN | EPOLLET);
+    addSocketToEPoll(m_timerfd, EPOLLIN);
 
     for (auto& it : m_listeners)
-        addSocketToEPoll(it.first, EPOLLIN | EPOLLET);
+        addSocketToEPoll(it.first, EPOLLIN);
 
     t_event events[MAX_EVENTS];
     while (g_running)
@@ -120,7 +120,7 @@ void Server::flushClientOutBuffer(Client& client)
     {
         struct epoll_event mod;
         mod.data.fd = fd;
-        mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP | EPOLLET;
+        mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP;
         if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, fd, &mod) == -1)
             perror("epoll_ctl mod");
     }
@@ -163,12 +163,15 @@ void Server::acceptNewClient(int listeningSocket)
 
     const NetworkEndpoint& ep = m_listeners.at(listeningSocket).getEndpoint();
 
+    std::string ipStr = static_cast<std::string>(ep.ip());
+    std::cout << "acceptNewClient NetworkEndpoint IP: " << ipStr << "\n";
+
     m_clients.emplace(clientSocket,
                     std::make_unique<Client>(clientSocket, clientAddr, ep));
 
     m_connMgr.addClient(clientSocket);
 
-    addSocketToEPoll(clientSocket, EPOLLIN | EPOLLOUT | EPOLLET);
+    addSocketToEPoll(clientSocket, EPOLLIN | EPOLLOUT);
 }
 
 void Server::removeClient(Client& client)
@@ -221,7 +224,7 @@ void Server::processClient(Client& client)
 
         struct epoll_event mod;
         mod.data.fd = clientFd;
-        mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP | EPOLLOUT | EPOLLET;
+        mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP | EPOLLOUT;
         if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, clientFd, &mod) == -1)
             perror("epoll_ctl EPOLLOUT");
 

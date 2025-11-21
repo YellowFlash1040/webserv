@@ -60,6 +60,9 @@ std::string CGIHandler::handleCGI(const RequestData& req, const NetworkEndpoint&
     env.push_back("REMOTE_PORT="); // TODO: addd client port
 
     std::string host = req.getHeader("Host");
+
+	std::cout << "[handleCGI] Host = " << host << std::endl;
+
     if (!host.empty())
         env.push_back("SERVER_NAME=" + host);
     else
