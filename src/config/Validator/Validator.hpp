@@ -70,6 +70,7 @@ class Validator
     static void validateString(const std::string& s);
     static void validateUrl(const std::string& s);
     static void validateStatusCode(const std::string& s);
+    static void validateReturnStatusCode(const std::string& s);
     static void validateDataSize(const std::string& s);
     static void validateOnOff(const std::string& s);
     static void validateFolderPath(const std::string& s);
