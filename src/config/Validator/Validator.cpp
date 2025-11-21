@@ -309,7 +309,7 @@ void Validator::validateUrl(const std::string& s)
     if (s.empty())
         throw std::invalid_argument("URL can not be empty");
 
-    if (s.find('.') == std::string::npos)
+    if (s.find('/') == std::string::npos)
         throw std::invalid_argument("Invalid URL: " + s);
 }
 
