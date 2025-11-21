@@ -16,8 +16,10 @@ def read_stdin():
     return sys.stdin.read(length)
 
 def main():
-    # Заголовки CGI: обязательно хотя бы Content-Type и пустая строка
     print("Content-Type: text/plain")
+
+    #TEST for Content-Length
+    # print("Content-Length: 200")
     print()  # разделитель заголовков и тела
 
     # Печатаем базовую информацию

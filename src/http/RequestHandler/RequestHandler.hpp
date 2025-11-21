@@ -38,8 +38,8 @@ class RequestHandler
 	void serveBadRequest(RawRequest& rawReq, const NetworkEndpoint& endpoint, RequestContext& ctx);
 	void addGeneralErrorDetails(RawResponse& resp, RequestContext& ctx, HttpStatusCode code);
 	
-	void processCGIResponse(const RequestData &req, const NetworkEndpoint& endpoint, const std::string &interpreter, const std::string &resolvedPath, RawResponse &rawResp);
-	std::string handleCGI(const RequestData& req, const NetworkEndpoint& endpoint, const std::string& interpreter, const std::string& scriptPath);
+	// void processCGIResponse(const RequestData &req, const NetworkEndpoint& endpoint, const std::string &interpreter, const std::string &resolvedPath, RawResponse &rawResp);
+	// std::string handleCGI(const RequestData& req, const NetworkEndpoint& endpoint, const std::string& interpreter, const std::string& scriptPath);
 	void processUpload(RequestData &req, RequestContext &ctx, RawResponse &resp);
 	void printRequestData(const RequestData& req);
 
