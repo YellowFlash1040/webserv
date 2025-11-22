@@ -1,19 +1,18 @@
 #pragma once
 
-# ifndef CLIENT_HPP
+#ifndef CLIENT_HPP
 # define CLIENT_HPP
 
-#include <string>
-#include <vector>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <iostream>
-#include <chrono>
+# include <string>
+# include <vector>
+# include <netinet/in.h>
+# include <unistd.h>
+# include <iostream>
+# include <chrono>
 
-
-class Client 
+class Client
 {
-public:
+  public:
     Client(int fd, const sockaddr_in& addr, int listeningSocketFd);
     ~Client();
 
@@ -34,7 +33,7 @@ public:
 
     void printInfo() const;
 
-private:
+  private:
     int socket_fd;
     sockaddr_in address;
     int listeningSocketFd;

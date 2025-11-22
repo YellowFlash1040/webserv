@@ -4,8 +4,11 @@
 #include <arpa/inet.h> // inet_ntoa
 
 Client::Client(int fd, const sockaddr_in& addr, int listeningSocketFd)
-    : socket_fd(fd), address(addr), listeningSocketFd(listeningSocketFd),
-      in_buffer(""), out_buffer("")
+  : socket_fd(fd)
+  , address(addr)
+  , listeningSocketFd(listeningSocketFd)
+  , in_buffer("")
+  , out_buffer("")
 {
     if (fd < 0)
         throw std::invalid_argument("Invalid socket descriptor");
@@ -28,7 +31,8 @@ int Client::getSocket() const
 
 int Client::getListeningSocket() const
 {
-    return listeningSocketFd;}
+    return listeningSocketFd;
+}
 
 const sockaddr_in& Client::getAddress() const
 {
