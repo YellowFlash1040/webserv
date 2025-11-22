@@ -133,8 +133,8 @@ const std::map<std::string, DirectiveSpec> directives = {
         Type::SIMPLE,
         {SERVER, LOCATION},
         {
-            {{ArgumentType::StatusCode}, 1, 1},
-            {{ArgumentType::URL, ArgumentType::String}, 0, 1},
+            {{ArgumentType::ReturnStatusCode}, 1, 1},
+            {{ArgumentType::URL}, 0, 1},
         },
         {},
         false
