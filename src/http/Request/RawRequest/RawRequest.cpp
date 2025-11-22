@@ -671,6 +671,7 @@ void RawRequest::printRequest(size_t idx) const
 		for (const auto& header : _headers)
 		{
 			DBG("  " << header.first << ": " << header.second);
+			(void)header;
 		}
 }
 

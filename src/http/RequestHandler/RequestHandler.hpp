@@ -22,22 +22,20 @@ class RequestHandler
 	void processRequest(RawRequest& rawReq, const NetworkEndpoint& endpoint, const RequestContext& ctx);
 	std::string getErrorPageUri(const RequestContext& ctx, HttpStatusCode status) const;
 	void enqueueErrorResponse(const RequestContext& ctx, HttpStatusCode status, bool shouldClose);
-		static std::string httpMethodToString(HttpMethod method);
+	static std::string httpMethodToString(HttpMethod method);
 	
 	private:
 	ClientState& clientState; // Needed to enqueue response
 	
-	
 	bool isMethodAllowed(HttpMethod method, const std::vector<HttpMethod>& allowed_methods);
 	
-	void processGet(const std::string& uri, const RequestContext& ctx, RawResponse& resp);
-	void processDelete(const RequestContext& ctx, RawResponse& resp);
+	void processGet(RequestData& req, const NetworkEndpoint& endpoint, const RequestContext& ctx, RawResponse& resp);
 	void processPost(RequestData& req, const NetworkEndpoint& endpoint, const RequestContext& ctx, RawResponse& resp);
-
+	void processDelete(RequestData& req, const NetworkEndpoint& endpoint, const RequestContext& ctx, RawResponse& resp);
 	
 	std::string getCgiPathFromUri(const std::string& uri, const std::map<std::string, std::string>& cgi_pass,
 		HttpStatusCode& outStatus);
-	
+		
 	void enqueueBadResponse();
 	void addGeneralErrorDetails(RawResponse& resp, const RequestContext& ctx, HttpStatusCode code);
 	

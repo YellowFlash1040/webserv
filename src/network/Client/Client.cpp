@@ -3,13 +3,13 @@
 #include <iostream>
 #include <arpa/inet.h> // inet_ntoa
 
-Client::Client(int fd, const sockaddr_in& addr, int listeningSocketFd)
-    : socket_fd(fd), address(addr), listeningSocketFd(listeningSocketFd),
+Client::Client(int fd, const sockaddr_in& addr, const NetworkEndpoint& listeningEndpoint)
+    : socket_fd(fd), address(addr), listeningEndpoint(listeningEndpoint),
       in_buffer(""), out_buffer("")
 {
     if (fd < 0)
         throw std::invalid_argument("Invalid socket descriptor");
-    lastActivity = std::chrono::steady_clock::now();
+    updateLastActivity();
 }
 
 Client::~Client()
@@ -26,9 +26,10 @@ int Client::getSocket() const
     return socket_fd;
 }
 
-int Client::getListeningSocket() const
+const NetworkEndpoint& Client::getListeningEndpoint() const
 {
-    return listeningSocketFd;}
+    return listeningEndpoint;
+}
 
 const sockaddr_in& Client::getAddress() const
 {

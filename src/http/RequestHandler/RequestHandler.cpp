@@ -1,5 +1,6 @@
 #include "RequestHandler.hpp"
 #include "../utils/utils.hpp"
+#include "CGIHandler.hpp"
 
 void RequestHandler::processRequest(RawRequest& rawReq,
 									const NetworkEndpoint& endpoint,
@@ -45,13 +46,13 @@ void RequestHandler::processRequest(RawRequest& rawReq,
 	switch (req.method)
 	{
 	case HttpMethod::GET:
-		processGet(req.uri, ctx, resp);
+		processGet(req, endpoint, ctx, resp);
 		break;
 	case HttpMethod::POST:
 		processPost(req, endpoint, ctx, resp);
 		break;
 	case HttpMethod::DELETE:
-		processDelete(ctx, resp);
+		processDelete(req, endpoint, ctx, resp);
 		break;
 	default:
 		addGeneralErrorDetails(resp, ctx, HttpStatusCode::MethodNotAllowed);
@@ -92,26 +93,26 @@ bool RequestHandler::isMethodAllowed(
     return false;
 }
 
-void RequestHandler::processGet(const std::string& uri, const RequestContext& ctx, RawResponse& rawResp)
+void RequestHandler::processGet(RequestData& req, const NetworkEndpoint& endpoint, const RequestContext& ctx, RawResponse& rawResp)
 {
-
 	DBG("[processGet] Processing request for resolved path: " << ctx.resolved_path);
 
 	// 1. Check CGI first
 	if (!ctx.cgi_pass.empty())
 	{
 		HttpStatusCode status;
-		std::string interpreter = getCgiPathFromUri(uri, ctx.cgi_pass, status);
+		std::string interpreter = getCgiPathFromUri(req.uri, ctx.cgi_pass, status);
 		
 		DBG("[processGet] CGI interpreter path: \"" << interpreter
 			<< "\", status: " << static_cast<int>(status));
+
 
 		if (status == HttpStatusCode::BadGateway)
 		{
 			addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::BadGateway);
 			return;
 		}
-
+		
 		DBG("[processGet] interpreter detected, checking file " << ctx.resolved_path << " for validity...");
 
 		if (!FileUtils::existsAndIsFile(ctx.resolved_path))
@@ -126,11 +127,12 @@ void RequestHandler::processGet(const std::string& uri, const RequestContext& ct
 			addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::Forbidden);
 			return;
 		}
-
+		
 		if (status == HttpStatusCode::OK)
 		{
-			DBG("Executing CGI interpreter: " << interpreter << " for script: " << ctx.resolved_path);
-			//std::string cgiResult = handleCGI(req, endpoint, interpreter, ctx.resolved_path);
+			DBG("Executing CGI interpreter: " << interpreter << 
+				" for script: " << ctx.resolved_path);
+			CGIHandler::processCGI(req, endpoint, interpreter, ctx.resolved_path, rawResp);
 
 			return;
 		}
@@ -152,10 +154,16 @@ void RequestHandler::processGet(const std::string& uri, const RequestContext& ct
 
 		fillSuccessfulResponse(rawResp, ctx.resolved_path);
 		
+		DBG("[processGet] setting status to OK");
+		rawResp.setStatus(HttpStatusCode::OK);
+
+		rawResp.setMimeType(FileUtils::detectMimeType(ctx.resolved_path));
+
 		DBG("[processGet] Served static file with status: " << static_cast<int>(rawResp.getStatusCode())
 		 << " (might change later if it is an internal redirection");
 		
-		 return;
+		return;
+
 	}
 
 	// 3. Directory handling
@@ -261,8 +269,10 @@ std::string RequestHandler::getCgiPathFromUri(
     return "";
 }
 
-void RequestHandler::processDelete(const RequestContext& ctx, RawResponse& resp)
+void RequestHandler::processDelete(RequestData& req, const NetworkEndpoint& endpoint, const RequestContext& ctx, RawResponse& resp)
 {
+	(void)req;
+	(void)endpoint;
 
 	DBG("[processDelete] Processing DELETE for path: "
 			  << ctx.resolved_path);
@@ -418,7 +428,9 @@ void RequestHandler::processPost(RequestData& req,
 								 const NetworkEndpoint& endpoint,
 								 const RequestContext& ctx, RawResponse& resp)
 {
-	(void)endpoint;
+	HttpStatusCode status;
+	std::string interpreter = getCgiPathFromUri(req.uri, ctx.cgi_pass, status);
+
 	DBG("[processPost] Processing POST for path: " << ctx.resolved_path);
 
 	if (req.body.size() > ctx.client_max_body_size)
@@ -434,7 +446,8 @@ void RequestHandler::processPost(RequestData& req,
 	if (!ctx.cgi_pass.empty())
 	{
 		DBG("[processPost] CGI configured, executing...");
-		
+		CGIHandler::processCGI(req, endpoint, interpreter, ctx.resolved_path, resp);
+
 		return;
 	}
 
@@ -547,4 +560,3 @@ void RequestHandler::handleExternalRedirect(const RequestContext& ctx, std::stri
 	rawResp.addHeader("Content-Length", std::to_string(rawResp.getBody().size()));
 	rawResp.addHeader("Content-Type", "text/html");
 }
-

@@ -126,7 +126,7 @@ ResponseData RawResponse::toResponseData() const
 		data.filePath = _filePath;
 		data.fileSize = _fileSize;
 
-		data.body = "";  // streamed → empty body
+		data.body = "";
 
 		data.headers["Content-Length"] = std::to_string(_fileSize);
 		data.headers["Content-Type"] = _mimeType;

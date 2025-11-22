@@ -245,6 +245,7 @@ TEST_F(RequestHandlerTest, GetWithConnectionCloseHeader)
     rawReq.setMethod("GET");
     rawReq.setUri("/index.html");
     rawReq.addHeader("Connection", "close");
+    rawReq.setShouldClose(true);
 
     // Prepare context
     ctx.resolved_path = "./assets/www/site1/index.html";
@@ -273,6 +274,7 @@ TEST_F(RequestHandlerTest, MethodNotAllowedWithConnectionClose)
 
     // Set the Connection: close header
     rawReq.addHeader("Connection", "close");
+    rawReq.setShouldClose(true);
 
     RequestContext ctx;
     ctx.resolved_path = "./www/site1/";
