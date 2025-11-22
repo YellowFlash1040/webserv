@@ -403,7 +403,6 @@ void RequestHandler::processPost(RequestData& req,
 								 const NetworkEndpoint& endpoint,
 								 RequestContext& ctx, RawResponse& resp)
 {
-	(void)endpoint;
 	std::cout << "[processPost] Processing POST for path: " << ctx.resolved_path
 			  << std::endl;
 
@@ -433,8 +432,6 @@ void RequestHandler::processPost(RequestData& req,
 	UploadModule::processUpload(req, ctx, resp);
 	std::cout << "[processPost] Upload processed, body size: "
 			  << resp.getBody().size() << std::endl;
-	
-	clientState.enqueueRawResponse(resp);
 
 	return;
 }
