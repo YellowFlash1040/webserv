@@ -191,6 +191,24 @@ std::string UploadModule::extensionFromMime(const std::string& mime)
     return "";
 }
 
+std::string UploadModule::generateRandomName(size_t length)
+{
+    static const char charset[] = "0123456789"
+                                  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                  "abcdefghijklmnopqrstuvwxyz";
+
+    std::mt19937 rng((unsigned)std::random_device{}());
+    std::uniform_int_distribution<> dist(0, sizeof(charset) - 2);
+
+    std::string result;
+    result.reserve(length);
+
+    for (size_t i = 0; i < length; i++)
+        result.push_back(charset[dist(rng)]);
+
+    return result;
+}
+
 void UploadModule::create201Response(RawResponse& resp)
 {
     resp.setStatus(HttpStatusCode::Created);

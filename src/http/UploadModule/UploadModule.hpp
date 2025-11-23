@@ -6,6 +6,7 @@
 # include <istream>
 # include <vector>
 # include <cstring>
+# include <random>
 
 # include "RequestContext.hpp"
 # include "RequestData.hpp"
@@ -64,6 +65,7 @@ class UploadModule
     static std::string extractFileName(const std::string& headers);
     static void saveFile(const FileField& file, const std::string& uploadStore);
     static std::string extensionFromMime(const std::string& mime);
+    static std::string generateRandomName(size_t length = 32);
 
     ////
     static void create201Response(RawResponse& resp);
