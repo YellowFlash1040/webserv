@@ -5,9 +5,12 @@ using FileField = UploadModule::FileField;
 
 // ---------------------------METHODS-----------------------------
 
-//"multipart/form-data; boundary=----WebKitFormBoundary7sXEyrliWNq0uCE6"
-
+// clang-format off
 /*
+POST /test.html HTTP/1.1
+Host: example.org
+Content-Type: multipart/form-data; boundary="----WebKitFormBoundary7sXEyrliWNq0uCE6"
+
 ------WebKitFormBoundary7sXEyrliWNq0uCE6\r\n
 Content-Disposition: form-data; name=\"files[]\"; filename=\"file.txt\"\r\n
 Content-Type:text/plain\r\n\r\n
@@ -20,6 +23,7 @@ Content-Type:text/plain\r\n\r\n
 Data inside second file\n\r\n
 ------WebKitFormBoundary7sXEyrliWNq0uCE6--
 */
+// clang-format on
 
 void UploadModule::processUpload(RequestData& req, RequestContext& ctx,
                                  RawResponse& resp)
