@@ -30,6 +30,14 @@ void UploadModule::processUpload(RequestData& req, RequestContext& ctx,
         return create201Response(resp);
     }
 
+    std::string extension = extensionFromMime(req.getHeader("Content-Type"));
+    if (!extension.empty())
+    {
+        saveFile({generateRandomName() + extension, req.body},
+                 ctx.upload_store);
+        return create201Response(resp);
+    }
+
     return create415Response(resp);
 }
 
