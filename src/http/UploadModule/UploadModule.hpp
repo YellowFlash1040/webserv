@@ -11,6 +11,7 @@
 # include "RequestContext.hpp"
 # include "RequestData.hpp"
 # include "RawResponse.hpp"
+# include "MimeTypeRecognizer.hpp"
 
 class UploadModule
 {
@@ -64,7 +65,6 @@ class UploadModule
         const std::vector<FormField>& formFields);
     static std::string extractFileName(const std::string& headers);
     static void saveFile(const FileField& file, const std::string& uploadStore);
-    static std::string extensionFromMime(const std::string& mime);
     static std::string generateRandomName(size_t length = 32);
 
     ////

@@ -34,7 +34,8 @@ void UploadModule::processUpload(RequestData& req, RequestContext& ctx,
         return create201Response(resp);
     }
 
-    std::string extension = extensionFromMime(req.getHeader("Content-Type"));
+    std::string extension
+        = MimeTypeRecognizer::getExtension(req.getHeader("Content-Type"));
     if (!extension.empty())
     {
         saveFile({generateRandomName() + extension, req.body},
@@ -186,21 +187,6 @@ void UploadModule::saveFile(const FileField& file,
         throw std::runtime_error("Failed to open file '" + file.fileName
                                  + "' for writing");
     os.write(file.contents.c_str(), file.contents.size());
-}
-
-std::string UploadModule::extensionFromMime(const std::string& mime)
-{
-    if (mime == "image/jpeg" || mime == "image/jpg")
-        return ".jpg";
-    if (mime == "image/png")
-        return ".png";
-    if (mime == "image/gif")
-        return ".gif";
-    if (mime == "image/webp")
-        return ".webp";
-    if (mime == "image/bmp")
-        return ".bmp";
-    return "";
 }
 
 std::string UploadModule::generateRandomName(size_t length)
