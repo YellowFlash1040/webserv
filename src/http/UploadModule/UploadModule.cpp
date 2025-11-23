@@ -30,17 +30,18 @@ void UploadModule::processUpload(RequestData& req, RequestContext& ctx,
 {
     if (isMultipartFormData(req))
     {
-        processMultipartFormData(req, ctx.upload_store);
-        return create201Response(resp);
+        std::vector<std::string> savedFiles
+            = processMultipartFormData(req, ctx.upload_store);
+        return create201Response(resp, savedFiles);
     }
 
     std::string extension
         = MimeTypeRecognizer::getExtension(req.getHeader("Content-Type"));
     if (!extension.empty())
     {
-        saveFile({generateRandomName() + extension, req.body},
-                 ctx.upload_store);
-        return create201Response(resp);
+        std::string filePath = saveFile(
+            {generateRandomName() + extension, req.body}, ctx.upload_store);
+        return create201Response(resp, {filePath});
     }
 
     return create415Response(resp);
@@ -54,17 +55,21 @@ bool UploadModule::isMultipartFormData(const RequestData& req)
     return headerValue.compare(0, prefix.length(), prefix) == 0;
 }
 
-void UploadModule::processMultipartFormData(const RequestData& req,
-                                            const std::string& uploadStore)
+std::vector<std::string> UploadModule::processMultipartFormData(
+    const RequestData& req, const std::string& uploadStore)
 {
     const std::string boundary = extractBoundary(req.getHeader("Content-Type"));
     if (boundary.empty())
-        return;
+        return {};
 
     std::vector<FormField> formFields = parseFormData(req.body, boundary);
     std::vector<FileField> files = searchForFiles(formFields);
+    std::vector<std::string> savedFiles;
+    savedFiles.reserve(files.size());
     for (FileField file : files)
-        saveFile(file, uploadStore);
+        savedFiles.push_back(saveFile(file, uploadStore));
+
+    return savedFiles;
 }
 
 std::string UploadModule::extractBoundary(const std::string& contentTypeHeader)
@@ -179,14 +184,17 @@ std::string UploadModule::extractFileName(const std::string& headers)
     return headers.substr(openBracePos, filenameSize);
 }
 
-void UploadModule::saveFile(const FileField& file,
-                            const std::string& uploadStore)
+std::string UploadModule::saveFile(const FileField& file,
+                                   const std::string& uploadStore)
 {
-    std::ofstream os(uploadStore + "/" + file.fileName, std::ios::binary);
+    std::string filePath = uploadStore + "/" + file.fileName;
+    std::ofstream os(filePath, std::ios::binary);
     if (!os)
         throw std::runtime_error("Failed to open file '" + file.fileName
                                  + "' for writing");
     os.write(file.contents.c_str(), file.contents.size());
+
+    return filePath;
 }
 
 std::string UploadModule::generateRandomName(size_t length)
@@ -207,14 +215,28 @@ std::string UploadModule::generateRandomName(size_t length)
     return result;
 }
 
-void UploadModule::create201Response(RawResponse& resp)
+void UploadModule::create201Response(RawResponse& resp,
+                                     std::vector<std::string> savedFiles)
 {
+    std::stringstream bodyStream;
+
+    bodyStream << "{\n";
+    bodyStream << "  \"message\": \"File(s) uploaded successfully\",\n";
+
+    bodyStream << "  \"file_paths\": [";
+    for (size_t i = 0; i < savedFiles.size(); ++i)
+    {
+        bodyStream << "\"" << savedFiles[i] << "\"";
+        if (i < savedFiles.size() - 1)
+            bodyStream << ", ";
+    }
+    bodyStream << "]\n";
+    bodyStream << "}";
+
     resp.setStatus(HttpStatusCode::Created);
     resp.setDefaultHeaders();
     resp.addHeader("Content-Type", "application/json");
-    resp.setBody(R"({
-  "message": "File(s) uploaded successfully",
-})");
+    resp.setBody(bodyStream.str());
 }
 
 void UploadModule::create415Response(RawResponse& resp)

@@ -7,6 +7,7 @@
 # include <vector>
 # include <cstring>
 # include <random>
+# include <sstream>
 
 # include "RequestContext.hpp"
 # include "RequestData.hpp"
@@ -44,8 +45,8 @@ class UploadModule
   private:
     // Methods
     static bool isMultipartFormData(const RequestData& req);
-    static void processMultipartFormData(const RequestData& req,
-                                         const std::string& uploadStore);
+    static std::vector<std::string> processMultipartFormData(
+        const RequestData& req, const std::string& uploadStore);
     static std::string extractBoundary(const std::string& contentTypeHeader);
     static std::vector<FormField> parseFormData(const std::string& body,
                                                 const std::string& boundary);
@@ -64,11 +65,13 @@ class UploadModule
     static std::vector<FileField> searchForFiles(
         const std::vector<FormField>& formFields);
     static std::string extractFileName(const std::string& headers);
-    static void saveFile(const FileField& file, const std::string& uploadStore);
+    static std::string saveFile(const FileField& file,
+                                const std::string& uploadStore);
     static std::string generateRandomName(size_t length = 32);
 
     ////
-    static void create201Response(RawResponse& resp);
+    static void create201Response(RawResponse& resp,
+                                  std::vector<std::string> savedFiles);
     static void create415Response(RawResponse& resp);
 };
 
