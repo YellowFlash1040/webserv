@@ -176,6 +176,21 @@ void UploadModule::saveFile(const FileField& file,
     os.write(file.contents.c_str(), file.contents.size());
 }
 
+std::string UploadModule::extensionFromMime(const std::string& mime)
+{
+    if (mime == "image/jpeg" || mime == "image/jpg")
+        return ".jpg";
+    if (mime == "image/png")
+        return ".png";
+    if (mime == "image/gif")
+        return ".gif";
+    if (mime == "image/webp")
+        return ".webp";
+    if (mime == "image/bmp")
+        return ".bmp";
+    return "";
+}
+
 void UploadModule::create201Response(RawResponse& resp)
 {
     resp.setStatus(HttpStatusCode::Created);
