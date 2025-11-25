@@ -9,20 +9,20 @@ ClientState::ClientState()
     _rawRequests.emplace_back();
 }
 
-size_t ClientState::getRawReqCount() const
-{
-	return _rawRequests.size();
-}
+// size_t ClientState::getRawReqCount() const
+// {
+// 	return _rawRequests.size();
+// }
 
-bool ClientState::latestRawReqNeedsBody() const
-{
-	if (_rawRequests.empty())
-		return false;
-	const RawRequest& latest = _rawRequests.back();
+// bool ClientState::latestRawReqNeedsBody() const
+// {
+// 	if (_rawRequests.empty())
+// 		return false;
+// 	const RawRequest& latest = _rawRequests.back();
 
-	// Needs a body if headers are done but body isn’t
-	return latest.isHeadersDone() && !latest.isBodyDone();
-}
+// 	// Needs a body if headers are done but body isn’t
+// 	return latest.isHeadersDone() && !latest.isBodyDone();
+// }
 
 void ClientState::enqueueResponseData(const ResponseData& resp)
 {
@@ -145,17 +145,6 @@ void ClientState::popFrontResponseData()
 	if (_respDataQueue.empty())
 		throw std::runtime_error("No pending responses");
 	_respDataQueue.pop();
-}
-
-
-void ClientState::enqueueRawResponse(const RawResponse& resp, bool shouldClose)
-{
-    RawResponse r = resp; // copy
-    if (shouldClose)
-        r.addHeader("Connection", "close");
-
-    DBG("[enqueueRawResponse]: enqueued");
-    _rawResponsesQueue.push_back(r);
 }
 
 RawResponse& ClientState::peekLastRawResponse()

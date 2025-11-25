@@ -178,7 +178,7 @@ void UploadModule::saveFile(const FileField& file,
 
 void UploadModule::create201Response(RawResponse& resp)
 {
-    resp.setStatus(HttpStatusCode::Created);
+    resp.setStatusCode(HttpStatusCode::Created);
     resp.setDefaultHeaders();
     resp.addHeader("Content-Type", "application/json");
     resp.setBody(R"({
@@ -188,7 +188,7 @@ void UploadModule::create201Response(RawResponse& resp)
 
 void UploadModule::create415Response(RawResponse& resp)
 {
-    resp.setStatus(HttpStatusCode::UnsupportedMediaType);
+    resp.setStatusCode(HttpStatusCode::UnsupportedMediaType);
     resp.setDefaultHeaders();
     resp.addHeader("Accept-Post", "multipart/form-data");
 }

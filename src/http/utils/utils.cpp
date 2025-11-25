@@ -52,3 +52,24 @@ bool equalsIgnoreCase(const std::string& a, const std::string& b)
             return false;
     return true;
 }
+
+void removeCarriageReturns(std::string& str)
+{
+	str.erase(std::remove(str.begin(), str.end(), '\r'), str.end());
+}
+
+void trimLeadingWhitespace(std::string& str)
+{
+	str.erase(
+		str.begin(),
+		std::find_if(str.begin(), str.end(),
+					 [](unsigned char ch) { return !std::isspace(ch); })
+	);
+}
+
+bool isHex(char c)
+{
+	return (c >= '0' && c <= '9') ||
+		   (c >= 'A' && c <= 'F') ||
+		   (c >= 'a' && c <= 'f');
+}

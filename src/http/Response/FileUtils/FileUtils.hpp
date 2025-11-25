@@ -12,6 +12,7 @@
 #include <cerrno>
 # include<vector>
 #include <filesystem>
+
 #include "../utils/debug.hpp"
 
 // Maximum file size to load in memory (1 MB default)
@@ -37,6 +38,8 @@ namespace FileUtils
 	std::string getFirstValidIndexFile(const std::string& dirPath, const std::vector<std::string>& indexFiles);
 	std::string generateAutoindex(const std::string& dirPath);
 	std::string detectMimeType(const std::string& path);
+
+
 }
 
 #endif

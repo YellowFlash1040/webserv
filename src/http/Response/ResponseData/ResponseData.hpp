@@ -1,11 +1,10 @@
 #ifndef RESPONSEDATA_HPP
 #define RESPONSEDATA_HPP
 
-#include "../FileDeliveryMode/FileDeliveryMode.hpp"
-
 #include <string>
 #include <unordered_map>
 
+#include "../FileUtils/FileUtils.hpp"
 
 struct ResponseData
 {
@@ -15,7 +14,7 @@ struct ResponseData
 	std::string body{};
 	
 	//streaming info
-	FileDeliveryMode fileMode{FileDeliveryMode::InMemory};
+	FileUtils::FileDeliveryMode fileMode{FileUtils::FileDeliveryMode::InMemory};
 	std::string filePath{};
 	size_t fileSize{0};
 	ssize_t bytesSent{0};

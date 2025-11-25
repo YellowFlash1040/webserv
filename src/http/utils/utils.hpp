@@ -1,23 +1,21 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#define RESET   "\033[0m"
+#define TEAL    "\033[36m" 
+
+#include <iostream>
+
 #include "../../config/Config/request_resolving/RequestContext/RequestContext.hpp"
 #include "../RawRequest/RawRequest.hpp"
 #include "../Response/RawResponse/RawResponse.hpp"
 #include "../HttpMethod/HttpMethod.hpp"
-#include <iostream>
-
-#define GREEN "\033[0;32m"
-#define YELLOW "\033[0;33m"
-#define ORANGE "\033[38;5;214m"
-#define TEAL "\033[36m"
-#define BLUE "\033[38;2;100;149;237m"
-#define RED "\033[31m"
-#define MINT "\033[38;2;150;255;200m"
-#define RESET "\033[0m"
 
 void printReqContext(const RequestContext& ctx);
 bool equalsIgnoreCase(const std::string& a, const std::string& b);
+void removeCarriageReturns(std::string& str);
+void trimLeadingWhitespace(std::string& str);
+bool isHex(char c);
 
 
 #endif

@@ -1,48 +1,20 @@
-# ifndef REQUESTHANDLER_HPP
-# define REQUESTHANDLER_HPP
+#ifndef REQUESTHANDLER_HPP
+#define REQUESTHANDLER_HPP
 
-#include "../Response/RawResponse/RawResponse.hpp"
-#include "../ConnectionManager/ClientState/ClientState.hpp"
-#include "../../network/NetworkEndpoint/NetworkEndpoint.hpp"
-#include "../Request/RawRequest/RawRequest.hpp"
-#include "../Request/RequestData/RequestData.hpp"
+#include "../ResponseGenerator/ResponseGenerator.hpp"
+#include "Config.hpp"
 #include "../../config/Config/request_resolving/RequestContext/RequestContext.hpp"
-#include "../HttpStatusCode/HttpStatusCode.hpp"
-#include "../HttpMethod/HttpMethod.hpp"
-#include "../FileUtils/FileUtils.hpp"
-#include "CGI.hpp"
-#include "debug.hpp"
 
-
-class RequestHandler
+namespace RequestHandler
 {
-	public:
-	RequestHandler(ClientState& client) : clientState(client) {}
-	
-	void processRequest(RawRequest& rawReq, const NetworkEndpoint& endpoint, const RequestContext& ctx);
-	std::string getErrorPageUri(const RequestContext& ctx, HttpStatusCode status) const;
-	void enqueueErrorResponse(const RequestContext& ctx, HttpStatusCode status, bool shouldClose);
-	static std::string httpMethodToString(HttpMethod method);
-	
-	private:
-	ClientState& clientState; // Needed to enqueue response
-	
-	bool isMethodAllowed(HttpMethod method, const std::vector<HttpMethod>& allowed_methods);
-	
-	void processGet(RequestData& req, const NetworkEndpoint& endpoint, const RequestContext& ctx, RawResponse& resp);
-	void processPost(RequestData& req, const NetworkEndpoint& endpoint, const RequestContext& ctx, RawResponse& resp);
-	void processDelete(RequestData& req, const NetworkEndpoint& endpoint, const RequestContext& ctx, RawResponse& resp);
-	
-	std::string getCgiPathFromUri(const std::string& uri, const std::map<std::string, std::string>& cgi_pass,
-		HttpStatusCode& outStatus);
-		
-	void enqueueBadResponse();
-	void addGeneralErrorDetails(RawResponse& resp, const RequestContext& ctx, HttpStatusCode code);
-	
-	void handleExternalRedirect(const RequestContext& ctx, std::string& reqUri, RawResponse& rawResp);
-	void processUpload(RequestData &req, const RequestContext &ctx, RawResponse &resp);
-	void fillSuccessfulResponse(RawResponse& resp, const std::string& filePath);
-	void fillAutoindexResponse(RawResponse& resp, const std::string& dirPath);
-};
+	RawResponse handleSingleRequest(const RawRequest& rawReq,
+									const NetworkEndpoint& endpoint,
+									const Config& config);
+									
+	void handleExternalRedirect(const RequestContext& newCtx,
+									std::string& newUri,
+									RawResponse& redirResp);
+									
+}
 
 #endif

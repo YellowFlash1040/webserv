@@ -12,7 +12,7 @@ void CGIHandler::processCGI(const RequestData& req,
 
         if (parsed.is_redirect)
 		{
-            rawResp.setStatus(static_cast<HttpStatusCode>(parsed.status));
+            rawResp.setStatusCode(static_cast<HttpStatusCode>(parsed.status));
             rawResp.addHeader("Location", parsed.headers.at("Location"));
             rawResp.setBody("");
             rawResp.setMimeType("");
@@ -22,7 +22,7 @@ void CGIHandler::processCGI(const RequestData& req,
             rawResp.setBody(parsed.body);
 
             int status_code = parsed.status > 0 ? parsed.status : static_cast<int>(HttpStatusCode::OK);
-            rawResp.setStatus(static_cast<HttpStatusCode>(status_code));
+            rawResp.setStatusCode(static_cast<HttpStatusCode>(status_code));
 
             std::string ct = parsed.headers.count("Content-Type") ? parsed.headers.at("Content-Type") : "text/plain";
             rawResp.setMimeType(ct);
@@ -30,7 +30,7 @@ void CGIHandler::processCGI(const RequestData& req,
     }
     catch (const std::exception &e)
 	{
-        rawResp.setStatus(HttpStatusCode::InternalServerError);
+        rawResp.setStatusCode(HttpStatusCode::InternalServerError);
         rawResp.setMimeType("text/plain");
         rawResp.setBody(std::string("CGI parse error: ") + e.what());
     }

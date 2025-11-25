@@ -4,16 +4,75 @@
 # define HTTPSTATUSCODE_HPP
 
 #define HTTP_STATUS_CODES(X) \
+	/* 0 */ \
 	X(None, 0) \
+	/* 1xx Informational */ \
 	X(Continue, 100) \
 	X(SwitchingProtocols, 101) \
+	X(Processing, 102) \
+	X(EarlyHints, 103) \
+	/* 2xx Success */ \
 	X(OK, 200) \
 	X(Created, 201) \
+	X(Accepted, 202) \
+	X(NonAuthoritativeInformation, 203) \
+	X(NoContent, 204) \
+	X(ResetContent, 205) \
+	X(PartialContent, 206) \
+	X(MultiStatus, 207) \
+	X(AlreadyReported, 208) \
+	X(ImUsed, 226) \
+	/* 3xx Redirection */ \
+	X(MultipleChoices, 300) \
 	X(MovedPermanently, 301) \
 	X(Found, 302) \
+	X(SeeOther, 303) \
+	X(NotModified, 304) \
+	X(UseProxy, 305) \
+	X(TemporaryRedirect, 307) \
+	X(PermanentRedirect, 308) \
+	/* 4xx Client Errors */ \
+	X(BadRequest, 400) \
+	X(Unauthorized, 401) \
+	X(PaymentRequired, 402) \
+	X(Forbidden, 403) \
 	X(NotFound, 404) \
+	X(MethodNotAllowed, 405) \
+	X(NotAcceptable, 406) \
+	X(ProxyAuthenticationRequired, 407) \
+	X(RequestTimeout, 408) \
+	X(Conflict, 409) \
+	X(Gone, 410) \
+	X(LengthRequired, 411) \
+	X(PreconditionFailed, 412) \
+	X(PayloadTooLarge, 413) \
+	X(UriTooLong, 414) \
+	X(UnsupportedMediaType, 415) \
+	X(RangeNotSatisfiable, 416) \
+	X(ExpectationFailed, 417) \
+	X(ImATeapot, 418) \
+	X(MisdirectedRequest, 421) \
+	X(UnprocessableEntity, 422) \
+	X(Locked, 423) \
+	X(FailedDependency, 424) \
+	X(TooEarly, 425) \
+	X(UpgradeRequired, 426) \
+	X(PreconditionRequired, 428) \
+	X(TooManyRequests, 429) \
+	X(RequestHeaderFieldsTooLarge, 431) \
+	X(UnavailableForLegalReasons, 451) \
+	/* 5xx Server Errors */ \
 	X(InternalServerError, 500) \
-	X(NotImplemented, 501)
+	X(NotImplemented, 501) \
+	X(BadGateway, 502) \
+	X(ServiceUnavailable, 503) \
+	X(GatewayTimeout, 504) \
+	X(HttpVersionNotSupported, 505) \
+	X(VariantAlsoNegotiates, 506) \
+	X(InsufficientStorage, 507) \
+	X(LoopDetected, 508) \
+	X(NotExtended, 510) \
+	X(NetworkAuthenticationRequired, 511)
 
 enum class HttpStatusCode
 {

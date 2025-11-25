@@ -1,49 +1,54 @@
 #include "RawRequest.hpp"
 
-// --- Helpers ---
-static void removeCarriageReturns(std::string& str)
-{
-	str.erase(std::remove(str.begin(), str.end(), '\r'), str.end());
-}
-
-static void trimLeadingWhitespace(std::string& str)
-{
-	str.erase(
-		str.begin(),
-		std::find_if(str.begin(), str.end(),
-					 [](unsigned char ch) { return !std::isspace(ch); })
-	);
-}
-
-// static bool iequals(const std::string& a, const std::string& b)
-// {
-// 	if (a.size() != b.size()) return false;
-// 	for (size_t i = 0; i < a.size(); ++i)
-// 		if (std::tolower(a[i]) != std::tolower(b[i]))
-// 			return false;
-// 	return true;
-// }
-
-bool isHex(char c)
-{
-	return (c >= '0' && c <= '9') ||
-		   (c >= 'A' && c <= 'F') ||
-		   (c >= 'a' && c <= 'f');
-}
-
-
 RawRequest::RawRequest()
 	: _tempBuffer(), _rlAndHeadersBuffer(), _body(), _chunkedBuffer(), _conLenBuffer(), _method(), _uri(), _httpVersion(),
 	_headers(), _bodyType(BodyType::NO_BODY), _errorMessage(), _headersDone(false), _terminatingZeroMet(false), _bodyDone(false),
 	_requestDone(false), _isBadRequest(false), _shouldClose(false) {}
 
-RawRequest::~RawRequest() = default;
+bool RawRequest::parse()
+{
+	// Parse headers if not done
+	if (!isHeadersDone())
+	{
+		separateHeadersFromBody();
 
-RawRequest::RawRequest(const RawRequest& other) = default;
-RawRequest& RawRequest::operator=(const RawRequest& other) = default;
+		if (isBadRequest())
+		{
+			DBG("[parseRawRequest] Bad request detected");
+			setRequestDone();
+			return true;
+		}
 
-RawRequest::RawRequest(RawRequest&& other) noexcept = default;
-RawRequest& RawRequest::operator=(RawRequest&& other) noexcept = default;
+		if (!isHeadersDone())
+		{
+			DBG("[parseRawRequest]: headers are not finished yet");
+			return false; // need more data
+		}
+	}
+
+	// Parse body if needed
+	if (!isBadRequest() && isHeadersDone() && !isBodyDone())
+	{
+		appendBodyBytes(getTempBuffer());
+
+		if (!isBodyDone())
+		{
+			DBG("[parseRawRequest]: body not finished yet");
+			return false; // need more data
+		}
+	}
+
+	// Full request done
+	if ((isHeadersDone() && isBodyDone()) || isBadRequest())
+	{
+		DBG("[parseRawRequest]: request done");
+		setRequestDone();
+		return true;
+	}
+
+	return false;
+}
+
 
 const std::string RawRequest::getHeader(const std::string& name) const
 {
@@ -96,7 +101,7 @@ void RawRequest::setRequestDone()
 	_requestDone = true;
 }
 
-size_t RawRequest::conLenValue() const
+size_t RawRequest::getContentLengthValue() const
 {
 	// Look for Content-Length
 	auto clIt = _headers.find("Content-Length");
@@ -114,17 +119,6 @@ size_t RawRequest::conLenValue() const
 	catch (const std::exception& e)
 	{
 		throw std::invalid_argument("Invalid Content-Length header: " + clIt->second);
-	}
-}
-
-std::string RawRequest::bodyTypeToString(BodyType t)
-{
-	switch (t)
-	{
-		case BodyType::NO_BODY:    return "NO_BODY";
-		case BodyType::SIZED:   return "SIZED";
-		case BodyType::CHUNKED: return "CHUNKED";
-		default:                return "UNKNOWN";
 	}
 }
 
@@ -184,7 +178,6 @@ void RawRequest::parseHeaders(std::istringstream& stream)
 		_bodyType = BodyType::SIZED;
 	}
 	
-	//
 	if (equalsIgnoreCase(getHeader("Connection"), "close"))
 	{
 		_shouldClose = true;
@@ -195,8 +188,7 @@ void RawRequest::parseHeaders(std::istringstream& stream)
 
 void RawRequest::appendToChunkedBuffer(const std::string& data)
 {
-	DBG("\n" << YELLOW << "[appendToChunkedBuffer]" << RESET
-		<< "\nBefore append, _chunkedBuffer size = " << _chunkedBuffer.size());
+	DBG("\n[appendToChunkedBuffer]\nBefore append, _chunkedBuffer size = " << _chunkedBuffer.size());
 
 	_chunkedBuffer += data;
 
@@ -205,7 +197,7 @@ void RawRequest::appendToChunkedBuffer(const std::string& data)
 
 std::string RawRequest::decodeChunkedBody(size_t& bytesProcessed)
 {
-	DBG(ORANGE << "[decodeChunkedBody]:" << RESET
+	DBG("[decodeChunkedBody]:"
 		<< " START: _chunkedBuffer = |" << _chunkedBuffer 
 		<< "|, _chunkedBuffer size = " << _chunkedBuffer.size());
 
@@ -312,7 +304,7 @@ HttpMethod RawRequest::getMethod() const
 
 bool RawRequest::conLenReached() const
 {
-	return _conLenBuffer.size() >= static_cast<size_t>(conLenValue());
+	return _conLenBuffer.size() >= static_cast<size_t>(getContentLengthValue());
 }
 
 void RawRequest::appendToConLenBuffer(const std::string& data)
@@ -332,8 +324,8 @@ void RawRequest::appendTempBuffer(const std::string& data)
 
 size_t RawRequest::remainingConLen() const
 {
-	return static_cast<size_t>(conLenValue()) > _conLenBuffer.size()
-		? static_cast<size_t>(conLenValue()) - _conLenBuffer.size()
+	return static_cast<size_t>(getContentLengthValue()) > _conLenBuffer.size()
+		? static_cast<size_t>(getContentLengthValue()) - _conLenBuffer.size()
 		: 0;
 }
 
@@ -373,6 +365,60 @@ void RawRequest::setChunkedBuffer(std::string&& newBuffer)
 	DBG("[setChunkedBuffer]: new size of _chunkedBuffer = " << _chunkedBuffer.size()
 		<< ", content = |" << _chunkedBuffer << "|");
 }
+void RawRequest::parseSizedBody(const std::string& data)
+{
+	size_t remaining = remainingConLen(); // bytes still needed
+	DBG("[appendBodyBytes]: remaining bytes of content to append = " << remaining);
+	
+	size_t toAppend = std::min(remaining, data.size());
+	DBG("[appendBodyBytes]: bytes to append in reality = " << toAppend);
+	
+	appendToConLenBuffer(data.substr(0, toAppend));
+	consumeTempBuffer(toAppend); // remove exactly what we consumed
+	
+	if (conLenReached())
+	{
+		appendToBody(_conLenBuffer);
+		setBodyDone();
+		DBG("[appendBodyBytes]: Content-Length body finished, body done set");
+	}
+}
+
+
+void RawRequest::parseChunkedBody()
+{
+
+	appendToChunkedBuffer(_tempBuffer);
+	DBG("[appendBodyBytes]: appended _chunkedBuffer with data from _tempBuffer, _chunkedBuffer size = " 
+		<< _chunkedBuffer.size());
+	
+	setTempBuffer(""); // consumed for decoding
+	size_t bytesProcessed = 0;
+	
+	// decode as much as possible
+	std::string decoded = decodeChunkedBody(bytesProcessed);
+	appendToBody(decoded); // append only the decoded chunks
+	DBG("[appendBodyBytes]: decoded chunked body appended, decoded size = " << decoded.size());
+	
+	// remove processed bytes from _chunkedBuffer
+	setChunkedBuffer(_chunkedBuffer.substr(bytesProcessed));
+	DBG("[appendBodyBytes]: _chunkedBuffer resized after processing, new size = " << _chunkedBuffer.size());
+	
+	if (_terminatingZeroMet)
+	{
+		setBodyDone();
+		setTempBuffer(_chunkedBuffer);
+		_chunkedBuffer.clear();
+		DBG("[appendBodyBytes]: Terminating zero chunk found, body done set, tempBuffer updated, _chunkedBuffer cleared");
+	}
+	else
+	{
+		// partial chunk left? move leftovers to tempBuffer for next process
+		setTempBuffer(_chunkedBuffer + _tempBuffer);
+		
+		DBG("[appendBodyBytes]: Terminating zero not found, leftovers moved to tempBuffer");
+	}
+}
 
 void RawRequest::appendBodyBytes(const std::string& data)
 {
@@ -381,56 +427,13 @@ void RawRequest::appendBodyBytes(const std::string& data)
 	{
 		case BodyType::SIZED:
 		{
-			size_t remaining = remainingConLen(); // bytes still needed
-			 DBG("[appendBodyBytes]: remaining bytes of content to append = " << remaining);
-			
-			size_t toAppend = std::min(remaining, data.size());
-			DBG("[appendBodyBytes]: bytes to append in reality = " << toAppend);
-			
-			appendToConLenBuffer(data.substr(0, toAppend));
-			consumeTempBuffer(toAppend); // remove exactly what we consumed
-			
-			if (conLenReached())
-			{
-				appendToBody(_conLenBuffer);
-				setBodyDone();
-				DBG("[appendBodyBytes]: Content-Length body finished, body done set");
-			}
+			parseSizedBody(data);
 			break;
 		}
 
 		case BodyType::CHUNKED:
 		{
-			appendToChunkedBuffer(_tempBuffer);
-			DBG("[appendBodyBytes]: appended _chunkedBuffer with data from _tempBuffer, _chunkedBuffer size = " 
-				<< _chunkedBuffer.size());
-			
-			setTempBuffer(""); // consumed for decoding
-			size_t bytesProcessed = 0;
-			
-			// decode as much as possible
-			std::string decoded = decodeChunkedBody(bytesProcessed);
-			appendToBody(decoded); // append only the decoded chunks
-			DBG("[appendBodyBytes]: decoded chunked body appended, decoded size = " << decoded.size());
-			
-			// remove processed bytes from _chunkedBuffer
-			setChunkedBuffer(_chunkedBuffer.substr(bytesProcessed));
-			DBG("[appendBodyBytes]: _chunkedBuffer resized after processing, new size = " << _chunkedBuffer.size());
-			
-			if (_terminatingZeroMet)
-			{
-				setBodyDone();
-				setTempBuffer(_chunkedBuffer);
-				_chunkedBuffer.clear();
-				DBG("[appendBodyBytes]: Terminating zero chunk found, body done set, tempBuffer updated, _chunkedBuffer cleared");
-			}
-			else
-			{
-				// partial chunk left? move leftovers to tempBuffer for next process
-				setTempBuffer(_chunkedBuffer + _tempBuffer);
-				
-				DBG("[appendBodyBytes]: Terminating zero not found, leftovers moved to tempBuffer");
-			}
+			parseChunkedBody();
 			break;
 		}
 
@@ -654,15 +657,32 @@ std::string RawRequest::getHost() const
 	return (it != _headers.end()) ? it->second : "";
 }
 
+
+
+void RawRequest::setMethod(HttpMethod method)
+{
+	_method = method;
+}
+
+void RawRequest::setGetMethod() 
+{
+	_method = HttpMethod::GET;
+}
+
+void RawRequest::setUri(const std::string& uri)
+{
+	_uri = uri;
+}
+
 void RawRequest::printRequest(size_t idx) const
 {
 	(void)idx;
-	DBG("\n" << ORANGE << "[RawRequest]" << RESET
+	DBG("\n[RawRequest]"
 		<< "\nMethod: " << httpMethodToString(_method)
 		<< "\nURI: " << _uri
 		<< "\nQuery: " << _query
 		<< "\nHTTP Version: " << _httpVersion
-		<< "\nBody Type: " << bodyTypeToString(_bodyType)
+		<< "\nBody Type: " << BodyType::toString(_bodyType)
 		<< "\nBody Length: " << _body.size()
 		<< "\nHeaders Done: " << (_headersDone ? "true" : "false")
 		<< "\nBody Done: " << (_bodyDone ? "true" : "false")
@@ -674,22 +694,3 @@ void RawRequest::printRequest(size_t idx) const
 			(void)header;
 		}
 }
-
-void RawRequest::setMethod(HttpMethod method)
-{
-	_method = method;
-}
-
-void RawRequest::setMethod(const std::string& method)
-{
-	if (method == "GET")       _method = HttpMethod::GET;
-	else if (method == "POST") _method = HttpMethod::POST;
-	else if (method == "DELETE") _method = HttpMethod::DELETE;
-	else                       _method = HttpMethod::NONE;
-}
-
-void RawRequest::setUri(const std::string& uri)
-{
-	_uri = uri;
-}
-

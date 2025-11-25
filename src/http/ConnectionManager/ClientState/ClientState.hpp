@@ -1,25 +1,17 @@
 #ifndef CLIENTSTATE
 #define CLIENTSTATE
 
-#include "../../Request/RawRequest/RawRequest.hpp"
-#include "../../Request/RequestData/RequestData.hpp"
-#include "../../HttpMethod/HttpMethod.hpp"
-#include "../../Response/RawResponse/RawResponse.hpp"
-#include "debug.hpp"
-
 #include <string>
 #include <iostream>
 #include <cstdint>
 #include <stdexcept>
 #include <queue>
 
-#define GREEN "\033[0;32m"
-#define YELLOW "\033[0;33m"
-#define ORANGE "\033[38;5;214m"
-#define TEAL "\033[36m"
-#define BLUE "\033[38;2;100;149;237m"
-#define RED "\033[31m"
-#define RESET "\033[0m"
+#include "../../Request/RawRequest/RawRequest.hpp"
+#include "../../Request/RequestData/RequestData.hpp"
+#include "../../HttpMethod/HttpMethod.hpp"
+#include "../../Response/RawResponse/RawResponse.hpp"
+#include "debug.hpp"
 
 class ClientState
 {
@@ -41,7 +33,7 @@ class ClientState
 		ClientState(ClientState&& other) noexcept = default;
 		ClientState& operator=(ClientState&& other) noexcept = default;
 
-		size_t getRawReqCount() const;
+		// size_t getRawReqCount() const;
 		
 		RawRequest& getRawRequest(size_t idx);
 		const RawRequest& getRawRequest(size_t idx) const;
@@ -52,7 +44,7 @@ class ClientState
 
 		size_t getLatestRawReqIndex() const;
 		
-		bool latestRawReqNeedsBody() const;
+		// bool latestRawReqNeedsBody() const;
 
 
 		void enqueueResponseData(const ResponseData& resp);
@@ -75,7 +67,6 @@ class ClientState
 		ResponseData& frontResponseData();
 		void popFrontResponseData();
 
-		void enqueueRawResponse(const RawResponse& resp, bool shouldClose);
 		RawResponse& peekLastRawResponse();
 		RawResponse popNextRawResponse();
 		

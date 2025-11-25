@@ -7,12 +7,10 @@ RawResponse::RawResponse()
 	  _headers(),
 	  _body(),
 	  _isInternalRedirect(false),
-	  _isExternalRedirect(false),
-	  _redirectTarget(""),
-	  _fileMode(FileDeliveryMode::InMemory),
-	  _filePath(""),
+	  _mimeType(""),
 	  _fileSize(0),
-	  _mimeType("")
+	  _fileMode(FileUtils::FileDeliveryMode::InMemory),
+	  _filePath("")
 {
 	setDefaultHeaders();
 }
@@ -47,15 +45,27 @@ bool RawResponse::hasHeader(const std::string& key) const
 	return _headers.find(key) != _headers.end();
 }
 
-void RawResponse::setStatus(HttpStatusCode code)
-{
-	_statusCode = code;
-	_statusText = codeToText(code);
-}
+
+
+	void RawResponse::setFileMode(FileUtils::FileDeliveryMode mode)
+	{ 
+		_fileMode = mode;
+	}
+	
+	void RawResponse::setFilePath(const std::string& path)
+	{ 
+		_filePath = path;
+	}
+	
+	void RawResponse::setMimeType(const std::string& mime)
+	{
+		_mimeType = mime;
+	}
 
 void RawResponse::addHeader(const std::string& key, const std::string& value)
 {
-	_headers[key] = value;
+	if (!hasHeader(key))
+		_headers[key] = value;
 }
 
 void RawResponse::setBody(const std::string& body)
@@ -73,36 +83,13 @@ void RawResponse::setDefaultHeaders()
 
 void RawResponse::handleCgiScript()
 {
-	setStatus(HttpStatusCode::OK);
+	setStatusCode(HttpStatusCode::OK);
 	addHeader("Transfer-Encoding", "chunked");
 	addHeader("Content-Type", "?");
 	setBody("CGI script would be executed\n");
 }
 
-void RawResponse::addDefaultError(HttpStatusCode code)
-{
-	DBG("[addDefaultErrorDetails] Called for code " 
-		<< static_cast<int>(code) << " (" << codeToText(code) << ")");
 
-	_statusText = codeToText(code);
-
-	std::string htmlBody =
-		"<html>\n"
-		"<head><title>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</title></head>\n"
-		"<body>\n"
-		"<center><h1>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</h1></center>\n"
-		"<center><h3>(Default Error Page)</h3></center>\n"
-		"<hr><center>APT-Server/1.0</center>\n"
-		"</body>\n"
-		"</html>\n";
-
-	setBody(htmlBody);
-	addHeader("Content-Type", "text/html");
-	addHeader("Content-Length", std::to_string(_body.size()));
-
-	DBG("[addDefaultErrorDetails] Default error page generated, length = " 
-		<< _body.size());
-}
 
 bool RawResponse::shouldClose() const
 {
@@ -112,38 +99,57 @@ bool RawResponse::shouldClose() const
 
 ResponseData RawResponse::toResponseData() const
 {
-	ResponseData data;
+    ResponseData data;
 
-	// Basic status info
-	data.statusCode = static_cast<int>(_statusCode);
-	data.statusText = _statusText;
-	data.headers = _headers;
-
-	// --- STREAMED DELIVERY ---
-	if (_fileMode == FileDeliveryMode::Streamed)
-	{
-		data.fileMode = FileDeliveryMode::Streamed;
-		data.filePath = _filePath;
-		data.fileSize = _fileSize;
-
-		data.body = "";
-
-		data.headers["Content-Length"] = std::to_string(_fileSize);
-		data.headers["Content-Type"] = _mimeType;
-
-		data.shouldClose = shouldClose();
-		return data;
-	}
-
-	// --- IN-MEMORY DELIVERY ---
-	data.fileMode = FileDeliveryMode::InMemory;
-	data.body = _body;
-
-	data.headers["Content-Length"] = std::to_string(data.body.size());
-	data.headers["Content-Type"] = _mimeType;
-
+    // Basic status info
+    data.statusCode = static_cast<int>(_statusCode);
+    data.statusText = codeToText(_statusCode);
+    data.headers = _headers;
 	data.shouldClose = shouldClose();
-	return data;
+
+    // Determine if we should include a body
+    bool noBody = (_statusCode == HttpStatusCode::NoContent) || 
+                  (_statusCode == HttpStatusCode::NotModified) || 
+                  (static_cast<int>(_statusCode) >= 100 && static_cast<int>(_statusCode) < 200);
+
+    // --- IN-MEMORY DELIVERY ---
+    if (_fileMode == FileUtils::FileDeliveryMode::InMemory)
+    {
+        data.fileMode = FileUtils::FileDeliveryMode::InMemory;
+
+        if (!noBody)
+            data.body = _body;
+        else
+            data.body.clear();
+
+        if (!noBody)
+            data.headers["Content-Length"] = std::to_string(data.body.size());
+
+        data.headers["Content-Type"] = _mimeType;
+
+        return data;
+    }
+
+    // --- STREAMED DELIVERY ---
+    else
+    {
+        data.fileMode = FileUtils::FileDeliveryMode::Streamed;
+        data.filePath = _filePath;
+        data.fileSize = _fileSize;
+
+        if (!noBody)
+            data.body = "";
+        else
+            data.body.clear();
+
+        if (!noBody)
+            data.headers["Content-Length"] = std::to_string(_fileSize);
+
+        data.headers["Content-Type"] = _mimeType;
+
+        data.shouldClose = shouldClose();
+        return data;
+    }
 }
 
 bool RawResponse::isInternalRedirect() const
@@ -151,20 +157,12 @@ bool RawResponse::isInternalRedirect() const
 	return _isInternalRedirect;
 }
 
-bool RawResponse::isExternalRedirect() const
-{
-	return _isExternalRedirect;
-}
-
 void RawResponse::setInternalRedirect(bool val)
 {
 	_isInternalRedirect = val;
 }
 
-void RawResponse::setExternalRedirect(bool val)
-{
-	_isExternalRedirect = val;
-}
+
 
 std::string RawResponse::getHeader(const std::string& key) const
 {
@@ -172,27 +170,8 @@ std::string RawResponse::getHeader(const std::string& key) const
 	return it != _headers.end() ? it->second : "";
 }
 
-void RawResponse::setFileContent(const std::string& content, const std::string& mimeType)
-{
-	_body = content;
-	_mimeType = mimeType;
-	_fileMode = FileDeliveryMode::InMemory;
-	_headers["Content-Type"] = mimeType;
-	_headers["Content-Length"] = std::to_string(content.size());
-}
 
-void RawResponse::setFilePath(const std::string& path, const std::string& mimeType)
-{
-	_filePath = path;
-	_mimeType = mimeType;
-	_fileMode = FileDeliveryMode::Streamed;
-	_headers["Content-Type"] = mimeType;
-}
 
-FileDeliveryMode RawResponse::getFileMode() const
-{
-	return _fileMode;
-}
 
 const std::string& RawResponse::getFilePath() const
 {
@@ -214,16 +193,6 @@ void RawResponse::setStatusCode(HttpStatusCode code)
 	_statusCode = code; _statusText = codeToText(code);
 }
 
-void RawResponse::setRedirectTarget(const std::string& uri) 
-{
-	_redirectTarget = uri;
-}
-
-const std::string& RawResponse::getRedirectTarget() const
-{
-	return _redirectTarget;
-}
-
 void RawResponse::setFileSize(size_t size)
 {
 	_fileSize = size;
@@ -232,4 +201,72 @@ void RawResponse::setFileSize(size_t size)
 size_t RawResponse::getFileSize() const
 {
 	return _fileSize;
+}
+
+std::string RawResponse::getErrorPageUri(const std::map<HttpStatusCode, std::string>& error_pages,
+								HttpStatusCode status) const
+	{
+		auto it = error_pages.find(status);
+		if (it != error_pages.end() && !it->second.empty())
+		{
+			return it->second; // e.g., "/errors/405.html"
+		}
+		return "";
+	}
+
+void RawResponse::addErrorDetails(const RequestContext& ctx,
+											HttpStatusCode code)
+{
+	DBG("[addErrorDetails] Called with code: " << static_cast<int>(code));
+
+	setStatusCode(code);
+	DBG("[addErrorDetails] Code set to " << static_cast<int>(code));
+
+	std::string pageUri = getErrorPageUri(ctx.error_pages, code);
+
+	if (!pageUri.empty())
+	{
+		DBG("[addErrorDetails] Using CUSTOM error page: " << pageUri);
+		setInternalRedirect(true);
+
+		setFilePath(pageUri);
+
+		DBG("[addErrorDetails] Marked as internal redirect");
+		return;
+	}
+
+	else
+	{
+		DBG("[addErrorDetails] Generating DEFAULT error page for "
+			<< static_cast<int>(code));
+		addDefaultError(code);
+		addHeader("Content-Type", "text/html");
+	}
+}
+
+void RawResponse::addDefaultError(HttpStatusCode code)
+{
+	DBG("[addDefaultError] Called for code " 
+		<< static_cast<int>(code) << " (" << codeToText(code) << ")");
+	
+	setStatusCode(code);
+		
+	// _statusText = codeToText(code);
+
+	std::string htmlBody =
+		"<html>\n"
+		"<head><title>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</title></head>\n"
+		"<body>\n"
+		"<center><h1>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</h1></center>\n"
+		"<center><h3>(Default Error Page)</h3></center>\n"
+		"<hr><center>APT-Server/1.0</center>\n"
+		"</body>\n"
+		"</html>\n";
+
+	setBody(htmlBody);
+	addHeader("Content-Type", "text/html");
+	addHeader("Content-Length", std::to_string(_body.size()));
+
+	DBG("[addDefaultError] Default error page generated, length = " 
+		<< _body.size());
 }

@@ -1,10 +1,11 @@
 #ifndef REQUESTDATA_HPP
 # define REQUESTDATA_HPP
 
-# include "HttpMethod.hpp"
 # include <string>
 # include <vector>
 # include <unordered_map>
+
+# include "HttpMethod.hpp"
 
 struct RequestData
 {
