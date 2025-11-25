@@ -87,6 +87,8 @@ class RawRequest
 	const std::string& getUri() const;
 	std::string getHost() const;
 	HttpMethod getMethod() const;
+	const std::string& getHttpVersion() const;
+	const std::string& getBody() const;
 	
 	void setMethod(HttpMethod method);
 	void setGetMethod();

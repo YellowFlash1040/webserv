@@ -24,6 +24,10 @@ class ConnectionManager
 		
 		std::unordered_map<int, ClientState> m_clients;
 		
+		void genResps(int clientId, const NetworkEndpoint& endpoint);
+		void printAllResponses(const ClientState& clientState);
+		
+		
 	public:
 		ConnectionManager() = delete;
 		ConnectionManager(const Config& config);
@@ -38,12 +42,10 @@ class ConnectionManager
 		ClientState& getClientState(int clientId);
 		bool processData(const NetworkEndpoint& endpoint, int clientId, const std::string& tcpData);
 		
-		private:
+
 		
-		size_t processReqs(int clientId, const std::string& tcpData);
-		void genResps(int clientId, const NetworkEndpoint& endpoint);
-		void printAllResponses(const ClientState& clientState);
-		
+		size_t processReqs(int clientId, const std::string& tcpData); //actually private
+	
 	};
 
 #endif
