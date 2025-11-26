@@ -11,6 +11,7 @@ void ConnectionManager::addClient(int clientId)
 // Remove a client
 void ConnectionManager::removeClient(int clientId)
 {
+	DBG("m_clinets'client removed");
 	m_clients.erase(clientId);
 }
 

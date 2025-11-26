@@ -232,6 +232,8 @@ void Server::processClient(Client& client)
 
         if (respData.shouldClose)
         {
+            DBG("[Server]: should close, flushing buffer before closing");
+            flushClientOutBuffer(client);
             m_connMgr.removeClient(clientFd);
             removeClient(client);
             break;

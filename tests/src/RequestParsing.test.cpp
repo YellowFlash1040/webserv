@@ -155,7 +155,7 @@ TEST(RawRequestTest, ContentLengthBody)
         "\r\n"
     );
 
-    // Parse after headers → should NOT be done yet because body is missing
+    // Parse after headers -> should NOT be done yet because body is missing
     bool done = rawReq.parse();
     EXPECT_FALSE(done);
     EXPECT_FALSE(rawReq.isBodyDone());
