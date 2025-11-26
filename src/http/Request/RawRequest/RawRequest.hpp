@@ -9,56 +9,16 @@
 #include <algorithm>
 #include <stdexcept>
 
-#include "../utils/utils.hpp"
+#include "../utils/StrUtils.hpp"
 #include "../HttpMethod/HttpMethod.hpp"
 #include "../RequestData/RequestData.hpp"
 #include "../../BodyType/BodyType.hpp"
+#include "../utils/UriUtils.hpp" 
 #include "debug.hpp"
 
 class RawRequest
 {
-	private:
-	std::string _tempBuffer;
-	std::string _rlAndHeadersBuffer;
-	std::string _body;
-	std::string _chunkedBuffer;
-	std::string _conLenBuffer;
-	HttpMethod _method;
-	std::string _rawUri;
-	std::string _uri;
-	std::string _query;
-	std::string _httpVersion;
-	std::unordered_map<std::string, std::string> _headers;
-	BodyType::Type _bodyType;
-	std::string _errorMessage;
 	
-	// Parsing state
-	bool _headersDone;
-	bool _terminatingZeroMet;
-	bool _bodyDone;
-	bool _requestDone;
-	bool _isBadRequest;
-	bool _shouldClose;
-
-	static std::string fullyDecodePercent(const std::string& rawUri);
-	static std::string decodePercentOnce(const std::string& s);
-	static std::string normalizePath(const std::string& uri);
-	
-	size_t getContentLengthValue() const;
-	std::string decodeChunkedBody(size_t& bytesProcessed);
-	void parseRequestLineAndHeaders(const std::string& headerPart);
-	void appendToChunkedBuffer(const std::string& data);
-	size_t remainingConLen() const;
-	void consumeTempBuffer(size_t n);
-	void appendToConLenBuffer(const std::string& data);
-	void parseRequestLine(const std::string& firstLine);
-	void parseHeaders(std::istringstream& stream);
-	void parseSizedBody(const std::string& data);
-	void parseChunkedBody();
-	void appendToBody(const std::string& data);
-	void setChunkedBuffer(std::string&& newBuffer);
-		
-
 	public:
 	RawRequest();
 	~RawRequest() = default;
@@ -82,6 +42,7 @@ class RawRequest
 	bool shouldClose() const;
 	bool conLenReached() const;
 	
+	size_t getContentLengthValue() const;
 	const std::string& getTempBuffer() const;
 	const std::string getHeader(const std::string& name) const;
 	const std::string& getUri() const;
@@ -89,6 +50,8 @@ class RawRequest
 	HttpMethod getMethod() const;
 	const std::string& getHttpVersion() const;
 	const std::string& getBody() const;
+	BodyType::Type getBodyType() const;
+	const std::unordered_map<std::string, std::string>& getHeaders() const;
 	
 	void setMethod(HttpMethod method);
 	void setGetMethod();
@@ -98,7 +61,45 @@ class RawRequest
 	void setShouldClose(bool value);
 	void setHeadersDone();
 	void setBodyDone();
+	void setChunkedBuffer(std::string&& newBuffer);
 	void addHeader(const std::string& name, const std::string& value);
+
+	private:
+	std::string _tempBuffer;
+	std::string _rlAndHeadersBuffer;
+	std::string _body;
+	std::string _chunkedBuffer;
+	std::string _conLenBuffer;
+	HttpMethod _method;
+	std::string _rawUri;
+	std::string _uri;
+	std::string _query;
+	std::string _httpVersion;
+	std::unordered_map<std::string, std::string> _headers;
+	BodyType::Type _bodyType;
+	std::string _errorMessage;
+	
+	// Parsing state
+	bool _headersDone;
+	bool _terminatingZeroMet;
+	bool _bodyDone;
+	bool _requestDone;
+	bool _isBadRequest;
+	bool _shouldClose;
+
+	std::string decodeChunkedBody(size_t& bytesProcessed);
+	void parseRequestLineAndHeaders(const std::string& headerPart);
+	void appendToChunkedBuffer(const std::string& data);
+	size_t remainingConLen() const;
+	void consumeTempBuffer(size_t n);
+	void appendToConLenBuffer(const std::string& data);
+	void parseRequestLine(const std::string& firstLine);
+	void parseHeaders(std::istringstream& stream);
+	void parseSizedBody(const std::string& data);
+	void parseChunkedBody();
+	void appendToBody(const std::string& data);
+
+		
 };
 
 #endif

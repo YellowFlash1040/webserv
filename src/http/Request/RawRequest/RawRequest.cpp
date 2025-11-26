@@ -58,7 +58,7 @@ void RawRequest::parseRequestLineAndHeaders(const std::string& headerPart)
 		if (!std::getline(stream, line))
 			throw std::runtime_error("Malformed request: missing request line");
 
-		removeCarriageReturns(line);
+		StrUtils::removeCarriageReturns(line);
 
 		DBG("[parseRequestLineAndHeaders] Request line: " << line);
 
@@ -77,14 +77,14 @@ void RawRequest::parseHeaders(std::istringstream& stream)
 	std::string line;
 	while (std::getline(stream, line) && !line.empty() && line != "\r")
 	{
-		removeCarriageReturns(line);
+		StrUtils::removeCarriageReturns(line);
 		auto colonPos = line.find(':');
 		if (colonPos == std::string::npos)
 			throw std::invalid_argument("Malformed header line: " + line);
 
 		std::string key = line.substr(0, colonPos);
 		std::string value = line.substr(colonPos + 1);
-		trimLeadingWhitespace(value);
+		StrUtils::trimLeadingWhitespace(value);
 		try
 		{
 			addHeader(key, value);
@@ -96,7 +96,7 @@ void RawRequest::parseHeaders(std::istringstream& stream)
 	}
 
 	// Decide body type
-	if (equalsIgnoreCase(getHeader("Transfer-Encoding"), "chunked"))
+	if (StrUtils::equalsIgnoreCase(getHeader("Transfer-Encoding"), "chunked"))
 	{
 		_bodyType = BodyType::CHUNKED;
 	}
@@ -105,7 +105,7 @@ void RawRequest::parseHeaders(std::istringstream& stream)
 		_bodyType = BodyType::SIZED;
 	}
 	
-	if (equalsIgnoreCase(getHeader("Connection"), "close"))
+	if (StrUtils::equalsIgnoreCase(getHeader("Connection"), "close"))
 	{
 		_shouldClose = true;
 	}
@@ -303,7 +303,6 @@ void RawRequest::parseSizedBody(const std::string& data)
 	}
 }
 
-
 void RawRequest::parseChunkedBody()
 {
 
@@ -397,7 +396,7 @@ void RawRequest::separateHeadersFromBody()
 
 	try
 	{
-		_uri = normalizePath(_uri);  // validate path AFTER leftovers are handled
+		_uri =  UriUtils::normalizePath(_uri);  // validate path AFTER leftovers are handled
 	}
 	catch (const std::exception& e)
 	{
@@ -445,99 +444,6 @@ void RawRequest::parseRequestLine(const std::string& firstLine)
 }
 
 
-std::string RawRequest::fullyDecodePercent(const std::string& rawUri)
-{
-	std::string decoded = rawUri;
-	const int MAX_DECODE_PASSES = 4;
-	int passes = 0;
-
-	while (decoded.find('%') != std::string::npos && passes < MAX_DECODE_PASSES)
-	{
-		std::string once = decodePercentOnce(decoded);
-		if (once == decoded)
-			break;
-		decoded.swap(once);
-		++passes;
-	}
-
-	if (decoded.find('%') != std::string::npos)
-		throw std::runtime_error("Bad request: invalid percent-encoding or too many nested encodings");
-
-	return decoded;
-}
-
-std::string RawRequest::decodePercentOnce(const std::string& s)
-{
-	std::string out;
-	out.reserve(s.size());
-
-	for (size_t i = 0; i < s.size(); ++i)
-	{
-		if (s[i] == '%' && i + 2 < s.size() && isHex(s[i + 1]) && isHex(s[i + 2]))
-		{
-			std::string hex = s.substr(i + 1, 2);
-			char decoded = static_cast<char>(std::strtol(hex.c_str(), NULL, 16));
-			out += decoded;
-			i += 2;
-		}
-		else
-		{
-			out += s[i];
-		}
-	}
-	return out;
-}
-
-std::string RawRequest::normalizePath(const std::string& rawUri)
-{
-	if (rawUri.empty() || rawUri[0] != '/')
-		throw std::invalid_argument("Invalid raw URI");
-
-	// Fully decode percent-encoded sequences first
-	std::string decoded = fullyDecodePercent(rawUri);
-
-	std::vector<std::string> stack;
-	std::istringstream iss(decoded);
-	std::string segment;
-
-	while (std::getline(iss, segment, '/'))
-	{
-		if (segment.empty() || segment == ".")
-			continue;
-
-		if (segment == "..")
-		{
-			if (stack.empty())
-			{
-				DBG("[normalizePath] Bad request: path escapes root: \"" << rawUri << "\"");
-				throw std::runtime_error("Bad request: path escapes root");
-			}
-			stack.pop_back();
-		}
-		else
-		{
-			stack.push_back(segment);
-		}
-	}
-
-	// Rebuild normalized path
-	std::ostringstream oss;
-	oss << "/";
-	for (size_t i = 0; i < stack.size(); ++i)
-	{
-		oss << stack[i];
-		if (i + 1 < stack.size())
-			oss << "/";
-	}
-
-	// Preserve trailing slash if original URI had it
-	if (rawUri.size() > 1 && rawUri.back() == '/' && !stack.empty())
-		oss << "/";
-
-	DBG("[normalizePath] normalized path: " << oss.str());
-	return oss.str();
-}
-
 RequestData RawRequest::buildRequestData() const
 {
 	RequestData data;
@@ -560,12 +466,6 @@ void RawRequest::markBadRequest(const std::string& msg = "")
 	_errorMessage = msg;
 }
 
-
-
-
-
-
-
 void RawRequest::printRequest(size_t idx) const
 {
 	(void)idx;
@@ -586,7 +486,6 @@ void RawRequest::printRequest(size_t idx) const
 			(void)header;
 		}
 }
-
 
 bool RawRequest::isBadRequest() const
 {
@@ -645,6 +544,17 @@ std::string RawRequest::getHost() const
 	auto it = _headers.find("Host");
 	return (it != _headers.end()) ? it->second : "";
 }
+
+const std::unordered_map<std::string, std::string>& RawRequest::getHeaders() const
+{
+    return _headers;
+}
+
+BodyType::Type RawRequest::getBodyType() const
+{
+    return _bodyType;
+}
+
 const std::string RawRequest::getHeader(const std::string& name) const
 {
 	auto it = _headers.find(name);
@@ -722,7 +632,7 @@ void RawRequest::addHeader(const std::string& name, const std::string& value)
 	if (it != _headers.end())
 	{
 		// Header already exists
-		if (!equalsIgnoreCase(it->second, value))
+		if (!StrUtils::equalsIgnoreCase(it->second, value))
 		{
 			// Conflict: same header with different values
 			_bodyType = BodyType::ERROR;
@@ -738,6 +648,5 @@ void RawRequest::addHeader(const std::string& name, const std::string& value)
 	_headers[name] = value;
 
 }
-
 
 
