@@ -1,7 +1,4 @@
 #include "Server.hpp"
-#include "Client.hpp"
-
-#include "Router.hpp"
 
 // --------------CONSTRUCTION AND DESTRUCTION--------------
 
@@ -119,7 +116,6 @@ void Server::flushClientOutBuffer(Client& client)
     }
 }
 
-
 void Server::addEndpoint(const NetworkEndpoint& endpoint)
 {
     ServerSocket s(endpoint, QUEUE_SIZE);
@@ -155,7 +151,8 @@ void Server::acceptNewClient(int listeningSocket)
     Socket::setNonBlockingAndCloexec(clientSocket);
     addSocketToEPoll(clientSocket, EPOLLIN);
 
-    m_clients.emplace(clientSocket,
+    m_clients.emplace(
+        clientSocket,
         std::make_unique<Client>(clientSocket, clientAddr, listeningSocket));
 
     m_connMgr.addClient(clientSocket);
@@ -213,7 +210,7 @@ void Server::processClient(Client& client)
     }
 
     // Отправка всех ответов
-    ClientState& clientState = m_connMgr.getClientState(clientFd); 
+    ClientState& clientState = m_connMgr.getClientState(clientFd);
 
     while (clientState.hasPendingResponseData())
     {
@@ -242,7 +239,6 @@ void Server::processClient(Client& client)
         }
     }
 }
-
 
 void Server::printAllClients() const
 {

@@ -22,7 +22,6 @@ class FileReader
   public:
     // Methods
     static std::string readFile(const std::string& path);
-    static std::vector<std::string> readLines(const std::string& path);
 };
 
 #endif
