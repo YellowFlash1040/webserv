@@ -23,7 +23,7 @@ struct EffectiveConfig
     std::string upload_store{};
     std::map<std::string, std::string> cgi_pass{};
     std::vector<HttpMethod> allowed_methods
-        = {HttpMethod::GET, HttpMethod::POST, HttpMethod::DELETE};
+        = {HttpMethod::GET, HttpMethod::POST};
     HttpRedirection redirection{};
 };
 

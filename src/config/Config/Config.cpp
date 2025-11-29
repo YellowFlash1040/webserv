@@ -179,12 +179,6 @@ LocationBlock Config::buildLocationBlock(
             assign(locationBlock.cgiPass, args);
     }
 
-    if (locationBlock.acceptedHttpMethods->empty())
-    {
-        setDefaultHttpMethods(locationBlock.acceptedHttpMethods);
-        locationBlock.acceptedHttpMethods.isSet() = true;
-    }
-
     return locationBlock;
 }
 
@@ -264,11 +258,4 @@ void Config::assign(Property<std::vector<NetworkEndpoint>>& property,
                     const std::vector<Argument>& args)
 {
     property->emplace_back(Converter::toNetworkEndpoint(args[0]));
-}
-
-void Config::setDefaultHttpMethods(std::vector<HttpMethod>& httpMethods)
-{
-    httpMethods.push_back(HttpMethod::GET);
-    httpMethods.push_back(HttpMethod::POST);
-    httpMethods.push_back(HttpMethod::DELETE);
 }
