@@ -39,7 +39,7 @@ class UploadModule
         std::string contents;
     };
     // Methods
-    static void processUpload(RequestData& req, RequestContext& ctx,
+    static void processUpload(const RequestData& req, const RequestContext& ctx,
                               RawResponse& resp);
 
   private:

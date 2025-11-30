@@ -25,7 +25,7 @@ Data inside second file\n\r\n
 */
 // clang-format on
 
-void UploadModule::processUpload(RequestData& req, RequestContext& ctx,
+void UploadModule::processUpload(const RequestData& req, const RequestContext& ctx,
                                  RawResponse& resp)
 {
     if (isMultipartFormData(req))
