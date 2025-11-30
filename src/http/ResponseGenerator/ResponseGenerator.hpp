@@ -14,6 +14,7 @@
 #include "CGIHandler.hpp"
 #include "debug.hpp"
 #include "../utils/StrUtils.hpp"
+#include "UploadModule.hpp"
 
 
 namespace ResponseGenerator
