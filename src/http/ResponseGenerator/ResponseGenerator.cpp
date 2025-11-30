@@ -321,7 +321,7 @@ namespace ResponseGenerator
 
 		DBG("[processPost] Processing POST for path: " << ctx.resolved_path);
 
-		if (req.body.size() > ctx.client_max_body_size)
+		if (ctx.client_max_body_size != 0 && req.body.size() > ctx.client_max_body_size)
 		{
 			DBG("[processPost] Body too large: " << req.body.size()
 					<< " > " << ctx.client_max_body_size);
