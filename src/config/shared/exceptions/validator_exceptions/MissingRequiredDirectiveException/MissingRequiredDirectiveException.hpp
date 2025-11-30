@@ -11,7 +11,8 @@
 class MissingRequiredDirectiveException : public ValidatorException
 {
   public:
-    MissingRequiredDirectiveException(const std::string& directive, const std::string& context);
+    MissingRequiredDirectiveException(const std::string& directive,
+                                      const std::string& context);
 
     const char* what() const noexcept override;
 };

@@ -1,9 +1,9 @@
 #pragma once
 
 #ifndef CGIPARSER_HPP
-#define CGIPARSER_HPP
+# define CGIPARSER_HPP
 
-#include <string>
+# include <string>
 
 struct CGIResponse
 {
@@ -13,9 +13,8 @@ struct CGIResponse
 
 class CGIParser
 {
-public:
+  public:
     static CGIResponse CGIResponseParser(const std::string& output);
 };
 
 #endif
-
