@@ -72,8 +72,6 @@ class Config
                        const std::vector<Argument>& args);
     static void assign(Property<std::vector<NetworkEndpoint>>& property,
                        const std::vector<Argument>& args);
-
-    static void setDefaultHttpMethods(std::vector<HttpMethod>& httpMethods);
 };
 
 #endif

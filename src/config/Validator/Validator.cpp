@@ -274,7 +274,8 @@ Validator::validators()
             {ArgumentType::Name, validateName},
             {ArgumentType::File, validateFile},
             {ArgumentType::FileExtension, validateFileExtension},
-            {ArgumentType::BinaryPath, validateBinaryPath}
+            {ArgumentType::BinaryPath, validateBinaryPath},
+            {ArgumentType::ReturnStatusCode, validateReturnStatusCode}
         };
     return map;
 }
@@ -293,12 +294,22 @@ void Validator::validateStatusCode(const std::string& s)
         throw std::invalid_argument("Invalid status code: " + s);
 }
 
+void Validator::validateReturnStatusCode(const std::string& s)
+{
+    validateStatusCode(s);
+    int code = std::stoi(s);
+    if (code < 300 || code > 399)
+        throw std::invalid_argument(
+            std::string("Invalid status code: '") + s
+            + "'. Return status codes have to be between 300 and 399");
+}
+
 void Validator::validateUrl(const std::string& s)
 {
     if (s.empty())
         throw std::invalid_argument("URL can not be empty");
 
-    if (s.find('.') == std::string::npos)
+    if (s.find('/') == std::string::npos)
         throw std::invalid_argument("Invalid URL: " + s);
 }
 

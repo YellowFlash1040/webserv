@@ -3,9 +3,13 @@
 #include <iostream>
 #include <arpa/inet.h> // inet_ntoa
 
-Client::Client(int fd, const sockaddr_in& addr, const NetworkEndpoint& listeningEndpoint)
-    : socket_fd(fd), address(addr), listeningEndpoint(listeningEndpoint),
-      in_buffer(""), out_buffer("")
+Client::Client(int fd, const sockaddr_in& addr,
+               const NetworkEndpoint& listeningEndpoint)
+  : socket_fd(fd)
+  , address(addr)
+  , listeningEndpoint(listeningEndpoint)
+  , in_buffer("")
+  , out_buffer("")
 {
     if (fd < 0)
         throw std::invalid_argument("Invalid socket descriptor");

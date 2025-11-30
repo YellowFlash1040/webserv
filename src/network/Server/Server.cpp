@@ -1,5 +1,4 @@
 #include "Server.hpp"
-#include "Client.hpp"
 
 // --------------CONSTRUCTION AND DESTRUCTION--------------
 
@@ -126,7 +125,6 @@ void Server::flushClientOutBuffer(Client& client)
     }
 }
 
-
 void Server::addEndpoint(const NetworkEndpoint& endpoint)
 {
     ServerSocket s(endpoint, QUEUE_SIZE);
@@ -167,7 +165,7 @@ void Server::acceptNewClient(int listeningSocket)
     std::cout << "acceptNewClient NetworkEndpoint IP: " << ipStr << "\n";
 
     m_clients.emplace(clientSocket,
-                    std::make_unique<Client>(clientSocket, clientAddr, ep));
+                      std::make_unique<Client>(clientSocket, clientAddr, ep));
 
     m_connMgr.addClient(clientSocket);
 
@@ -178,17 +176,18 @@ void Server::removeClient(Client& client)
 {
     int clientSocket = client.getSocket();
 
-    if (m_epfd != -1 && epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr) == -1)
+    if (m_epfd != -1
+        && epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr) == -1)
         perror("epoll_ctl DEL");
 
     if (m_clients.erase(clientSocket) == 0)
-        std::cerr << "Warning: tried to remove non-existent client " << clientSocket << "\n";
+        std::cerr << "Warning: tried to remove non-existent client "
+                  << clientSocket << "\n";
 
     close(clientSocket);
 
     std::cout << "Client removed: " << clientSocket << "\n";
 }
-
 
 void Server::processClient(Client& client)
 {

@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef CGIPARSER_HPP
-#define CGIPARSER_HPP
+# define CGIPARSER_HPP
 
 #include <string>
 #include <string_view>

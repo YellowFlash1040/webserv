@@ -24,7 +24,8 @@ enum class ArgumentType
     Name,            // example.com
     File,            // index.html
     FileExtension,   // .php
-    BinaryPath       // /usr/bin/php-cgi
+    BinaryPath,      // /usr/bin/php-cgi
+    ReturnStatusCode // only 30X status codes
 };
 
 class Argument

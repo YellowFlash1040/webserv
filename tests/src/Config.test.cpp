@@ -525,7 +525,7 @@ TEST_F(ConfigTest, RequestContext_FileInsideKapouet_Site1Local)
 
     RequestContextValidator(ctx)
         .hasResolvedPath("/tmp/www/kapouet/file.jpg")
-        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST, HttpMethod::DELETE})
+        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST})
         .hasIndexFiles({"index.html", "index.php"})
         .hasBodySize(20ul * 1024 * 1024)
         .hasExactErrorPages({{static_cast<HttpStatusCode>(400), "/errors/400.html"},
@@ -544,7 +544,7 @@ TEST_F(ConfigTest, RequestContext_FileInsideList_Site1Local)
 
     RequestContextValidator(ctx)
         .hasResolvedPath("/var/www/site1/list/file.jpg")
-        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST, HttpMethod::DELETE})
+        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST})
         .hasIndexFiles({"index.html"})
         .hasBodySize(20ul * 1024 * 1024)
         .hasExactErrorPages({{static_cast<HttpStatusCode>(400), "/errors/400.html"},
@@ -563,7 +563,7 @@ TEST_F(ConfigTest, RequestContext_Oldpage_Site1Local)
 
     RequestContextValidator(ctx)
         .hasResolvedPath("/var/www/site1/oldpage")
-        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST, HttpMethod::DELETE})
+        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST})
         .hasIndexFiles({"index.html"})
         .hasBodySize(20ul * 1024 * 1024)
         .hasExactErrorPages({{static_cast<HttpStatusCode>(400), "/errors/400.html"},
@@ -582,7 +582,7 @@ TEST_F(ConfigTest, RequestContext_RootPath_Site2Local)
 
     RequestContextValidator(ctx)
         .hasResolvedPath("/var/www/site2/")
-        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST, HttpMethod::DELETE})
+        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST})
         .hasIndexFiles({"index.html"})
         .hasBodySize(20ul * 1024 * 1024)
         .hasExactErrorPages({{static_cast<HttpStatusCode>(400), "/errors/400.html"},
@@ -601,7 +601,7 @@ TEST_F(ConfigTest, RequestContext_RandomPage_Site2Local)
 
     RequestContextValidator(ctx)
         .hasResolvedPath("/var/www/site2/something")
-        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST, HttpMethod::DELETE})
+        .hasAllowedMethods({HttpMethod::GET, HttpMethod::POST})
         .hasIndexFiles({"index.html"})
         .hasBodySize(20ul * 1024 * 1024)
         .hasExactErrorPages({{static_cast<HttpStatusCode>(400), "/errors/400.html"},

@@ -1,6 +1,6 @@
 #pragma once
 
-# ifndef CLIENT_HPP
+#ifndef CLIENT_HPP
 # define CLIENT_HPP
 
 #include <string>
@@ -34,7 +34,7 @@ public:
 
     void printInfo() const;
 
-private:
+  private:
     int socket_fd;
     sockaddr_in address;
     NetworkEndpoint listeningEndpoint;

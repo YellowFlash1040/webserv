@@ -11,7 +11,6 @@ namespace ft
 {
 
 void* memset(void* ptr, int value, std::size_t num);
-void* memcpy(void* dest, const void* src, std::size_t num);
 void bzero(void* ptr, std::size_t num);
 
 } // namespace ft

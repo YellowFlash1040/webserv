@@ -55,12 +55,13 @@ class Property
     bool operator==(const T& other) const;
     bool operator!=(const T& other) const;
 
-	template <typename Key>
-	    auto operator[](const Key& key) -> decltype(std::declval<T&>()[key]);
-	
-	template <typename Key>
-	    auto operator[](const Key& key) const -> decltype(std::declval<const T&>()[key]);
-    
+    template <typename Key>
+    auto operator[](const Key& key) -> decltype(std::declval<T&>()[key]);
+
+    template <typename Key>
+    auto operator[](const Key& key) const
+        -> decltype(std::declval<const T&>()[key]);
+
   private:
     // Properties
     T m_value;
