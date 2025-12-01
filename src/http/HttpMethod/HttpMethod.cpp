@@ -1,16 +1,5 @@
 #include "HttpMethod.hpp"
 
-std::string httpMethod(HttpMethod method)
-{
-	switch (method)
-	{
-		case HttpMethod::GET:    return "GET";
-		case HttpMethod::POST:   return "POST";
-		case HttpMethod::DELETE: return "DELETE";
-		default:                 return "NONE";
-	}
-}
-
 std::string httpMethodToString(HttpMethod method)
 {
 	switch (method)
