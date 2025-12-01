@@ -1,7 +1,7 @@
 #include "RawRequest.hpp"
 
 RawRequest::RawRequest()
-	: _tempBuffer(), _rlAndHeadersBuffer(), _body(), _chunkedBuffer(), _conLenBuffer(), _method(), _uri(), _httpVersion(),
+	: _tempBuffer(), _rlAndHeadersBuffer(), _body(), _chunkedBuffer(), _conLenBuffer(), _method(), _uri(), _host(), _httpVersion(),
 	_headers(), _bodyType(BodyType::NO_BODY), _errorMessage(), _headersDone(false), _terminatingZeroMet(false), _bodyDone(false),
 	_requestDone(false), _isBadRequest(false), _shouldClose(false) {}
 
@@ -93,6 +93,10 @@ void RawRequest::parseHeaders(std::istringstream& stream)
 		{
 			throw std::invalid_argument("Header parse error: " + std::string(e.what()));
 		}
+		if (StrUtils::equalsIgnoreCase(key, "Host"))
+        {
+            _host = extractHost(value);
+        }
 	}
 
 	// Decide body type
@@ -111,6 +115,12 @@ void RawRequest::parseHeaders(std::istringstream& stream)
 	}
 
 	_headersDone = true;
+}
+
+std::string RawRequest::extractHost(const std::string& hostHeader) const
+{
+    size_t portPos = hostHeader.find(':');
+    return (portPos != std::string::npos) ? hostHeader.substr(0, portPos) : hostHeader;
 }
 
 void RawRequest::appendToChunkedBuffer(const std::string& data)
@@ -541,8 +551,7 @@ const std::string& RawRequest::getUri() const
 
 std::string RawRequest::getHost() const
 {
-	auto it = _headers.find("Host");
-	return (it != _headers.end()) ? it->second : "";
+    return _host;
 }
 
 const std::unordered_map<std::string, std::string>& RawRequest::getHeaders() const

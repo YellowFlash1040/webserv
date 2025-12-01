@@ -9,7 +9,7 @@ TEST(RawRequestTest, ParseSimpleGet)
     // Fill the request buffer
     rawReq.appendTempBuffer(
         "GET /index.html HTTP/1.1\r\n"
-        "Host: localhost\r\n"
+        "Host: localhost:8081\r\n"
         "Connection: keep-alive\r\n\r\n"
     );
 
@@ -21,7 +21,8 @@ TEST(RawRequestTest, ParseSimpleGet)
     EXPECT_EQ(rawReq.getMethod(), HttpMethod::GET);
     EXPECT_EQ(rawReq.getUri(), "/index.html");
     EXPECT_EQ(rawReq.getHttpVersion(), "HTTP/1.1");
-    EXPECT_EQ(rawReq.getHeader("Host"), "localhost");
+    EXPECT_EQ(rawReq.getHeader("Host"), "localhost:8081");
+    EXPECT_EQ(rawReq.getHost(), "localhost");
     EXPECT_EQ(rawReq.getHeader("Connection"), "keep-alive");
     EXPECT_EQ(rawReq.getBody(), "");
 }

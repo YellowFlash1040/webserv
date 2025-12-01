@@ -18,7 +18,6 @@
 
 class RawRequest
 {
-	
 	public:
 	RawRequest();
 	~RawRequest() = default;
@@ -73,6 +72,7 @@ class RawRequest
 	HttpMethod _method;
 	std::string _rawUri;
 	std::string _uri;
+	std::string _host;
 	std::string _query;
 	std::string _httpVersion;
 	std::unordered_map<std::string, std::string> _headers;
@@ -98,8 +98,8 @@ class RawRequest
 	void parseSizedBody(const std::string& data);
 	void parseChunkedBody();
 	void appendToBody(const std::string& data);
+	std::string extractHost(const std::string& hostHeader) const;
 
-		
 };
 
 #endif
