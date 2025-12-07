@@ -20,6 +20,5 @@ TEST(UploadModuleTest, test1)
     "------WebKitFormBoundary7sXEyrliWNq0uCE6--";
 
     std::string boundary = "----WebKitFormBoundary7sXEyrliWNq0uCE6";
-
     // UploadModule::parseFormData(body, boundary);
 }

@@ -12,7 +12,7 @@ TESTS_INCLUDES			 = -I$(TESTS_DIR)/googletest/googletest/include \
 
 # C++ versions
 CPP_VERSION				 = -std=c++17
-TESTS_CPP_VERSION		 = -std=c++14
+TESTS_CPP_VERSION		 = -std=c++17
 
 #-----------------------BINARIES---------------------------------------------------------
 # Output Files
@@ -86,7 +86,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS) $(TEMPLATES) Makefile
 # Collect all .o files into .a file to use it for unit tests
 $(LIBRARY_FOR_TESTS): $(OBJ)
 	@mkdir -p $(TESTS_BIN_FOLDER)
-	@ar src $@ $^
+	@ar rcs $@ $^
 	@ar d $@ main.o
 
 #---------TESTS------------
@@ -105,6 +105,7 @@ $(TESTS_OBJ_DIR)/%.o: $(TESTS_SRC_DIR)/%.cpp $(HEADERS) $(TEMPLATES) Makefile
 	@echo "$(YELLOW)>> Compiling tests...$(RESET)")
 	@mkdir -p $(dir $@)
 	@$(CC) $(TESTS_CFLAGS) -c $< -o $@
+
 #-----------END------------
 
 # Clean up Object Files
@@ -121,5 +122,10 @@ fclean: clean
 # Rebuild the Project
 re: fclean all
 
+# Debug build (compiles with -DDEBUG so DBG prints are active)
+debug: CFLAGS += -DDEBUG
+debug: re
+	@echo "$(BLUE)Compiled $(NAME) with debug prints enabled$(RESET)"
+
 # Phony Targets
-.PHONY: all clean fclean re tests
+.PHONY: all clean fclean re tests debug

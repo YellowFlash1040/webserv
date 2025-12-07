@@ -77,8 +77,7 @@ void Server::run(void)
             }
             auto itClient = m_clients.find(fd);
             if (itClient == m_clients.end())
-                continue; // Can it be that we have fd but client is already
-                          // off?
+                continue;
 
             Client& client = *itClient->second;
 
@@ -98,21 +97,31 @@ void Server::flushClientOutBuffer(Client& client)
 {
     int fd = client.getSocket();
     std::string& out = client.getOutBuffer();
-    if (out.empty())
-        return;
 
-    ssize_t sent = send(fd, out.c_str(), out.size(), 0);
-    if (sent > 0)
+    while (!out.empty())
     {
-        out.erase(0, sent);
+        ssize_t sent = send(fd, out.c_str(), out.size(), 0);
+        if (sent > 0)
+        {
+            out.erase(0, sent);
+        }
+        else if (sent == -1)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                break;
+            perror("send");
+            removeClient(client);
+            return;
+        }
     }
 
     if (out.empty())
     {
         struct epoll_event mod;
         mod.data.fd = fd;
-        mod.events = EPOLLIN | EPOLLRDHUP;
-        epoll_ctl(m_epfd, EPOLL_CTL_MOD, fd, &mod);
+        mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP;
+        if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, fd, &mod) == -1)
+            perror("epoll_ctl mod");
     }
 }
 
@@ -149,28 +158,33 @@ void Server::acceptNewClient(int listeningSocket)
     }
 
     Socket::setNonBlockingAndCloexec(clientSocket);
-    addSocketToEPoll(clientSocket, EPOLLIN);
 
-    m_clients.emplace(
-        clientSocket,
-        std::make_unique<Client>(clientSocket, clientAddr, listeningSocket));
+    const NetworkEndpoint& ep = m_listeners.at(listeningSocket).getEndpoint();
+
+    std::string ipStr = static_cast<std::string>(ep.ip());
+    std::cout << "acceptNewClient NetworkEndpoint IP: " << ipStr << "\n";
+
+    m_clients.emplace(clientSocket,
+                      std::make_unique<Client>(clientSocket, clientAddr, ep));
 
     m_connMgr.addClient(clientSocket);
 
-    struct epoll_event ev;
-    ev.data.fd = clientSocket;
-    ev.events = EPOLLIN | EPOLLOUT;
-    epoll_ctl(m_epfd, EPOLL_CTL_MOD, clientSocket, &ev);
+    addSocketToEPoll(clientSocket, EPOLLIN | EPOLLOUT);
 }
 
 void Server::removeClient(Client& client)
 {
     int clientSocket = client.getSocket();
 
-    if (m_epfd != -1)
-        epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr);
+    if (m_epfd != -1
+        && epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr) == -1)
+        perror("epoll_ctl DEL");
 
-    m_clients.erase(clientSocket);
+    if (m_clients.erase(clientSocket) == 0)
+        std::cerr << "Warning: tried to remove non-existent client "
+                  << clientSocket << "\n";
+
+    close(clientSocket);
 
     std::cout << "Client removed: " << clientSocket << "\n";
 }
@@ -181,36 +195,23 @@ void Server::processClient(Client& client)
     char buf[8192];
     int n = read(clientFd, buf, sizeof(buf) - 1);
 
-    // Обработка входящих данных
     if (n > 0)
     {
         buf[n] = '\0';
         std::string data(buf, n);
 
-        // Получаем endpoint через listeningSocket
-        int listeningSocket = client.getListeningSocket();
-        NetworkEndpoint& ep = m_listeners.at(listeningSocket).getEndpoint();
-
+        const NetworkEndpoint& ep = client.getListeningEndpoint();
         bool anyRequestDone = m_connMgr.processData(ep, clientFd, data);
         (void)anyRequestDone;
     }
-    else if (n == 0)
+    else
     {
         m_connMgr.removeClient(clientFd);
         removeClient(client);
-        close(clientFd);
         return;
     }
-    else
-    {
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
-            return;
-        perror("read");
-        throw std::runtime_error("read failed");
-    }
 
-    // Отправка всех ответов
-    ClientState& clientState = m_connMgr.getClientState(clientFd);
+    ClientState& clientState = m_connMgr.getClientState(clientFd); 
 
     while (clientState.hasPendingResponseData())
     {
@@ -220,19 +221,18 @@ void Server::processClient(Client& client)
         client.appendToOutBuffer(respStr);
         client.updateLastActivity();
 
-        // Включаем EPOLLOUT, чтобы epoll отслеживал возможность записи
         struct epoll_event mod;
         mod.data.fd = clientFd;
         mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP | EPOLLOUT;
         if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, clientFd, &mod) == -1)
             perror("epoll_ctl EPOLLOUT");
 
-        // Удаляем отправленный элемент из очереди
         clientState.popFrontResponseData();
 
-        // Закрываем соединение, если нужно
         if (respData.shouldClose)
         {
+            DBG("[Server]: should close, flushing buffer before closing");
+            flushClientOutBuffer(client);
             m_connMgr.removeClient(clientFd);
             removeClient(client);
             break;

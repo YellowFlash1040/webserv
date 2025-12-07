@@ -25,7 +25,7 @@ Data inside second file\n\r\n
 */
 // clang-format on
 
-void UploadModule::processUpload(RequestData& req, RequestContext& ctx,
+void UploadModule::processUpload(const RequestData& req, const RequestContext& ctx,
                                  RawResponse& resp)
 {
     if (isMultipartFormData(req))
@@ -233,7 +233,7 @@ void UploadModule::create201Response(RawResponse& resp,
     bodyStream << "]\n";
     bodyStream << "}";
 
-    resp.setStatus(HttpStatusCode::Created);
+    resp.setStatusCode(HttpStatusCode::Created);
     resp.setDefaultHeaders();
     resp.addHeader("Content-Type", "application/json");
     resp.setBody(bodyStream.str());
@@ -241,7 +241,7 @@ void UploadModule::create201Response(RawResponse& resp,
 
 void UploadModule::create415Response(RawResponse& resp)
 {
-    resp.setStatus(HttpStatusCode::UnsupportedMediaType);
+    resp.setStatusCode(HttpStatusCode::UnsupportedMediaType);
     resp.setDefaultHeaders();
     resp.addHeader("Accept-Post", "multipart/form-data");
 }

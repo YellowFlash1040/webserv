@@ -12,52 +12,7 @@
 #include <stdexcept>
 #include <map>
 
-std::string cleanShebang(const std::string& line)
-{
-    if (line.size() < 3 || line[0] != '#' || line[1] != '!')
-        return "";
-
-    size_t start = 2;
-
-    while (start < line.size() && std::isspace(line[start]))
-        start++;
-
-    if (start >= line.size())
-        return "";
-
-    size_t end = line.find_first_of(" \t\n", start);
-    if (end == std::string::npos)
-        end = line.size();
-
-    return line.substr(start, end - start);
-}
-
-std::string getShebangInterpreter(const std::string& path)
-{
-    std::ifstream f(path);
-    if (!f.is_open())
-        throw std::runtime_error("Failed to open script for reading shebang: "
-                                 + path);
-
-    std::string line;
-    std::getline(f, line);
-    std::string interpreter = cleanShebang(line);
-
-    if (interpreter.empty() || interpreter[0] != '/')
-        throw std::runtime_error("Invalid or missing shebang in script: "
-                                 + path);
-
-    struct stat st;
-    if (stat(interpreter.c_str(), &st) == -1 || !(st.st_mode & S_IXUSR))
-        throw std::runtime_error(
-            "Interpreter in shebang not found or not executable: "
-            + interpreter);
-
-    return interpreter;
-}
-
-std::string validateScriptPath(const std::string& scriptPath,
-                               const std::string& rootDir)
+std::string validateScriptPath(const std::string& scriptPath)
 {
     struct stat st;
     if (stat(scriptPath.c_str(), &st) == -1)
@@ -66,34 +21,20 @@ std::string validateScriptPath(const std::string& scriptPath,
     if (S_ISDIR(st.st_mode))
         throw std::runtime_error("CGI script is a directory: " + scriptPath);
 
-    char realScript[PATH_MAX];
-    char realRoot[PATH_MAX];
-    if (!realpath(scriptPath.c_str(), realScript)
-        || !realpath(rootDir.c_str(), realRoot))
-        throw std::runtime_error("Failed to resolve real path");
+    if (!(st.st_mode & S_IXUSR))
+        throw std::runtime_error("CGI script is not executable by this user: " + scriptPath);
 
-    std::string realScriptStr(realScript);
-    std::string realRootStr(realRoot);
-    if (realScriptStr.find(realRootStr) != 0)
-        throw std::runtime_error("Path traversal detected: " + scriptPath);
-
-    if (st.st_mode & S_IXUSR)
-        return scriptPath;
-
-    std::string interpreter = getShebangInterpreter(scriptPath);
-    if (!interpreter.empty())
-        return interpreter;
-
-    throw std::runtime_error("CGI script is not executable and has no shebang: "
-                             + scriptPath);
+    return scriptPath;
 }
 
 std::string CGI::execute(const std::string& scriptPath,
                          const std::vector<std::string>& args,
                          const std::vector<std::string>& env,
-                         const std::string& input, const std::string& rootDir)
+                         const std::string& input)
 {
-    std::string execPath = validateScriptPath(scriptPath, rootDir);
+    std::string execPath = validateScriptPath(scriptPath);
+
+    std::cout << "CGI::execute: " << execPath << std::endl;
 
     int pipe_in[2], pipe_out[2];
 
@@ -124,15 +65,7 @@ std::string CGI::execute(const std::string& scriptPath,
         close(pipe_out[1]);
 
         std::vector<char*> c_args;
-        if (execPath != scriptPath)
-        {
-            c_args.push_back(const_cast<char*>(execPath.c_str()));
-            c_args.push_back(const_cast<char*>(scriptPath.c_str()));
-        }
-        else
-        {
-            c_args.push_back(const_cast<char*>(scriptPath.c_str()));
-        }
+        c_args.push_back(const_cast<char*>(scriptPath.c_str()));
 
         for (auto& a : args)
             c_args.push_back(const_cast<char*>(a.c_str()));
