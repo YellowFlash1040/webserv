@@ -51,7 +51,6 @@ namespace PrintUtils
 		"\n[RawRequest]"
 		<< "\nMethod: " << httpMethodToString(req.getMethod())
 		<< "\nURI: " << req.getUri()
-		<< "\nQuery: " << req.getQuery()
 		<< "\nHTTP Version: " << req.getHttpVersion()
 		<< "\nBody Type: " << BodyType::toString(req.getBodyType())
 		<< "\nBody Length: " << req.getBody().size()

@@ -11,12 +11,3 @@
 !**/tests/googletest/**/*.h
 !.clang-format
 !**/assets/**
-!*.conf
-!*.py
-!*.pl
-!*.html
-!*.ico
-!*.css
-!*.js
-!*.vscode
-!*.json
