@@ -169,26 +169,53 @@ void Server::acceptNewClient(int listeningSocket)
     m_clients.emplace(clientSocket,
                     std::make_unique<Client>(clientSocket, clientAddr, ep));
 
-    m_connMgr.addClient(clientSocket);
+    m_connMgr.addClient(*m_clients.at(clientSocket));
 
     addSocketToEPoll(clientSocket, EPOLLIN | EPOLLOUT);
 }
+
+// void Server::removeClient(Client& client)
+// {
+//     int clientSocket = client.getSocket();
+
+//     if (m_epfd != -1 && epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr) == -1)
+//         perror("epoll_ctl DEL");
+
+//     if (m_clients.erase(clientSocket) == 0)
+//         std::cerr << "Warning: tried to remove non-existent client " << clientSocket << "\n";
+
+//     close(clientSocket);
+
+//     std::cout << "Client removed: " << clientSocket << "\n";
+// }
 
 void Server::removeClient(Client& client)
 {
     int clientSocket = client.getSocket();
 
-    if (m_epfd != -1 && epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr) == -1)
-        perror("epoll_ctl DEL");
-
-    if (m_clients.erase(clientSocket) == 0)
+    auto it = m_clients.find(clientSocket);
+    if (it == m_clients.end())
+    {
         std::cerr << "Warning: tried to remove non-existent client " << clientSocket << "\n";
+        return;
+    }
 
-    close(clientSocket);
+    if (m_epfd != -1)
+    {
+        if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr) == -1)
+        {
+            if (errno != EBADF && errno != ENOENT)
+                perror("epoll_ctl DEL");
+        }
+    }
+
+    m_clients.erase(it);
+
+    if (clientSocket >= 0)
+        close(clientSocket);
 
     std::cout << "Client removed: " << clientSocket << "\n";
 }
-
 
 void Server::processClient(Client& client)
 {
@@ -201,18 +228,17 @@ void Server::processClient(Client& client)
         buf[n] = '\0';
         std::string data(buf, n);
 
-        const NetworkEndpoint& ep = client.getListeningEndpoint();
-        bool anyRequestDone = m_connMgr.processData(ep, clientFd, data);
+        bool anyRequestDone = m_connMgr.processData(client, data);
         (void)anyRequestDone;
     }
     else
     {
-        m_connMgr.removeClient(clientFd);
+        m_connMgr.removeClient(client);
         removeClient(client);
         return;
     }
 
-    ClientState& clientState = m_connMgr.getClientState(clientFd); 
+    ClientState& clientState = m_connMgr.getClientState(client); 
 
     while (clientState.hasPendingResponseData())
     {
@@ -232,7 +258,7 @@ void Server::processClient(Client& client)
 
         if (respData.shouldClose)
         {
-            m_connMgr.removeClient(clientFd);
+            m_connMgr.removeClient(client);
             removeClient(client);
             break;
         }

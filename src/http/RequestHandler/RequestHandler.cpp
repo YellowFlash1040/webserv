@@ -2,69 +2,70 @@
 #include "CGIHandler.hpp"
 
 void RequestHandler::processRequest(RawRequest& rawReq,
-									const NetworkEndpoint& endpoint,
-									RequestContext& ctx)
+                                    Client& client,
+                                    RequestContext& ctx)
 {
-	// 0. Bad request
-	if (rawReq.isBadRequest())
-	{
-		serveBadRequest(rawReq, endpoint, ctx);
-		return;
-	}
+    // 0. Bad request
+    if (rawReq.isBadRequest())
+    {
+        serveBadRequest(rawReq, client, ctx);
+        return;
+    }
 
-	RequestData req = rawReq.buildRequestData();
+    RequestData req = rawReq.buildRequestData();
 
-	// 1. External redirection
-	if (ctx.redirection.isSet)
-	{
-		RawResponse resp(req, ctx);
-		resp.handleExternalRedirect(req.uri);
-		clientState.enqueueRawResponse(resp);
-		return;
-	}
+    // 1. External redirection
+    if (ctx.redirection.isSet)
+    {
+        RawResponse resp(req, ctx);
+        resp.handleExternalRedirect(req.uri);
+        clientState.enqueueRawResponse(resp);
+        return;
+    }
 
-	// 2. Method not allowed
-	if (rawReq.getUri() != "/favicon.ico"
-		&& !isMethodAllowed(req.method, ctx.allowed_methods))
-	{
-		std::cout << "[processRequest] Method not allowed: "
-				  << static_cast<int>(req.method) << std::endl;
+    // 2. Method not allowed
+    if (rawReq.getUri() != "/favicon.ico"
+        && !isMethodAllowed(req.method, ctx.allowed_methods))
+    {
+        std::cout << "[processRequest] Method not allowed: "
+                  << static_cast<int>(req.method) << std::endl;
 
-		enqueueErrorResponse(ctx, HttpStatusCode::MethodNotAllowed);
-		std::cout << "[processRequest] Enqueue \"Method Not Allowed\" response"
-				  << std::endl;
+        enqueueErrorResponse(ctx, HttpStatusCode::MethodNotAllowed);
+        std::cout << "[processRequest] Enqueue \"Method Not Allowed\" response"
+                  << std::endl;
 
-		return;
-	}
+        return;
+    }
 
-	// 3. Dispatch by method
-	RawResponse resp(req, ctx);
+    // 3. Dispatch by method
+    RawResponse resp(req, ctx);
 
-	switch (req.method)
-	{
-	case HttpMethod::GET:
-		processGet(req, endpoint, ctx, resp);
-		break;
-	case HttpMethod::POST:
-		processPost(req, endpoint, ctx, resp);
-		break;
-	case HttpMethod::DELETE:
-		processDelete(req, endpoint, ctx, resp);
-		break;
-	default:
-		addGeneralErrorDetails(resp, ctx, HttpStatusCode::MethodNotAllowed);
-		break;
-	}
+    switch (req.method)
+    {
+    case HttpMethod::GET:
+        processGet(req, client, ctx, resp);
+        break;
+    case HttpMethod::POST:
+        processPost(req, client, ctx, resp);
+        break;
+    case HttpMethod::DELETE:
+        processDelete(req, client, ctx, resp);
+        break;
+    default:
+        addGeneralErrorDetails(resp, ctx, HttpStatusCode::MethodNotAllowed);
+        break;
+    }
 
-	// Enqueue the response for sending
-	clientState.enqueueRawResponse(resp);
+    // Enqueue the response for sending
+    clientState.enqueueRawResponse(resp);
 }
 
+
 void RequestHandler::serveBadRequest(RawRequest& rawReq,
-									 const NetworkEndpoint& endpoint,
-									 RequestContext& ctx)
+                                     Client& client,
+                                     RequestContext& ctx)
 {
-	(void)endpoint;
+	(void)client;
 	(void)ctx;
 	(void)rawReq;
 	RawResponse resp; // default constructor, OK for bad requests
@@ -85,148 +86,112 @@ bool RequestHandler::isMethodAllowed(
 	return false;
 }
 
-
 void RequestHandler::processGet(RequestData& req,
-								const NetworkEndpoint& endpoint,
-								RequestContext& ctx, RawResponse& rawResp)
+                                Client& client,
+                                RequestContext& ctx,
+                                RawResponse& rawResp)
 {
-	FileHandler fileHandler(ctx.index_files);
+    FileHandler fileHandler(ctx.index_files);
 
-	std::cout << "[processGet] Processing request for resolved path: "
-			  << ctx.resolved_path << std::endl;
+    std::cout << "[processGet] Processing request for resolved path: "
+              << ctx.resolved_path << std::endl;
 
-	// 1. Check CGI first
-	if (!ctx.cgi_pass.empty())
-	{
-		HttpStatusCode status;
-		std::string interpreter = getCgiPathFromUri(req.uri, ctx.cgi_pass, status);
-		
-		std::cout << "[processGet] CGI interpreter path: \"" << interpreter
-              << "\", status: " << static_cast<int>(status) << "\n";
-		
-		if (status == HttpStatusCode::BadGateway)
-		{
-			addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::BadGateway);
-			return;
-		}
-		
-		switch (status)
-		{
-			case HttpStatusCode::None: std::cout << "None"; break;
-			case HttpStatusCode::OK: std::cout << "OK"; break;
-			case HttpStatusCode::BadGateway: std::cout << "BadGateway"; break;
-			case HttpStatusCode::Forbidden: std::cout << "Forbidden"; break;
-			default: std::cout << "Other"; break;
-		}	
-		std::cout << ")\n";
+    // 1. Check CGI first
+    if (!ctx.cgi_pass.empty())
+    {
+        HttpStatusCode status;
+        std::string interpreter = getCgiPathFromUri(req.uri, ctx.cgi_pass, status);
 
-		
-		std::cout << "[processGet] interpreter detected, checking file " << ctx.resolved_path <<
-					 " for validity..." << std::endl;
+        std::cout << "[processGet] CGI interpreter path: \"" << interpreter
+                  << "\", status: " << static_cast<int>(status) << "\n";
 
-		if (!fileHandler.existsAndIsFile(ctx.resolved_path))
-		{
-			std::cout << "[processGet] CGI Uri not found: "
-					  << ctx.resolved_path << std::endl;
-			addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::NotFound);
-			return;
-		}
-		if (access(ctx.resolved_path.c_str(), X_OK) != 0)
-		{
-			std::cout
-				<< "[processGet] CGI Uri exists but is not executable: "
-				<< ctx.resolved_path << std::endl;
-			addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::Forbidden);
-			return;
-		}
-		
-		if (status == HttpStatusCode::OK)
-		{
-			printRequestData(req);
+        if (status == HttpStatusCode::BadGateway)
+        {
+            addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::BadGateway);
+            return;
+        }
 
-			std::cout << "Executing CGI interpreter: " << interpreter <<		
-				" for script: " << ctx.resolved_path << std::endl;
-			CGIHandler::processCGI(req, endpoint, interpreter, ctx.resolved_path, rawResp);
-			return;
-		}
-	}
+        if (!fileHandler.existsAndIsFile(ctx.resolved_path))
+        {
+            std::cout << "[processGet] CGI Uri not found: "
+                      << ctx.resolved_path << std::endl;
+            addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::NotFound);
+            return;
+        }
 
-	// status == None → no CGI mapping -> continue to static file handling
+        if (access(ctx.resolved_path.c_str(), X_OK) != 0)
+        {
+            std::cout << "[processGet] CGI Uri exists but not executable: "
+                      << ctx.resolved_path << std::endl;
+            addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::Forbidden);
+            return;
+        }
 
-	// 2. Static file handling
-	if (fileHandler.existsAndIsFile(ctx.resolved_path))
-	{
-		std::cout << "[processGet] Detected: file: " << ctx.resolved_path
-				  << std::endl;
+        if (status == HttpStatusCode::OK)
+        {
+            printRequestData(req);
+            std::cout << "Executing CGI interpreter: " << interpreter 
+                      << " for script: " << ctx.resolved_path << std::endl;
 
-		if (access(ctx.resolved_path.c_str(), R_OK) != 0)
-		{
-			std::cout << "[processGet] File exists but not readable"
-					  << std::endl;
-			addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::Forbidden);
-			return;
-		}
+            CGIHandler::processCGI(req, client, interpreter, ctx.resolved_path, rawResp);
+            return;
+        }
+    }
 
-		std::cout << "[processGet] setting status to OK" << std::endl;
-		rawResp.setStatus(HttpStatusCode::OK);
+    // 2. Static file handling
+    if (fileHandler.existsAndIsFile(ctx.resolved_path))
+    {
+        std::cout << "[processGet] Detected: file: " << ctx.resolved_path << std::endl;
 
-		rawResp.setMimeType(fileHandler.detectMimeType(ctx.resolved_path));
-		setFileDelivery(rawResp, ctx.resolved_path, fileHandler);
+        if (access(ctx.resolved_path.c_str(), R_OK) != 0)
+        {
+            std::cout << "[processGet] File exists but not readable" << std::endl;
+            addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::Forbidden);
+            return;
+        }
 
-		std::cout << "[processGet] Served static file with status: "
-				  << static_cast<int>(rawResp.getStatusCode()) << std::endl;
-		std::cout << "[processGet] might change later if it is an internal redirection" << std::endl;
-		return;
-	}
+        rawResp.setStatus(HttpStatusCode::OK);
+        rawResp.setMimeType(fileHandler.detectMimeType(ctx.resolved_path));
+        setFileDelivery(rawResp, ctx.resolved_path, fileHandler);
 
-	// 3. Directory handling
-	if (fileHandler.existsAndIsDirectory(ctx.resolved_path))
-	{
-		std::cout << "[processGet] Detected: directory: " << ctx.resolved_path
-				  << std::endl;
+        std::cout << "[processGet] Served static file with status: "
+                  << static_cast<int>(rawResp.getStatusCode()) << std::endl;
+        return;
+    }
 
-		// Try to find index file
-		std::string indexPath = fileHandler.getIndexFilePath(ctx.resolved_path);
-		if (!indexPath.empty())
-		{
-			// Serve index file as static file
-			std::cout << "[processGet] Found index file: " << indexPath
-					  << std::endl;
-			rawResp.setStatus(HttpStatusCode::OK);
-			rawResp.setMimeType(fileHandler.detectMimeType(indexPath));
-			setFileDelivery(rawResp, indexPath, fileHandler);
+    // 3. Directory handling
+    if (fileHandler.existsAndIsDirectory(ctx.resolved_path))
+    {
+        std::cout << "[processGet] Detected: directory: " << ctx.resolved_path << std::endl;
 
-			return;
-		}
+        std::string indexPath = fileHandler.getIndexFilePath(ctx.resolved_path);
+        if (!indexPath.empty())
+        {
+            rawResp.setStatus(HttpStatusCode::OK);
+            rawResp.setMimeType(fileHandler.detectMimeType(indexPath));
+            setFileDelivery(rawResp, indexPath, fileHandler);
+            return;
+        }
 
-		// generate autoindex
-		if (ctx.autoindex_enabled)
-		{
-			std::cout
-				<< "[processGet] No index file found, generating autoindex..."
-				<< std::endl;
-			rawResp.setStatus(HttpStatusCode::OK);
-			rawResp.setMimeType("text/html");
-			rawResp.setFileMode(FileDeliveryMode::InMemory);
+        if (ctx.autoindex_enabled)
+        {
+            std::cout << "[processGet] No index file found, generating autoindex..." << std::endl;
+            rawResp.setStatus(HttpStatusCode::OK);
+            rawResp.setMimeType("text/html");
+            rawResp.setFileMode(FileDeliveryMode::InMemory);
+            rawResp.setBody(fileHandler.generateAutoindex(ctx.resolved_path));
+            rawResp.addHeader("Content-Length", std::to_string(rawResp.getBody().size()));
+            return;
+        }
 
-			// ADD catching
-			rawResp.setBody(fileHandler.generateAutoindex(ctx.resolved_path));
-			rawResp.addHeader("Content-Length",
-							  std::to_string(rawResp.getBody().size()));
-			return;
-		}
-		// No index, autoindex disabled: 403 Forbidden
-		std::cout
-			<< "[processGet] No index file, autoindex disabled -> Forbidden"
-			<< std::endl;
-		addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::Forbidden);
-		return;
-	}
-	// 5. Path does not exist at all
-	std::cout << "[processGet] Path not found: " << ctx.resolved_path
-			  << std::endl;
-	addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::NotFound);
-	return;
+        std::cout << "[processGet] No index file, autoindex disabled -> Forbidden" << std::endl;
+        addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::Forbidden);
+        return;
+    }
+
+    // 4. Path does not exist
+    std::cout << "[processGet] Path not found: " << ctx.resolved_path << std::endl;
+    addGeneralErrorDetails(rawResp, ctx, HttpStatusCode::NotFound);
 }
 
 std::string RequestHandler::getCgiPathFromUri(
@@ -312,60 +277,58 @@ void RequestHandler::setFileDelivery(RawResponse& resp, const std::string& path,
 }
 
 void RequestHandler::processDelete(RequestData& req,
-								   const NetworkEndpoint& endpoint,
-								   RequestContext& ctx, RawResponse& resp)
+                                   Client& client,
+                                   RequestContext& ctx,
+                                   RawResponse& resp)
 {
-	(void)req;
+    (void)req;
 	(void)resp;
-	(void)endpoint;
+	(void)client;
 
-	std::cout << "[processDelete] Processing DELETE for path: "
-			  << ctx.resolved_path << std::endl;
+    std::cout << "[processDelete] Processing DELETE for path: "
+              << ctx.resolved_path << std::endl;
 
-	if (!FileHandler::pathExists(ctx.resolved_path))
-	{
-		std::cout << "[processDelete] Path does not exist: "
-				  << ctx.resolved_path << std::endl;
-		enqueueErrorResponse(ctx, HttpStatusCode::NotFound);
-		resp.addHeader("Content-Length", "0");
-		return;
-	}
+    if (!FileHandler::pathExists(ctx.resolved_path))
+    {
+        std::cout << "[processDelete] Path does not exist: "
+                  << ctx.resolved_path << std::endl;
+        enqueueErrorResponse(ctx, HttpStatusCode::NotFound);
+        resp.addHeader("Content-Length", "0");
+        return;
+    }
 
-	if (FileHandler::existsAndIsDirectory(ctx.resolved_path))
-	{
-		std::cout
-			<< "[processDelete] Path is a directory, forbidden to delete: "
-			<< ctx.resolved_path << std::endl;
-		enqueueErrorResponse(ctx, HttpStatusCode::Forbidden);
-		resp.addHeader("Content-Length", "0");
-		return;
-	}
+    if (FileHandler::existsAndIsDirectory(ctx.resolved_path))
+    {
+        std::cout << "[processDelete] Path is a directory, forbidden to delete: "
+                  << ctx.resolved_path << std::endl;
+        enqueueErrorResponse(ctx, HttpStatusCode::Forbidden);
+        resp.addHeader("Content-Length", "0");
+        return;
+    }
 
-	if (!FileHandler::hasWritePermission(ctx.resolved_path))
-	{
-		std::cout << "[processDelete] No write permission for path: "
-				  << ctx.resolved_path << std::endl;
-		enqueueErrorResponse(ctx, HttpStatusCode::Forbidden);
-		resp.addHeader("Content-Length", "0");
-		return;
-	}
+    if (!FileHandler::hasWritePermission(ctx.resolved_path))
+    {
+        std::cout << "[processDelete] No write permission for path: "
+                  << ctx.resolved_path << std::endl;
+        enqueueErrorResponse(ctx, HttpStatusCode::Forbidden);
+        resp.addHeader("Content-Length", "0");
+        return;
+    }
 
-	if (FileHandler::deleteFile(ctx.resolved_path))
-	{
-		std::cout << "[processDelete] File deleted successfully: "
-				  << ctx.resolved_path << std::endl;
-		resp.setStatus(HttpStatusCode::NoContent);
-		resp.addHeader("Content-Length", "0");
-	}
-	else
-	{
-		std::cout << "[processDelete] Failed to delete file: "
-				  << ctx.resolved_path << std::endl;
-		enqueueErrorResponse(ctx, HttpStatusCode::InternalServerError);
-		resp.addHeader("Content-Length", "0");
-	}
-
-	return;
+    if (FileHandler::deleteFile(ctx.resolved_path))
+    {
+        std::cout << "[processDelete] File deleted successfully: "
+                  << ctx.resolved_path << std::endl;
+        resp.setStatus(HttpStatusCode::NoContent);
+        resp.addHeader("Content-Length", "0");
+    }
+    else
+    {
+        std::cout << "[processDelete] Failed to delete file: "
+                  << ctx.resolved_path << std::endl;
+        enqueueErrorResponse(ctx, HttpStatusCode::InternalServerError);
+        resp.addHeader("Content-Length", "0");
+    }
 }
 
 
@@ -470,45 +433,43 @@ std::string RequestHandler::getErrorPageUri(const RequestContext& ctx,
 }
 
 void RequestHandler::processPost(RequestData& req,
-								 const NetworkEndpoint& endpoint,
-								 RequestContext& ctx, RawResponse& resp)
+                                 Client& client,
+                                 RequestContext& ctx,
+                                 RawResponse& resp)
 {
-	HttpStatusCode status;
-	std::string interpreter = getCgiPathFromUri(req.uri, ctx.cgi_pass, status);
+    HttpStatusCode status;
+    std::string interpreter = getCgiPathFromUri(req.uri, ctx.cgi_pass, status);
 
-	std::cout << "[processPost] Processing POST for path: " << ctx.resolved_path
-			  << std::endl;
+    std::cout << "[processPost] Processing POST for path: " << ctx.resolved_path
+              << std::endl;
 
-	if (req.body.size() > ctx.client_max_body_size)
-	{
-		std::cout << "[processPost] Body too large: " << req.body.size()
-				  << " > " << ctx.client_max_body_size << std::endl;
-		enqueueErrorResponse(ctx, HttpStatusCode::PayloadTooLarge);
-		return;
-	}
+    if (req.body.size() > ctx.client_max_body_size)
+    {
+        std::cout << "[processPost] Body too large: " << req.body.size()
+                  << " > " << ctx.client_max_body_size << std::endl;
+        enqueueErrorResponse(ctx, HttpStatusCode::PayloadTooLarge);
+        return;
+    }
 
-	if (!ctx.cgi_pass.empty())
-	{
-		std::cout << "[processPost] CGI configured, executing..." << std::endl;
-		CGIHandler::processCGI(req, endpoint, interpreter, ctx.resolved_path, resp);
-		return;
-	}
+    if (!ctx.cgi_pass.empty())
+    {
+        std::cout << "[processPost] CGI configured, executing..." << std::endl;
+        CGIHandler::processCGI(req, client, interpreter, ctx.resolved_path, resp);
+        return;
+    }
 
-	if (ctx.upload_store.empty())
-	{
-		std::cout << "[processPost] Upload store not configured, forbidden"
-				  << std::endl;
-		enqueueErrorResponse(ctx, HttpStatusCode::Forbidden);
-		return;
-	}
+    if (ctx.upload_store.empty())
+    {
+        std::cout << "[processPost] Upload store not configured, forbidden"
+                  << std::endl;
+        enqueueErrorResponse(ctx, HttpStatusCode::Forbidden);
+        return;
+    }
 
-	processUpload(req, ctx, resp);
-	std::cout << "[processPost] Upload processed, body size: "
-			  << resp.getBody().size() << std::endl;
-
-	return;
+    processUpload(req, ctx, resp);
+    std::cout << "[processPost] Upload processed, body size: "
+              << resp.getBody().size() << std::endl;
 }
-
 
 void RequestHandler::processUpload(RequestData& req, RequestContext& ctx,
 								   RawResponse& resp)

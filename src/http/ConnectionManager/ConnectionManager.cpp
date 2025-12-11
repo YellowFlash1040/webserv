@@ -4,273 +4,249 @@
 ConnectionManager::ConnectionManager(const Config& config)
 : m_config(config) {}
 
-void ConnectionManager::addClient(int clientId)
+void ConnectionManager::addClient(Client& client)
 {
-	m_clients.emplace(clientId, ClientState());
+    m_clients.emplace(&client, ClientState());
 }
 
-// Remove a client
-void ConnectionManager::removeClient(int clientId)
+void ConnectionManager::removeClient(Client& client)
 {
-	m_clients.erase(clientId);
+    m_clients.erase(&client);
 }
 
 
-const RawRequest& ConnectionManager::getRawRequest(int clientId, size_t index) const
+const RawRequest& ConnectionManager::getRawRequest(Client& client, size_t index) const
 {
-	auto it = m_clients.find(clientId);
-	if (it == m_clients.end())
-		throw std::runtime_error("getRawRequest: clientId not found");
+    auto it = m_clients.find(&client);
+    if (it == m_clients.end())
+        throw std::runtime_error("getRawRequest: client not found");
 
-	if (index == SIZE_MAX)
-		return it->second.getLatestRawReq(); // const getter
-	
-	return it->second.getRawRequest(index); // const getter
+    if (index == SIZE_MAX)
+        return it->second.getLatestRawReq();
+    
+    return it->second.getRawRequest(index);
 }
 
-ClientState& ConnectionManager::getClientState(int clientId)
+ClientState& ConnectionManager::getClientState(Client& client)
 {
-	return m_clients.at(clientId);
+    auto it = m_clients.find(&client);
+    if (it == m_clients.end())
+        throw std::runtime_error("getClientState: client not found");
+
+    return it->second;
 }
 
-bool ConnectionManager::processData(const NetworkEndpoint& endpoint, int clientId, const std::string& tcpData)
+
+bool ConnectionManager::processData(Client& client, const std::string& tcpData)
 {
 
 	// 1. Parse incoming TCP data
-	size_t reqsNum = processReqs(clientId, tcpData);
+	size_t reqsNum = processReqs(client, tcpData);
 
 	// 2. Generate responses for all ready requests
 	if (reqsNum > 0)
-		genResps(clientId, endpoint);
+		genResps(client);
 				
 	return reqsNum > 0;
 }
 
-size_t ConnectionManager::processReqs(int clientId, const std::string& data)
+size_t ConnectionManager::processReqs(Client& client, const std::string& data)
 {
-	
-	std::cout << YELLOW << "DEBUG: processReqs: " << RESET  << std::endl;
-	auto it = m_clients.find(clientId);
-	if (it == m_clients.end())
-		return 0;
+    std::cout << YELLOW << "DEBUG: processReqs: " << RESET  << std::endl;
 
-	ClientState& clientState = it->second;
-		
-	RawRequest& rawReq = clientState.getLatestRawReq(); // single parser now
-	
-	// Append all incoming bytes to _tempBuffer
-	rawReq.appendTempBuffer(data);
-	
-	//std::cout << "[processReqs] tempBuffer is |" << rawReq.getTempBuffer() << "|\n";
-	
-	size_t parsedCount = 0;
-	while(true)
-	{
-		RawRequest& rawReq = clientState.getLatestRawReq();
-		
-		//if we don’t yet have headers for this request, try to parse them.
-		if (rawReq.isHeadersDone() == false)
-		{
-			rawReq.separateHeadersFromBody();
-			if (rawReq.isBadRequest())
-			{
-				std::cout << "[genRespsForReadyReqs] Bad request detected\n";
-			}
-			if (rawReq.isHeadersDone() == false)
-			{
-				std::cout << "[processReqs]: headers are not finished yet\n";
-				break; // Need more data for headers, exit loop until next call;
-				
-			}
-		}
-		//If headers are done, append body bytes if needed.
-		if (!rawReq.isBadRequest() && rawReq.isHeadersDone() && rawReq.isBodyDone() == false)
-		{
-			rawReq.appendBodyBytes(rawReq.getTempBuffer());
-			if (rawReq.isBodyDone() == false)
-			{
-				//std::cout << "[processReqs]: body not finished yet\n";
-				break; // Need more data for body, exit loop until next call
-			}
-		}
-		
-		//At this point headers and body are done = full request parsed
-		if ((rawReq.isHeadersDone() && rawReq.isBodyDone()) || rawReq.isBadRequest())
-		{
-			std::cout << "[processReqs]: setting request done" << "\n";
-			rawReq.setRequestDone();
-			parsedCount++;
-			
-			std::string forNextReq = rawReq.getTempBuffer();
-			
-			// Prepare for next request if leftover exists
-			if (forNextReq.empty() == false)
-			{
-				//overwrite the buffer that store leftovers for next request
-				std::cout << RED << "[processReqs]: forNextReq: " << RESET << "|"
-					<< forNextReq << "|\n";
+    auto it = m_clients.find(&client);
+    if (it == m_clients.end())
+        return 0;
 
-					
-				std::cout << "[processReqs]: adding request" << "\n";
-				RawRequest& newRawReq = clientState.addRawRequest();
-				newRawReq.setTempBuffer(forNextReq);
-				continue;
-				
-			}
-			else
-			{
-				break; // no leftover, stop processing
-			}
-		}
-		else
-		{
-			break; // not done yet
-		}
-	}
-	return (parsedCount);
+    ClientState& clientState = it->second;
+
+    RawRequest& rawReq = clientState.getLatestRawReq(); // single parser now
+
+    // Append all incoming bytes to _tempBuffer
+    rawReq.appendTempBuffer(data);
+
+    size_t parsedCount = 0;
+    while (true)
+    {
+        RawRequest& rawReq = clientState.getLatestRawReq();
+
+        // If headers are not yet complete, try to parse them
+        if (!rawReq.isHeadersDone())
+        {
+            rawReq.separateHeadersFromBody();
+            if (rawReq.isBadRequest())
+                std::cout << "[processReqs] Bad request detected\n";
+
+            if (!rawReq.isHeadersDone())
+            {
+                std::cout << "[processReqs]: headers are not finished yet\n";
+                break; // need more data
+            }
+        }
+
+        // If headers done, append body bytes if needed
+        if (!rawReq.isBadRequest() && rawReq.isHeadersDone() && !rawReq.isBodyDone())
+        {
+            rawReq.appendBodyBytes(rawReq.getTempBuffer());
+            if (!rawReq.isBodyDone())
+                break; // need more data
+        }
+
+        // Full request parsed or bad request
+        if ((rawReq.isHeadersDone() && rawReq.isBodyDone()) || rawReq.isBadRequest())
+        {
+            std::cout << "[processReqs]: setting request done\n";
+            rawReq.setRequestDone();
+            parsedCount++;
+
+            std::string forNextReq = rawReq.getTempBuffer();
+
+            // Prepare next request if leftover exists
+            if (!forNextReq.empty())
+            {
+                std::cout << RED << "[processReqs]: forNextReq: " << RESET
+                          << "|" << forNextReq << "|\n";
+
+                std::cout << "[processReqs]: adding request\n";
+                RawRequest& newRawReq = clientState.addRawRequest();
+                newRawReq.setTempBuffer(forNextReq);
+                continue;
+            }
+            else
+            {
+                break; // no leftover
+            }
+        }
+        else
+        {
+            break; // not done yet
+        }
+    }
+
+    return parsedCount;
 }
-	
 
-
-
-
-void ConnectionManager::genResps(int clientId, const NetworkEndpoint& endpoint)
+void ConnectionManager::genResps(Client& client)
 {
-	std::cout << "[ConnectionManager::genResps] START\n";
+    std::cout << "[ConnectionManager::genResps] START\n";
 
-	// Find the client state in the map
-	auto it = m_clients.find(clientId);
-	if (it == m_clients.end())
-		return; // Client not found, exit
+    // Find the client state in the map
+    auto it = m_clients.find(&client);
+    if (it == m_clients.end())
+        return; // Client not found, exit
 
-	ClientState& clientState = it->second;
-	
-	// Process all complete requests for this client
-	while (clientState.hasCompleteRawRequest())
-	{
-		// Pop the first complete raw request
-		RawRequest rawReq = clientState.popFirstCompleteRawRequest();
-		
-		rawReq.printRequest();
-		// Convert raw request into structured request data
-		//RequestData reqData = rawReq.buildRequestData();
-		
-		// Resolve context using the host and URI from the request and NetworkEndpoint
-		// NetworkInterface iface("0.0.0.0");
-		// NetworkEndpoint endpoint(iface, 8081);
-		
-		std::cout << "[genRespsForReadyReqs] Creating RequestContext with endpoint: "
-		//   << static_cast<std::string>(iface) << ":" << 8081 //getters?
-		  << ", host: " << rawReq.getHost()
-		  << ", uri: " << rawReq.getUri() << "\n";
-		
-		RequestContext ctx;
-		try
-		{
-			ctx = m_config.createRequestContext(endpoint, rawReq.getHost(), rawReq.getUri());
-		}
-		catch (const std::exception& e)
-		{
-			std::cout << "[EXCEPTION] createRequestContext failed: " << e.what() << "\n";
-			continue;
-		}
-		std::cout << "[genRespsForReadyReqs] RequestContext created successfully\n";
-		
-		printReqContext(ctx);
-		
-		// Create a RequestHandler for this client
-		RequestHandler reqHandler(clientState);
+    ClientState& clientState = it->second;
 
-		// Process the request (handles errors, CGI, files, etc.)
-		reqHandler.processRequest(rawReq, endpoint, ctx);
-		
-		RawResponse curRawResp = clientState.popNextRawResponse();
-		
-		std::cout << "[genRespsForReadyReqs] Status: " 
-          << static_cast<int>(curRawResp.getStatusCode())
-          << ", internal redirect? " << curRawResp.isInternalRedirect() 
-		  << "; external redirect? " << ctx.redirection.isSet << "\n";
-		
-		// Handle internal redirect
-		if (curRawResp.isInternalRedirect())
-		{	std::cout << RED << "[genRespsForReadyReqs] INTERNAL REDIRECTION deteced" << RESET << "\n";
-			std::string newUri = reqHandler.getErrorPageUri(ctx, curRawResp.getStatusCode());
-			std::cout << "[genRespsForReadyReqs] newUri = " << newUri << "\n";
-			
-			RequestContext newCtx = m_config.createRequestContext(endpoint, rawReq.getHost(), newUri);
-			std::cout << "[genRespsForReadyReqs] Generated new ctx\n";
-			
-			
-			FileHandler fileHandler(newCtx.index_files);
-			if (!fileHandler.existsAndIsFile(newCtx.resolved_path))
-			{
-				std::cout << "Resolved error_page file does not exist\n";
-				RawResponse redirResp;
-				redirResp.addDefaultErrorDetails(curRawResp.getStatusCode());
-				redirResp.addHeader("Content-Type", "text/html");
-				redirResp.setInternalRedirect(false);
-				clientState.enqueueRawResponse(redirResp);
-							
-				std::cout << "Trying to serve CUSTOM error page for code "
-					<< static_cast<int>(curRawResp.getStatusCode()) << "\n";
-				std::cout << "Resolved path " << ctx.resolved_path
-					<< ctx.error_pages[curRawResp.getStatusCode()] << "\n";
-			}
-			else
-			{	
-				std::cout << "Resolved error_page file found\n";
-				std::cout << "[genRespsForReadyReqs] Original code: " << static_cast<int>(curRawResp.getStatusCode()) << "\n";
-				std::cout << "[genRespsForReadyReqs] Original Uri: " << ctx.resolved_path << "\n";
-				std::cout << "[genRespsForReadyReqs] Error page path for this code: " 
-          			<< ctx.error_pages[curRawResp.getStatusCode()] << "\n";
-				
-				enqueueInternRedirResp(newUri, newCtx, reqHandler, endpoint, clientState);
+    const NetworkEndpoint& endpoint = client.getListeningEndpoint(); // теперь берем из клиента
 
-			}
-	
-			// Pop the new RawResponse and convert it
-			RawResponse nextResp = clientState.popNextRawResponse();
-			
-			// Giving the served error page and error code instead of 200
-			std::cout << "[genRespsForReadyReqs] Chenging code 200 to code: " << static_cast<int>(curRawResp.getStatusCode()) << "\n";
-			nextResp.setStatusCode(curRawResp.getStatusCode());
-			
-			ResponseData curResData = nextResp.toResponseData();
-			clientState.enqueueResponseData(curResData);
-		}
+    // Process all complete requests for this client
+    while (clientState.hasCompleteRawRequest())
+    {
+        RawRequest rawReq = clientState.popFirstCompleteRawRequest();
 
-		else if (curRawResp.isExternalRedirect())
-		{
-			std::cout << "[genRespsForReadyReqs] External redirect detected\n";
+        rawReq.printRequest();
 
-			//External redirect is looping
-			if (ctx.redirection.url == curRawResp.getRedirectTarget())
-			{
-				std::cout << "[genRespsForReadyReqs] Trying to externally loop. No! " << curRawResp.getRedirectTarget() << "\n";
-				reqHandler.enqueueErrorResponse(ctx, HttpStatusCode::MovedPermanently);
-				
-			}
-			else
-			{
-				std::cout << "[genRespsForReadyReqs] Externaly redirecting to " << curRawResp.getRedirectTarget() << "\n";
-				std::string newUri = ctx.redirection.url;
-				enqueueExternRedirResp(newUri, ctx, reqHandler, endpoint);
-			}
-		}
-		
-		else
-		{
-			ResponseData curResData = curRawResp.toResponseData();
-			clientState.enqueueResponseData(curResData);
-		}
-	}
-	// printAllResponses(clientState);
+        std::cout << "[genRespsForReadyReqs] Creating RequestContext with endpoint: "
+                  << ", host: " << rawReq.getHost()
+                  << ", uri: " << rawReq.getUri() << "\n";
+
+        RequestContext ctx;
+        try
+        {
+            ctx = m_config.createRequestContext(endpoint, rawReq.getHost(), rawReq.getUri());
+        }
+        catch (const std::exception& e)
+        {
+            std::cout << "[EXCEPTION] createRequestContext failed: " << e.what() << "\n";
+            continue;
+        }
+        std::cout << "[genRespsForReadyReqs] RequestContext created successfully\n";
+
+        printReqContext(ctx);
+
+        // Create a RequestHandler for this client
+        RequestHandler reqHandler(clientState);
+
+        // Process the request (handles errors, CGI, files, etc.)
+        reqHandler.processRequest(rawReq, client, ctx);
+
+        RawResponse curRawResp = clientState.popNextRawResponse();
+
+        std::cout << "[genRespsForReadyReqs] Status: " 
+                  << static_cast<int>(curRawResp.getStatusCode())
+                  << ", internal redirect? " << curRawResp.isInternalRedirect() 
+                  << "; external redirect? " << ctx.redirection.isSet << "\n";
+
+        // Handle internal redirect
+        if (curRawResp.isInternalRedirect())
+        {
+            std::cout << RED << "[genRespsForReadyReqs] INTERNAL REDIRECTION detected" << RESET << "\n";
+            std::string newUri = reqHandler.getErrorPageUri(ctx, curRawResp.getStatusCode());
+            std::cout << "[genRespsForReadyReqs] newUri = " << newUri << "\n";
+
+            RequestContext newCtx = m_config.createRequestContext(endpoint, rawReq.getHost(), newUri);
+            std::cout << "[genRespsForReadyReqs] Generated new ctx\n";
+
+            FileHandler fileHandler(newCtx.index_files);
+            if (!fileHandler.existsAndIsFile(newCtx.resolved_path))
+            {
+                std::cout << "Resolved error_page file does not exist\n";
+                RawResponse redirResp;
+                redirResp.addDefaultErrorDetails(curRawResp.getStatusCode());
+                redirResp.addHeader("Content-Type", "text/html");
+                redirResp.setInternalRedirect(false);
+                clientState.enqueueRawResponse(redirResp);
+
+                std::cout << "Trying to serve CUSTOM error page for code "
+                          << static_cast<int>(curRawResp.getStatusCode()) << "\n";
+                std::cout << "Resolved path " << ctx.resolved_path
+                          << ctx.error_pages[curRawResp.getStatusCode()] << "\n";
+            }
+            else
+            {   
+                std::cout << "Resolved error_page file found\n";
+                enqueueInternRedirResp(newUri, newCtx, reqHandler, client, clientState);
+            }
+
+            // Pop the new RawResponse and convert it
+            RawResponse nextResp = clientState.popNextRawResponse();
+            nextResp.setStatusCode(curRawResp.getStatusCode());
+
+            ResponseData curResData = nextResp.toResponseData();
+            clientState.enqueueResponseData(curResData);
+        }
+
+        else if (curRawResp.isExternalRedirect())
+        {
+            std::cout << "[genRespsForReadyReqs] External redirect detected\n";
+
+            // Prevent redirect loops
+            if (ctx.redirection.url == curRawResp.getRedirectTarget())
+            {
+                std::cout << "[genRespsForReadyReqs] Trying to externally loop. No! " 
+                          << curRawResp.getRedirectTarget() << "\n";
+                reqHandler.enqueueErrorResponse(ctx, HttpStatusCode::MovedPermanently);
+            }
+            else
+            {
+                std::cout << "[genRespsForReadyReqs] Externally redirecting to " 
+                          << curRawResp.getRedirectTarget() << "\n";
+                std::string newUri = ctx.redirection.url;
+                enqueueExternRedirResp(newUri, ctx, reqHandler, client);
+            }
+        }
+        else
+        {
+            ResponseData curResData = curRawResp.toResponseData();
+            clientState.enqueueResponseData(curResData);
+        }
+    }
 }
 
 void ConnectionManager::enqueueInternRedirResp(const std::string& newUri,
                                                RequestContext& ctx,
                                                RequestHandler& reqHandler,
-                                               const NetworkEndpoint& endpoint, 
+                                               Client& client, 
                                                ClientState& clientState)
 {
 	
@@ -289,10 +265,10 @@ void ConnectionManager::enqueueInternRedirResp(const std::string& newUri,
 
 	std::cout << "[enqueueInternRedirResp] dummyReq URI to GET: " << dummyReq.getUri() << "\n";
 
-	reqHandler.processRequest(dummyReq, endpoint, ctx); 
+	reqHandler.processRequest(dummyReq, client, ctx); 
 }
 
-void ConnectionManager::enqueueExternRedirResp(std::string& newUri, RequestContext newCtx, RequestHandler& reqHandler, const NetworkEndpoint& endpoint)
+void ConnectionManager::enqueueExternRedirResp(std::string& newUri, RequestContext newCtx, RequestHandler& reqHandler, Client& client)
 {
 	std::cout << "[enqueueExternRedirResp] External redirect to " << newUri << "\n";
 	
@@ -304,7 +280,7 @@ void ConnectionManager::enqueueExternRedirResp(std::string& newUri, RequestConte
 	
 	std::cout << "[enqueueExternRedirResp] External redirection...\n";
 	
-	reqHandler.processRequest(redirReq, endpoint, newCtx); //enqueues
+	reqHandler.processRequest(redirReq, client, newCtx); //enqueues
 	
 }
 

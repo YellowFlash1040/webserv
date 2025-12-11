@@ -8,6 +8,7 @@
 #include "../../network/NetworkEndpoint/NetworkEndpoint.hpp"
 #include "../RequestHandler/RequestHandler.hpp"
 #include "../Response/FileHandler/FileHandler.hpp"
+#include "Client.hpp"
 
 #include <unordered_map>
 #include <string>
@@ -30,7 +31,7 @@ class ConnectionManager
 	private:
 		const Config& m_config;
 		
-		std::unordered_map<int, ClientState> m_clients;
+		std::unordered_map<Client*, ClientState> m_clients;
 		
 	public:
 		ConnectionManager() = delete;
@@ -43,27 +44,26 @@ class ConnectionManager
 		ConnectionManager(ConnectionManager&&) noexcept = default;
 		ConnectionManager& operator=(ConnectionManager&&) noexcept = delete;
 
-		const RawRequest& getRawRequest(int clientId, size_t index = SIZE_MAX) const;
-		
-		void addClient(int clientId);
-		// bool clientSentClose(int clientId) const;
-		void removeClient(int clientId);
-		ClientState& getClientState(int clientId);
-		
-		bool processData(const NetworkEndpoint& endpoint, int clientId, const std::string& tcpData);
-		
-		void genResps(int clientId, const NetworkEndpoint& endpoint);
+		const RawRequest& getRawRequest(Client& client, size_t index = SIZE_MAX) const;
 
-		size_t processReqs(int clientId, const std::string& tcpData);
-				
+		void addClient(Client& client);
+		void removeClient(Client& client);
+		ClientState& getClientState(Client& client);
+		
+		bool processData(Client& client, const std::string& tcpData);
+		
+		
+		void genResps(Client& client);
+		size_t processReqs(Client& client, const std::string& tcpData);
+
 		void enqueueInternRedirResp(const std::string& newUri,
                                                RequestContext& ctx,
                                                RequestHandler& reqHandler,
-                                               const NetworkEndpoint& endpoint, 
+                                               Client& client, 
 											   ClientState& clientState);
 		
 		
-		void enqueueExternRedirResp(std::string& newUri, RequestContext newCtx, RequestHandler& reqHandler, const NetworkEndpoint& endpoint);
+		void enqueueExternRedirResp(std::string& newUri, RequestContext newCtx, RequestHandler& reqHandler, Client& client);
 	
 		
 	};
