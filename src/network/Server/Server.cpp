@@ -1,12 +1,13 @@
 #include "Server.hpp"
 #include "Client.hpp"
+#include "ConnectionManager.hpp"
 
 // --------------CONSTRUCTION AND DESTRUCTION--------------
 
 // Default constructor
 Server::Server(const Config& config)
-  : m_connMgr(config)
 {
+    m_connMgr = std::make_unique<ConnectionManager>(config, *this);
     std::vector<NetworkEndpoint> endpoints = config.getAllEnpoints();
     for (const auto& endpoint : endpoints)
         addEndpoint(endpoint);
@@ -76,20 +77,24 @@ void Server::run(void)
                 acceptNewClient(fd);
                 continue;
             }
+
             auto itClient = m_clients.find(fd);
             if (itClient == m_clients.end())
                 continue;
 
             Client& client = *itClient->second;
 
+            if (ev & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
+            {
+                removeClient(client);
+                continue;
+            }
+
             if (ev & EPOLLIN)
                 processClient(client);
 
             if ((ev & EPOLLOUT) && !client.getOutBuffer().empty())
                 flushClientOutBuffer(client);
-
-            if (ev & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
-                removeClient(client);
         }
     }
 }
@@ -169,50 +174,20 @@ void Server::acceptNewClient(int listeningSocket)
     m_clients.emplace(clientSocket,
                     std::make_unique<Client>(clientSocket, clientAddr, ep));
 
-    m_connMgr.addClient(*m_clients.at(clientSocket));
+    m_connMgr->addClient(*m_clients.at(clientSocket));
 
     addSocketToEPoll(clientSocket, EPOLLIN | EPOLLOUT);
 }
-
-// void Server::removeClient(Client& client)
-// {
-//     int clientSocket = client.getSocket();
-
-//     if (m_epfd != -1 && epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr) == -1)
-//         perror("epoll_ctl DEL");
-
-//     if (m_clients.erase(clientSocket) == 0)
-//         std::cerr << "Warning: tried to remove non-existent client " << clientSocket << "\n";
-
-//     close(clientSocket);
-
-//     std::cout << "Client removed: " << clientSocket << "\n";
-// }
 
 void Server::removeClient(Client& client)
 {
     int clientSocket = client.getSocket();
 
-    auto it = m_clients.find(clientSocket);
-    if (it == m_clients.end())
-    {
+    if (m_epfd != -1 && epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr) == -1)
+        perror("epoll_ctl DEL");
+
+    if (m_clients.erase(clientSocket) == 0)
         std::cerr << "Warning: tried to remove non-existent client " << clientSocket << "\n";
-        return;
-    }
-
-    if (m_epfd != -1)
-    {
-        if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr) == -1)
-        {
-            if (errno != EBADF && errno != ENOENT)
-                perror("epoll_ctl DEL");
-        }
-    }
-
-    m_clients.erase(it);
-
-    if (clientSocket >= 0)
-        close(clientSocket);
 
     std::cout << "Client removed: " << clientSocket << "\n";
 }
@@ -228,17 +203,17 @@ void Server::processClient(Client& client)
         buf[n] = '\0';
         std::string data(buf, n);
 
-        bool anyRequestDone = m_connMgr.processData(client, data);
+        bool anyRequestDone = m_connMgr->processData(client, data);
         (void)anyRequestDone;
     }
     else
     {
-        m_connMgr.removeClient(client);
+        m_connMgr->removeClient(client);
         removeClient(client);
         return;
     }
 
-    ClientState& clientState = m_connMgr.getClientState(client); 
+    ClientState& clientState = m_connMgr->getClientState(client); 
 
     while (clientState.hasPendingResponseData())
     {
@@ -258,7 +233,7 @@ void Server::processClient(Client& client)
 
         if (respData.shouldClose)
         {
-            m_connMgr.removeClient(client);
+            m_connMgr->removeClient(client);
             removeClient(client);
             break;
         }

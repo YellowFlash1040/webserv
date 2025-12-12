@@ -19,7 +19,8 @@
 # include "MemoryUtils.hpp"
 # include "NetworkEndpoint.hpp"
 # include "ServerSocket.hpp"
-# include "ConnectionManager.hpp"
+
+class ConnectionManager;
 
 typedef struct epoll_event t_event;
 
@@ -49,9 +50,12 @@ class Server
     // Properties
     int m_epfd = -1; // event poll fd
     int m_timerfd = -1;
+
     std::unordered_map<int, ServerSocket> m_listeners;
     std::unordered_map<int, std::unique_ptr<Client>> m_clients;
-    ConnectionManager m_connMgr;
+
+    std::unique_ptr<ConnectionManager> m_connMgr; 
+
     // Methods
     void addSocketToEPoll(int socket, uint32_t events);
     void acceptNewClient(int listeningSocket);

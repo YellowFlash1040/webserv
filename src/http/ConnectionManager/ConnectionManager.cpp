@@ -1,8 +1,8 @@
 #include "ConnectionManager.hpp"
 
 // TODO: make m_config const once Config methods are const-correct
-ConnectionManager::ConnectionManager(const Config& config)
-: m_config(config) {}
+ConnectionManager::ConnectionManager(const Config& config, Server& server)
+: m_config(config), m_server(server) {}
 
 void ConnectionManager::addClient(Client& client)
 {

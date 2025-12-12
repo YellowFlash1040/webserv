@@ -9,6 +9,7 @@
 #include "../RequestHandler/RequestHandler.hpp"
 #include "../Response/FileHandler/FileHandler.hpp"
 #include "Client.hpp"
+#include "Server.hpp"
 
 #include <unordered_map>
 #include <string>
@@ -30,14 +31,14 @@ class ConnectionManager
 {
 	private:
 		const Config& m_config;
-		
+		Server& m_server;
 		std::unordered_map<Client*, ClientState> m_clients;
 		
 	public:
 		ConnectionManager() = delete;
 		
 		// TODO: make m_config const once Config methods are const-correct
-		ConnectionManager(const Config& config);
+		ConnectionManager(const Config& config, Server& server);
 		~ConnectionManager() = default;
 		ConnectionManager(const ConnectionManager&) = default;
 		ConnectionManager& operator=(const ConnectionManager&) = delete;
