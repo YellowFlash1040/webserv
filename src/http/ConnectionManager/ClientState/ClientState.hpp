@@ -5,6 +5,7 @@
 #include "../../Request/RequestData/RequestData.hpp"
 #include "../../HttpMethod/HttpMethod.hpp"
 #include "../../Response/RawResponse/RawResponse.hpp"
+#include "../../cgi/CGIManager.hpp"
 
 #include <string>
 #include <iostream>
@@ -35,8 +36,11 @@ class ClientState
 
 	// 4. Serialized responses ready to be sent on the socket
 	std::queue<ResponseData> _respDataQueue;
+
+	std::vector<CGIManager::CGIData> _activeCGIs;
 		
 	public:
+
 		ClientState();
 		~ClientState() = default;
 		ClientState(const ClientState& other) = default;
@@ -87,7 +91,29 @@ class ClientState
 		RawResponse& peekLastRawResponse();
 		RawResponse popNextRawResponse();
 		
-		    const std::queue<ResponseData>& getResponseQueue() const { return _respDataQueue; }
+		const std::queue<ResponseData>& getResponseQueue() const { return _respDataQueue; }
+
+		std::vector<CGIManager::CGIData>& getActiveCGIs()
+		{
+        return _activeCGIs;
+    	}
+
+		void addActiveCgi(const CGIManager::CGIData& cgi)
+		{
+        _activeCGIs.push_back(cgi);
+    	}
+
+		CGIManager::CGIData& createActiveCgi(const RequestData& req, Client& client,
+                                        const std::string& interpreter,
+                                        const std::string& scriptPath);
+
+		CGIManager::CGIData* findCgiByStdoutFd(int fd)
+		{
+			for (size_t i = 0; i < _activeCGIs.size(); ++i)
+				if (_activeCGIs[i].fd_stdout == fd)
+					return &_activeCGIs[i];
+			return nullptr;
+		}
 
 };
 

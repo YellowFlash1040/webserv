@@ -226,3 +226,13 @@ RawResponse ClientState::popNextRawResponse()
 	_rawResponsesQueue.pop_front();
 	return resp;
 }
+
+CGIManager::CGIData& ClientState::createActiveCgi(const RequestData& req,
+                                                  Client& client,
+                                                  const std::string& interpreter,
+                                                  const std::string& scriptPath)
+{
+    CGIManager::CGIData cgi = CGIManager::startCGI(req, client, interpreter, scriptPath);
+    _activeCGIs.push_back(cgi);
+    return _activeCGIs.back();
+}

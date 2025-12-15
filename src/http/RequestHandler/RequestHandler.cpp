@@ -133,7 +133,7 @@ void RequestHandler::processGet(RequestData& req,
             std::cout << "Executing CGI interpreter: " << interpreter 
                       << " for script: " << ctx.resolved_path << std::endl;
 
-            CGIHandler::processCGI(req, client, interpreter, ctx.resolved_path, rawResp);
+            clientState.createActiveCgi(req, client, interpreter, ctx.resolved_path);
             return;
         }
     }
@@ -454,7 +454,7 @@ void RequestHandler::processPost(RequestData& req,
     if (!ctx.cgi_pass.empty())
     {
         std::cout << "[processPost] CGI configured, executing..." << std::endl;
-        CGIHandler::processCGI(req, client, interpreter, ctx.resolved_path, resp);
+        clientState.createActiveCgi(req, client, interpreter, ctx.resolved_path);
         return;
     }
 
