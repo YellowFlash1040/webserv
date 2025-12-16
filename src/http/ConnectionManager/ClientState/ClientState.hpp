@@ -114,7 +114,6 @@ class ClientState
 					return &_activeCGIs[i];
 			return nullptr;
 		}
-
 };
 
 

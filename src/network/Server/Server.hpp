@@ -45,6 +45,7 @@ class Server
     void printAllClients() const;
     int createTimerFd(int interval_sec);
     void checkClientTimeouts();
+    void registerExternalFd(int fd, uint32_t events);
 
   private:
     // Properties

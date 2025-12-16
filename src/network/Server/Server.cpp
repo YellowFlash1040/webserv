@@ -42,6 +42,8 @@ void Server::run(void)
     if (m_epfd == -1)
         throw std::runtime_error("epoll_create");
 
+    std::cout << "m_epfd" << m_epfd ;
+
     m_timerfd = createTimerFd(5);
     addSocketToEPoll(m_timerfd, EPOLLIN);
 
@@ -76,6 +78,12 @@ void Server::run(void)
             {
                 acceptNewClient(fd);
                 continue;
+            }
+
+            auto [state, cgi] = m_connMgr->findCgiByStdoutFdWithState(fd);
+            if (cgi)
+            {
+                m_connMgr->handleCgiPipe(*state, *cgi);
             }
 
             auto itClient = m_clients.find(fd);
@@ -130,7 +138,6 @@ void Server::flushClientOutBuffer(Client& client)
             perror("epoll_ctl mod");
     }
 }
-
 
 void Server::addEndpoint(const NetworkEndpoint& endpoint)
 {
@@ -267,7 +274,7 @@ void Server::checkClientTimeouts()
 {
     for (auto it = m_clients.begin(); it != m_clients.end();)
     {
-        if (it->second->isTimedOut(std::chrono::seconds(60)))
+        if (it->second->isTimedOut(std::chrono::seconds(10)))
         {
             std::cout << "Client " << it->first << " timed out\n";
             epoll_ctl(m_epfd, EPOLL_CTL_DEL, it->first, nullptr);
@@ -277,4 +284,10 @@ void Server::checkClientTimeouts()
         else
             ++it;
     }
+}
+
+
+void Server::registerExternalFd(int fd, uint32_t events)
+{
+    addSocketToEPoll(fd, events);
 }

@@ -1,4 +1,7 @@
 #include "ConnectionManager.hpp"
+#include <sys/wait.h>
+#include <fcntl.h>
+
 
 // TODO: make m_config const once Config methods are const-correct
 ConnectionManager::ConnectionManager(const Config& config, Server& server)
@@ -47,6 +50,8 @@ bool ConnectionManager::processData(Client& client, const std::string& tcpData)
 	if (reqsNum > 0)
 		genResps(client);
 				
+    registerNewCgiPipes(client);
+
 	return reqsNum > 0;
 }
 
@@ -310,3 +315,151 @@ ResponseData toResponseData(const RawResponse& rawResp)
 	return data;
 }
 
+void ConnectionManager::addNewCgiPipesToEpoll(ClientState& state)
+{
+    std::vector<CGIManager::CGIData>& cgis = state.getActiveCGIs();
+
+    for (size_t i = 0; i < cgis.size(); ++i)
+    {
+        CGIManager::CGIData& cgi = cgis[i];
+
+        if (cgi.addedToEpoll)
+            continue;
+
+        Socket::setNonBlockingAndCloexec(cgi.fd_stdout);
+
+        m_server.registerExternalFd(cgi.fd_stdout, EPOLLIN | EPOLLRDHUP);
+
+        cgi.addedToEpoll = true;
+
+        std::cout << "[CGI] stdout fd " << cgi.fd_stdout
+                  << " added to epoll\n";
+    }
+}
+
+void ConnectionManager::registerNewCgiPipes(Client& client)
+{
+    ClientState& state = m_clients.at(&client);
+
+    for (auto& cgi : state.getActiveCGIs())
+    {
+        if (!cgi.addedToEpoll)
+        {
+            Socket::setNonBlockingAndCloexec(cgi.fd_stdout);
+
+            m_server.registerExternalFd(cgi.fd_stdout, EPOLLIN | EPOLLRDHUP);
+
+            cgi.addedToEpoll = true;
+        }
+    }
+}
+
+CGIManager::CGIData* ConnectionManager::findCgiByStdoutFd(int fd)
+{
+    for (auto& pair : m_clients)
+    {
+        ClientState& state = pair.second;
+
+
+        CGIManager::CGIData* cgi = state.findCgiByStdoutFd(fd);
+        if (cgi)
+            return cgi;
+    }
+    return nullptr;
+}
+
+void ConnectionManager::finalizeCgi(CGIManager::CGIData& cgi)
+{
+    if (cgi.fd_stdout != -1)
+    {
+        close(cgi.fd_stdout);
+        cgi.fd_stdout = -1;
+    }
+
+    if (cgi.pid != -1)
+    {
+        int status;
+        pid_t ret = waitpid(cgi.pid, &status, WNOHANG);
+        if (ret == 0)
+        {
+            return;
+        }
+        cgi.pid = -1;
+    }
+
+    for (auto& clientPair : m_clients)
+    {
+        ClientState& state = clientPair.second;
+        auto& cgis = state.getActiveCGIs();
+        cgis.erase(
+            std::remove_if(cgis.begin(), cgis.end(),
+                           [&cgi](const CGIManager::CGIData& item) {
+                               return &item == &cgi;
+                           }),
+            cgis.end()
+        );
+    }
+}
+
+// void ConnectionManager::handleCgiPipe(int fd)
+// {
+//     CGIManager::CGIData* cgi = findCgiByStdoutFd(fd);
+//     if (!cgi)
+//         return;
+
+//     char buffer[4096];
+//     ssize_t n = 0;
+
+//     while ((n = read(fd, buffer, sizeof(buffer))) > 0)
+//         cgi->output.append(buffer, n);
+//     if (n == 0)
+//         finalizeCgi(*cgi);
+//     else if (n < 0)
+//         return;
+// }
+
+void ConnectionManager::handleCgiPipe(ClientState& state, CGIManager::CGIData& cgi)
+{
+    char buffer[4096];
+    ssize_t n = 0;
+
+    while ((n = read(cgi.fd_stdout, buffer, sizeof(buffer))) > 0)
+        cgi.output.append(buffer, n);
+
+    if (n == 0) // EOF
+    {
+
+        finalizeCgi(cgi);
+
+        // Только теперь формируем ResponseData
+        ResponseData resp;
+        resp.statusCode = 200;
+        resp.body = cgi.output;
+        std::cout << "cgi.output: \n" << cgi.output << "\n";
+        resp.shouldClose = false;
+
+        state.enqueueResponseData(resp);
+
+        // Включаем EPOLLOUT на клиенте
+        // int clientFd = state.getClientSocket(); // добавь метод в ClientState
+        // struct epoll_event mod;
+        // mod.data.fd = clientFd;
+        // mod.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLHUP | EPOLLERR;
+        // epoll_ctl(m_server.getEpollFd(), EPOLL_CTL_MOD, clientFd, &mod);
+    }
+}
+
+
+std::pair<ClientState*, CGIManager::CGIData*> ConnectionManager::findCgiByStdoutFdWithState(int fd)
+{
+    for (auto& pair : m_clients)
+    {
+        ClientState& state = pair.second;
+        for (auto& cgi : state.getActiveCGIs())
+        {
+            if (cgi.fd_stdout == fd)
+                return std::make_pair(&state, &cgi);
+        }
+    }
+    return std::make_pair(nullptr, nullptr);
+}

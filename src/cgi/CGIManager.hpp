@@ -12,6 +12,8 @@ public:
         int fd_stdout = -1;
         int fd_stdin  = -1;
         time_t start_time;
+        bool addedToEpoll = false;
+        std::string output;
     };
 
     CGIManager() = default;

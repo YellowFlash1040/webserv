@@ -66,6 +66,13 @@ class ConnectionManager
 		
 		void enqueueExternRedirResp(std::string& newUri, RequestContext newCtx, RequestHandler& reqHandler, Client& client);
 	
+		void addNewCgiPipesToEpoll(ClientState& state);
+		void registerNewCgiPipes(Client& client);
+		CGIManager::CGIData* findCgiByStdoutFd(int fd);
+		void handleCgiPipe(ClientState& state, CGIManager::CGIData& cgi);
+		void finalizeCgi(CGIManager::CGIData& cgi);
+		std::unordered_map<Client*, ClientState>& getClientsMap() { return m_clients; };
+		std::pair<ClientState*, CGIManager::CGIData*> findCgiByStdoutFdWithState(int fd);
 		
 	};
 
