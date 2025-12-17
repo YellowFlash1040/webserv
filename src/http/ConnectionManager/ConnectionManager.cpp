@@ -345,6 +345,7 @@ void ConnectionManager::registerNewCgiPipes(Client& client)
     {
         if (!cgi.addedToEpoll)
         {
+            std::cout << "added to epoll" << cgi.fd_stdout << std::endl;
             Socket::setNonBlockingAndCloexec(cgi.fd_stdout);
 
             m_server.registerExternalFd(cgi.fd_stdout, EPOLLIN | EPOLLRDHUP);
@@ -418,7 +419,7 @@ void ConnectionManager::finalizeCgi(CGIManager::CGIData& cgi)
 //         return;
 // }
 
-void ConnectionManager::handleCgiPipe(ClientState& state, CGIManager::CGIData& cgi)
+void ConnectionManager::handleCgiPipe(Client& client, ClientState& state, CGIManager::CGIData& cgi)
 {
     char buffer[4096];
     ssize_t n = 0;
@@ -428,38 +429,47 @@ void ConnectionManager::handleCgiPipe(ClientState& state, CGIManager::CGIData& c
 
     if (n == 0) // EOF
     {
-
         finalizeCgi(cgi);
 
-        // Только теперь формируем ResponseData
+        // Формируем ResponseData
         ResponseData resp;
         resp.statusCode = 200;
         resp.body = cgi.output;
-        std::cout << "cgi.output: \n" << cgi.output << "\n";
         resp.shouldClose = false;
 
-        state.enqueueResponseData(resp);
+        // state.enqueueResponseData(resp);
+        (void) state;
+
+        std::string respStr = resp.serialize();
+        client.appendToOutBuffer(respStr);
+
+        std::cout << "[CGI] appended to outBuffer, size="
+                  << respStr.size() << "\n";
 
         // Включаем EPOLLOUT на клиенте
-        // int clientFd = state.getClientSocket(); // добавь метод в ClientState
-        // struct epoll_event mod;
-        // mod.data.fd = clientFd;
-        // mod.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLHUP | EPOLLERR;
-        // epoll_ctl(m_server.getEpollFd(), EPOLL_CTL_MOD, clientFd, &mod);
+        int clientFd = client.getSocket();
+        std::cout << "handleCgiPipe clientFd" << clientFd << std::endl;
+        struct epoll_event mod;
+        mod.data.fd = clientFd;
+        mod.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLHUP | EPOLLERR;
+        if (epoll_ctl(m_server.getEpollFd(), EPOLL_CTL_MOD, clientFd, &mod) == -1)
+            perror("epoll_ctl EPOLLOUT for CGI");
     }
 }
 
 
-std::pair<ClientState*, CGIManager::CGIData*> ConnectionManager::findCgiByStdoutFdWithState(int fd)
+ConnectionManager::CGIResult ConnectionManager::findCgiByStdoutFdWithClient(int fd)
 {
     for (auto& pair : m_clients)
     {
+        Client* client = pair.first;
         ClientState& state = pair.second;
+
         for (auto& cgi : state.getActiveCGIs())
         {
             if (cgi.fd_stdout == fd)
-                return std::make_pair(&state, &cgi);
+                return {client, &state, &cgi};
         }
     }
-    return std::make_pair(nullptr, nullptr);
+    return {nullptr, nullptr, nullptr};
 }

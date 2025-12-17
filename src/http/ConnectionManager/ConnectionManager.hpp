@@ -35,6 +35,14 @@ class ConnectionManager
 		std::unordered_map<Client*, ClientState> m_clients;
 		
 	public:
+
+		struct CGIResult
+		{
+			Client* client;
+			ClientState* state;
+			CGIManager::CGIData* cgi;
+		};
+
 		ConnectionManager() = delete;
 		
 		// TODO: make m_config const once Config methods are const-correct
@@ -69,10 +77,10 @@ class ConnectionManager
 		void addNewCgiPipesToEpoll(ClientState& state);
 		void registerNewCgiPipes(Client& client);
 		CGIManager::CGIData* findCgiByStdoutFd(int fd);
-		void handleCgiPipe(ClientState& state, CGIManager::CGIData& cgi);
+		void handleCgiPipe(Client& client, ClientState& state, CGIManager::CGIData& cgi);
 		void finalizeCgi(CGIManager::CGIData& cgi);
 		std::unordered_map<Client*, ClientState>& getClientsMap() { return m_clients; };
-		std::pair<ClientState*, CGIManager::CGIData*> findCgiByStdoutFdWithState(int fd);
+		CGIResult findCgiByStdoutFdWithClient(int fd);
 		
 	};
 

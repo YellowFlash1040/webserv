@@ -46,6 +46,7 @@ class Server
     int createTimerFd(int interval_sec);
     void checkClientTimeouts();
     void registerExternalFd(int fd, uint32_t events);
+    int getEpollFd() const { return m_epfd; }
 
   private:
     // Properties

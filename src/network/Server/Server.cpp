@@ -80,10 +80,12 @@ void Server::run(void)
                 continue;
             }
 
-            auto [state, cgi] = m_connMgr->findCgiByStdoutFdWithState(fd);
-            if (cgi)
+            ConnectionManager::CGIResult res = m_connMgr->findCgiByStdoutFdWithClient(fd);
+            if (res.cgi)
             {
-                m_connMgr->handleCgiPipe(*state, *cgi);
+                std::cout << "ConnectionManager::CGIResult res " << res.client->getSocket() <<
+                    "res.cgi->fd_stdout" << res.cgi->fd_stdout    << std::endl;
+                m_connMgr->handleCgiPipe(*res.client, *res.state, *res.cgi);
             }
 
             auto itClient = m_clients.find(fd);
@@ -112,6 +114,8 @@ void Server::flushClientOutBuffer(Client& client)
     int fd = client.getSocket();
     std::string& out = client.getOutBuffer();
 
+    std::cout << "[flushClientOutBuffer] fd=" << fd << ", outBuffer size=" << out.size() << "\n";
+    
     while (!out.empty())
     {
         ssize_t sent = send(fd, out.c_str(), out.size(), 0);
@@ -274,7 +278,7 @@ void Server::checkClientTimeouts()
 {
     for (auto it = m_clients.begin(); it != m_clients.end();)
     {
-        if (it->second->isTimedOut(std::chrono::seconds(10)))
+        if (it->second->isTimedOut(std::chrono::seconds(60)))
         {
             std::cout << "Client " << it->first << " timed out\n";
             epoll_ctl(m_epfd, EPOLL_CTL_DEL, it->first, nullptr);
