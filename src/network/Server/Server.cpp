@@ -200,9 +200,7 @@ void Server::processClient(Client& client)
         buf[n] = '\0';
         std::string data(buf, n);
 
-        const NetworkEndpoint& ep = client.getListeningEndpoint();
-        bool anyRequestDone = m_connMgr.processData(ep, clientFd, data);
-        (void)anyRequestDone;
+        m_connMgr.processData(client, data);
     }
     else
     {

@@ -15,6 +15,7 @@
 #include "../../network/NetworkEndpoint/NetworkEndpoint.hpp"
 #include "../../RequestHandler/RequestHandler.hpp"
 #include "../FileUtils/FileUtils.hpp"
+#include "../network/Client/Client.hpp"
 #include "debug.hpp"
 
 class ConnectionManager
@@ -22,7 +23,7 @@ class ConnectionManager
 	private:
 	const Config& m_config;
 	std::unordered_map<int, ClientState> m_clients;
-	void genResps(int clientId, const NetworkEndpoint& endpoint);
+	void genResps(Client& client);
 		
 	public:
 	ConnectionManager() = delete;
@@ -36,12 +37,9 @@ class ConnectionManager
 	void addClient(int clientId);
 	void removeClient(int clientId);
 	ClientState& getClientState(int clientId);
-	bool processData(const NetworkEndpoint& endpoint, int clientId, const std::string& tcpData);
+	bool processData(Client& client, const std::string& tcpData);
 	
-
-	
-	size_t processReqs(int clientId, const std::string& tcpData); //actually private
-	
+	size_t processReqs(Client& client, const std::string&tcpData);
 };
 
 #endif

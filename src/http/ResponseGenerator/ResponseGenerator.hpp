@@ -15,6 +15,7 @@
 #include "debug.hpp"
 #include "../utils/StrUtils.hpp"
 #include "UploadModule.hpp"
+#include "../network/Client/Client.hpp"
 
 
 namespace ResponseGenerator
@@ -22,7 +23,7 @@ namespace ResponseGenerator
     // Main entry point
     void genResponse(
         const RawRequest& rawReq,
-        const NetworkEndpoint& endpoint,
+        const Client& client,
         const RequestContext& ctx,
         RawResponse& rawResp
     );
@@ -35,21 +36,21 @@ namespace ResponseGenerator
 
     void processGet(
         RequestData& req,
-        const NetworkEndpoint& endpoint,
+        const Client& client,
         const RequestContext& ctx,
         RawResponse& resp
     );
 
     void processPost(
         RequestData& req,
-        const NetworkEndpoint& endpoint,
+        const Client& client,
         const RequestContext& ctx,
         RawResponse& resp
     );
 
     void processDelete(
         RequestData& req,
-        const NetworkEndpoint& endpoint,
+        const Client& client,
         const RequestContext& ctx,
         RawResponse& resp
     );
