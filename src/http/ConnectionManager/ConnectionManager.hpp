@@ -17,6 +17,7 @@
 #include "../FileUtils/FileUtils.hpp"
 #include "../network/Client/Client.hpp"
 #include "debug.hpp"
+#include "RequestResult.hpp"
 
 class ConnectionManager
 {
@@ -26,6 +27,14 @@ class ConnectionManager
 	void genResps(Client& client);
 		
 	public:
+
+	struct CGIResult
+	{
+		int clientFd;
+		ClientState* state;
+		CGIManager::CGIData* cgi;
+	};
+
 	ConnectionManager() = delete;
 	ConnectionManager(const Config& config);
 	~ConnectionManager() = default;
@@ -40,6 +49,11 @@ class ConnectionManager
 	bool processData(Client& client, const std::string& tcpData);
 	
 	size_t processReqs(Client& client, const std::string&tcpData);
+
+	CGIResult findCgiByStdoutFdWithClient(int fd);
+	CGIResult findCgiByStdinFdWithClient(int fd);
+	void onCgiExited(pid_t pid, int status);
+
 };
 
 #endif

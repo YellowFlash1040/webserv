@@ -16,6 +16,7 @@
 #include "../utils/StrUtils.hpp"
 #include "UploadModule.hpp"
 #include "../network/Client/Client.hpp"
+#include "RequestResult.hpp"
 
 
 namespace ResponseGenerator
@@ -25,7 +26,8 @@ namespace ResponseGenerator
         const RawRequest& rawReq,
         const Client& client,
         const RequestContext& ctx,
-        RawResponse& rawResp
+        RawResponse& rawResp,
+        RequestResult& result
     );
 
     // Helper functions
@@ -38,7 +40,8 @@ namespace ResponseGenerator
         RequestData& req,
         const Client& client,
         const RequestContext& ctx,
-        RawResponse& resp
+        RawResponse& resp,
+        RequestResult& result
     );
 
     void processPost(

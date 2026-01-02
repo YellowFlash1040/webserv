@@ -49,6 +49,8 @@ void Server::run(void)
     t_event events[MAX_EVENTS];
     while (g_running)
     {
+        reapDeadCgis();
+        
         int readyFDs = epoll_wait(m_epfd, events, MAX_EVENTS, -1);
         if (readyFDs == -1)
         {
@@ -72,7 +74,27 @@ void Server::run(void)
 
             if (m_listeners.count(fd))
             {
-                acceptNewClient(fd);
+                acceptNewClient(fd, m_epfd);
+                continue;
+            }
+
+            ConnectionManager::CGIResult resIn = m_connMgr.findCgiByStdinFdWithClient(fd);
+            if (resIn.cgi)
+            {
+                if (ev & (EPOLLHUP | EPOLLERR))
+                    handleCgiTermination(resIn.clientFd, *resIn.state, *resIn.cgi);
+                else if (ev & EPOLLOUT)
+                    handleCgiStdin(resIn.clientFd, *resIn.state, *resIn.cgi);
+                continue;
+            }
+            
+            ConnectionManager::CGIResult resOut = m_connMgr.findCgiByStdoutFdWithClient(fd);
+            if (resOut.cgi)
+            {
+                if (ev & (EPOLLHUP | EPOLLERR))
+                    handleCgiTermination(resOut.clientFd, *resOut.state, *resOut.cgi);
+                else if (ev & EPOLLIN)
+                    handleCgiStdout(resOut.clientFd, *resOut.state, *resOut.cgi);
                 continue;
             }
             auto itClient = m_clients.find(fd);
@@ -81,14 +103,17 @@ void Server::run(void)
 
             Client& client = *itClient->second;
 
+            if (ev & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
+            {
+                removeClient(client);
+                continue;
+            }
+
             if (ev & EPOLLIN)
                 processClient(client);
 
             if ((ev & EPOLLOUT) && !client.getOutBuffer().empty())
                 flushClientOutBuffer(client);
-
-            if (ev & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
-                removeClient(client);
         }
     }
 }
@@ -143,7 +168,7 @@ void Server::addSocketToEPoll(int socket, uint32_t events)
         throw std::runtime_error("epoll_ctl");
 }
 
-void Server::acceptNewClient(int listeningSocket)
+void Server::acceptNewClient(int listeningSocket, int epoll_fd)
 {
     sockaddr_in clientAddr;
     socklen_t addrLen = sizeof(clientAddr);
@@ -165,11 +190,11 @@ void Server::acceptNewClient(int listeningSocket)
     std::cout << "acceptNewClient NetworkEndpoint IP: " << ipStr << "\n";
 
     m_clients.emplace(clientSocket,
-                      std::make_unique<Client>(clientSocket, clientAddr, ep));
+                      std::make_unique<Client>(clientSocket, epoll_fd, clientAddr, ep));
 
     m_connMgr.addClient(clientSocket);
 
-    addSocketToEPoll(clientSocket, EPOLLIN | EPOLLOUT);
+    addSocketToEPoll(clientSocket, EPOLLIN);
 }
 
 void Server::removeClient(Client& client)
@@ -275,4 +300,82 @@ void Server::checkClientTimeouts()
         else
             ++it;
     }
+}
+
+void Server::handleCgiTermination(int clientFd,
+                                  ClientState& state,
+                                  CGIManager::CGIData& cgi)
+{
+    (void)clientFd;
+    (void)state;
+
+    char buf[4096];
+    ssize_t n;
+
+    while ((n = read(cgi.fd_stdout, buf, sizeof(buf))) > 0)
+        cgi.output.append(buf, n);
+
+    epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdout, NULL);
+    if (cgi.fd_stdin != -1)
+        epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdin, NULL);
+
+    close(cgi.fd_stdout);
+    if (cgi.fd_stdin != -1)
+        close(cgi.fd_stdin);
+
+    cgi.fd_stdout = -1;
+    cgi.fd_stdin  = -1;
+}
+
+void Server::handleCgiStdin(int clientFd, ClientState& state, CGIManager::CGIData& cgi)
+{
+    if (cgi.fd_stdin == -1)
+        return;
+
+    size_t left = cgi.input.size() - cgi.input_sent;
+    if (left == 0)
+    {
+        epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdin, nullptr);
+        close(cgi.fd_stdin);
+        cgi.fd_stdin = -1;
+        return;
+    }
+
+    ssize_t n = write(cgi.fd_stdin, cgi.input.c_str() + cgi.input_sent, left);
+
+    if (n <= 0)
+    {
+        handleCgiTermination(clientFd, state, cgi);
+        return;
+    }
+
+    cgi.input_sent += n;
+}
+
+void Server::handleCgiStdout(int clientFd, ClientState& state, CGIManager::CGIData& cgi)
+{
+    (void)clientFd;
+    (void)state;
+    
+    char buf[4096];
+    ssize_t n = read(cgi.fd_stdout, buf, sizeof(buf));
+
+    if (n > 0)
+    {
+        cgi.output.append(buf, n);
+        return;
+    }
+
+    epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdout, nullptr);
+    close(cgi.fd_stdout);
+    cgi.fd_stdout = -1;
+}
+
+void Server::reapDeadCgis()
+{
+    int status;
+    pid_t pid;
+
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0)
+        m_connMgr.onCgiExited(pid, status);
 }

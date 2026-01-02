@@ -13,6 +13,7 @@
 # include <vector>
 # include <memory>
 # include <sys/timerfd.h>
+# include <sys/wait.h>
 
 # include "Client.hpp"
 # include "Config.hpp"
@@ -20,6 +21,7 @@
 # include "NetworkEndpoint.hpp"
 # include "ServerSocket.hpp"
 # include "ConnectionManager.hpp"
+# include "ClientState.hpp"
 
 typedef struct epoll_event t_event;
 
@@ -54,9 +56,14 @@ class Server
     ConnectionManager m_connMgr;
     // Methods
     void addSocketToEPoll(int socket, uint32_t events);
-    void acceptNewClient(int listeningSocket);
+    void acceptNewClient(int listeningSocket, int epoll_fd);
     void processClient(Client& client);
     void flushClientOutBuffer(Client& client);
+
+    void handleCgiTermination(int clientFd, ClientState& state, CGIManager::CGIData& cgi);
+    void handleCgiStdin(int clientFd, ClientState& state, CGIManager::CGIData& cgi);
+    void handleCgiStdout(int clientFd, ClientState& state, CGIManager::CGIData& cgi);
+    void reapDeadCgis();
 };
 
 #endif

@@ -3,9 +3,10 @@
 #include <iostream>
 #include <arpa/inet.h> // inet_ntoa
 
-Client::Client(int fd, const sockaddr_in& addr,
+Client::Client(int fd, int epoll_fd, const sockaddr_in& addr,
                const NetworkEndpoint& listeningEndpoint)
   : socket_fd(fd)
+  , epoll_fd(epoll_fd)
   , address(addr)
   , listeningEndpoint(listeningEndpoint)
   , in_buffer("")
@@ -28,6 +29,11 @@ Client::~Client()
 int Client::getSocket() const
 {
     return socket_fd;
+}
+
+int Client::getEpollFd() const
+{
+    return epoll_fd;
 }
 
 const NetworkEndpoint& Client::getListeningEndpoint() const

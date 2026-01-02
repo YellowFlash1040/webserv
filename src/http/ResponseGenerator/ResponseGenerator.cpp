@@ -4,7 +4,7 @@
 namespace ResponseGenerator
 {
 	void genResponse(const RawRequest& rawReq, const Client& client,
-		const RequestContext& ctx, RawResponse& rawResp)
+		const RequestContext& ctx, RawResponse& rawResp, RequestResult& result)
 	{
 		DBG("[processRequest]:");
 		
@@ -51,7 +51,7 @@ namespace ResponseGenerator
 		switch (req.method)
 		{
 		case HttpMethod::GET:
-			processGet(req, client, ctx, rawResp);
+			processGet(req, client, ctx, rawResp, result);
 			break;
 		case HttpMethod::POST:
 			processPost(req, client, ctx, rawResp);
@@ -86,7 +86,7 @@ namespace ResponseGenerator
 		return false;
 	}
 
-	void processGet(RequestData& req, const Client& client, const RequestContext& ctx, RawResponse& rawResp)
+	void processGet(RequestData& req, const Client& client, const RequestContext& ctx, RawResponse& rawResp, RequestResult& result)
 	{
 		DBG("[processGet] Processing request for resolved path: " << ctx.resolved_path);
 
@@ -128,7 +128,10 @@ namespace ResponseGenerator
 					
 				(void)client;
 				//CGIHandler::processCGI(req, client, interpreter, ctx.resolved_path, rawResp);
-
+				result.spawnCgi = true;
+				result.cgiInterpreter = interpreter;
+				result.cgiScriptPath = ctx.resolved_path;
+				result.requestData = req;
 				return;
 			}
 		}

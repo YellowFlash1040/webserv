@@ -163,3 +163,33 @@ RawResponse ClientState::popNextRawResponse()
 	_rawResponsesQueue.pop_front();
 	return resp;
 }
+
+CGIManager::CGIData& ClientState::createActiveCgi(RequestData& req,
+                                                  Client& client,
+                                                  const std::string& interpreter,
+                                                  const std::string& scriptPath)
+{
+    CGIManager::CGIData cgi = CGIManager::startCGI(req, client, interpreter, scriptPath);
+    _activeCGIs.push_back(cgi);
+    return _activeCGIs.back();
+}
+
+CGIManager::CGIData* ClientState::findCgiByPid(pid_t pid)
+{
+    for (auto& cgi : _activeCGIs)
+    {
+        if (cgi.pid == pid)
+            return &cgi;
+    }
+    return nullptr;
+}
+
+void ClientState::removeCgi(pid_t pid)
+{
+    auto it = std::remove_if(_activeCGIs.begin(), _activeCGIs.end(),
+                             [pid](const CGIManager::CGIData& cgi) {
+                                 return cgi.pid == pid;
+                             });
+    if (it != _activeCGIs.end())
+        _activeCGIs.erase(it, _activeCGIs.end());
+}

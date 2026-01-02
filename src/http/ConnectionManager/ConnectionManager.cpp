@@ -95,8 +95,19 @@ void ConnectionManager::genResps(Client& client)
 		RawRequest rawReq = clientState.popFirstCompleteRawRequest();
 		rawReq.printRequest();
 
+		RequestResult result;
+
 		// Call the separated processing function
-		RawResponse rawResp = RequestHandler::handleSingleRequest(rawReq, client, m_config);
+		RawResponse rawResp = RequestHandler::handleSingleRequest(rawReq, client, m_config, result);
+
+		if (result.spawnCgi)
+        {
+            clientState.createActiveCgi(result.requestData,
+                                        client,
+                                        result.cgiInterpreter,
+                                        result.cgiScriptPath);
+            continue;   // response будет от CGI, не из rawResp
+        }
 
 		// Convert RawResponse to ResponseData
 		ResponseData data = rawResp.toResponseData();
@@ -104,4 +115,70 @@ void ConnectionManager::genResps(Client& client)
 		// Enqueue the response in the client state
 		clientState.enqueueResponseData(data);
 	}
+}
+
+ConnectionManager::CGIResult ConnectionManager::findCgiByStdoutFdWithClient(int fd)
+{
+    for (auto& pair : m_clients)
+    {
+        int clientFd = pair.first;
+        ClientState& state = pair.second;
+
+        for (auto& cgi : state.getActiveCGIs())
+        {
+            if (cgi.fd_stdout == fd)
+                return {clientFd, &state, &cgi};
+        }
+    }
+    return {-1, nullptr, nullptr};
+}
+
+ConnectionManager::CGIResult ConnectionManager::findCgiByStdinFdWithClient(int fd)
+{
+    for (auto& pair : m_clients)
+    {
+        int clientFd = pair.first;
+        ClientState& state = pair.second;
+
+        for (auto& cgi : state.getActiveCGIs())
+        {
+            if (cgi.fd_stdout == fd)
+                return {clientFd, &state, &cgi};
+        }
+    }
+    return {-1, nullptr, nullptr};
+}
+
+void ConnectionManager::onCgiExited(pid_t pid, int status)
+{
+    if (WIFEXITED(status))
+    {
+        int exitCode = WEXITSTATUS(status);
+        if (exitCode != 0)
+            std::cerr << "[CGI] Process " << pid << " exited with code " << exitCode << "\n";
+    }
+    else if (WIFSIGNALED(status))
+    {
+        int sig = WTERMSIG(status);
+        std::cerr << "[CGI] Process " << pid << " killed by signal " << sig << "\n";
+    }
+
+    for (auto& it : m_clients)
+    {
+        ClientState& state = it.second;
+
+        CGIManager::CGIData* cgi = state.findCgiByPid(pid);
+        if (!cgi)
+            continue;
+
+        RawResponse raw;
+        if (!raw.parseFromCgiOutput(cgi->output))
+            raw.addDefaultError(HttpStatusCode::InternalServerError);
+
+        ResponseData data = raw.toResponseData();
+        state.enqueueResponseData(data);
+
+        state.removeCgi(pid);
+        break;
+    }
 }

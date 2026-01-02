@@ -14,10 +14,11 @@
 class Client 
 {
 public:
-    Client(int fd, const sockaddr_in& addr, const NetworkEndpoint& listeningEndpoint);
+    Client(int fd, int epoll_fd, const sockaddr_in& addr, const NetworkEndpoint& listeningEndpoint);
     ~Client();
 
     int getSocket() const;
+    int getEpollFd() const;
     const NetworkEndpoint& getListeningEndpoint() const;
     const sockaddr_in& getAddress() const;
 
@@ -36,6 +37,7 @@ public:
 
   private:
     int socket_fd;
+    int epoll_fd;
     sockaddr_in address;
     NetworkEndpoint listeningEndpoint;
     std::string in_buffer;
