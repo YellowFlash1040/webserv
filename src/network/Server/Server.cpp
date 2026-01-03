@@ -50,6 +50,15 @@ void Server::run(void)
     while (g_running)
     {
         reapDeadCgis();
+
+        for (auto& it : m_clients)
+        {
+            Client& client = *it.second;
+            ClientState& state = m_connMgr.getClientState(client.getSocket());
+
+            if (state.hasPendingResponseData() && client.getOutBuffer().empty())
+                fillBuffer(client);
+        }
         
         int readyFDs = epoll_wait(m_epfd, events, MAX_EVENTS, -1);
         if (readyFDs == -1)
@@ -187,7 +196,6 @@ void Server::acceptNewClient(int listeningSocket, int epoll_fd)
     const NetworkEndpoint& ep = m_listeners.at(listeningSocket).getEndpoint();
 
     std::string ipStr = static_cast<std::string>(ep.ip());
-    std::cout << "acceptNewClient NetworkEndpoint IP: " << ipStr << "\n";
 
     m_clients.emplace(clientSocket,
                       std::make_unique<Client>(clientSocket, epoll_fd, clientAddr, ep));
@@ -263,6 +271,39 @@ void Server::processClient(Client& client)
     }
 }
 
+void Server::fillBuffer(Client& client)
+{
+    int clientFd = client.getSocket();
+
+    ClientState& clientState = m_connMgr.getClientState(clientFd); 
+
+    while (clientState.hasPendingResponseData())
+    {
+        ResponseData& respData = clientState.frontResponseData();
+        std::string respStr = respData.serialize();
+
+        client.appendToOutBuffer(respStr);
+        client.updateLastActivity();
+
+        struct epoll_event mod;
+        mod.data.fd = clientFd;
+        mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP | EPOLLOUT;
+        if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, clientFd, &mod) == -1)
+            perror("epoll_ctl EPOLLOUT");
+
+        clientState.popFrontResponseData();
+
+        if (respData.shouldClose)
+        {
+            DBG("[Server]: should close, flushing buffer before closing");
+            flushClientOutBuffer(client);
+            m_connMgr.removeClient(clientFd);
+            removeClient(client);
+            break;
+        }
+    }
+}
+
 void Server::printAllClients() const
 {
     std::cout << "=== Active Clients ===" << std::endl;
@@ -290,7 +331,7 @@ void Server::checkClientTimeouts()
 {
     for (auto it = m_clients.begin(); it != m_clients.end();)
     {
-        if (it->second->isTimedOut(std::chrono::seconds(60)))
+        if (it->second->isTimedOut(std::chrono::seconds(600)))
         {
             std::cout << "Client " << it->first << " timed out\n";
             epoll_ctl(m_epfd, EPOLL_CTL_DEL, it->first, nullptr);

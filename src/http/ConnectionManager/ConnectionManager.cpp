@@ -106,7 +106,7 @@ void ConnectionManager::genResps(Client& client)
                                         client,
                                         result.cgiInterpreter,
                                         result.cgiScriptPath);
-            continue;   // response будет от CGI, не из rawResp
+            continue;
         }
 
 		// Convert RawResponse to ResponseData
@@ -142,7 +142,7 @@ ConnectionManager::CGIResult ConnectionManager::findCgiByStdinFdWithClient(int f
 
         for (auto& cgi : state.getActiveCGIs())
         {
-            if (cgi.fd_stdout == fd)
+            if (cgi.fd_stdin == fd)
                 return {clientFd, &state, &cgi};
         }
     }

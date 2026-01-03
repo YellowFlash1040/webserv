@@ -64,6 +64,7 @@ class Server
     void handleCgiStdin(int clientFd, ClientState& state, CGIManager::CGIData& cgi);
     void handleCgiStdout(int clientFd, ClientState& state, CGIManager::CGIData& cgi);
     void reapDeadCgis();
+    void fillBuffer(Client& client);
 };
 
 #endif
