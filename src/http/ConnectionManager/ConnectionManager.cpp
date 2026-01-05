@@ -93,7 +93,7 @@ void ConnectionManager::genResps(Client& client)
 	{
 		// Pop the first complete raw request
 		RawRequest rawReq = clientState.popFirstCompleteRawRequest();
-		rawReq.printRequest();
+		PrintUtils::printRawRequest(rawReq);
 
 		// Call the separated processing function
 		RawResponse rawResp = RequestHandler::handleSingleRequest(rawReq, client, m_config);

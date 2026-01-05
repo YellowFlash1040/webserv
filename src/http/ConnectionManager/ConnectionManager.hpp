@@ -17,6 +17,7 @@
 #include "../FileUtils/FileUtils.hpp"
 #include "../network/Client/Client.hpp"
 #include "debug.hpp"
+#include "../utils/PrintUtils.hpp"
 
 class ConnectionManager
 {

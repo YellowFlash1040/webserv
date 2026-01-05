@@ -15,9 +15,6 @@
 
 #include "../utils/debug.hpp"
 
-// Maximum file size to load in memory (1 MB default)
-constexpr size_t MAX_IN_MEMORY_FILE_SIZE = 1024 * 1024;
-
 namespace FileUtils
 {
 	bool pathExists(const std::string& path);
@@ -31,7 +28,6 @@ namespace FileUtils
 	std::string getFirstValidIndexFile(const std::string& dirPath, const std::vector<std::string>& indexFiles);
 	std::string generateAutoindex(const std::string& dirPath);
 	std::string detectMimeType(const std::string& path);
-
 
 }
 

@@ -20,38 +20,38 @@
 
 namespace ResponseGenerator
 {
-    void genResponse(
-        const RawRequest& rawReq,
-        const Client& client,
-        const RequestContext& ctx,
-        RawResponse& rawResp
-    );
+	void genResponse(
+		const RawRequest& rawReq,
+		const Client& client,
+		const RequestContext& ctx,
+		RawResponse& rawResp
+	);
 
 	bool isMethodAllowed(
 		HttpMethod method,
 		const std::vector<HttpMethod>& allowed_methods
 	);
 
-    void processGet(
-        RequestData& req,
-        const Client& client,
-        const RequestContext& ctx,
-        RawResponse& resp
-    );
+	void processGet(
+		RequestData& req,
+		const Client& client,
+		const RequestContext& ctx,
+		RawResponse& resp
+	);
 
-    void processPost(
-        RequestData& req,
-        const Client& client,
-        const RequestContext& ctx,
-        RawResponse& resp
-    );
+	void processPost(
+		RequestData& req,
+		const Client& client,
+		const RequestContext& ctx,
+		RawResponse& resp
+	);
 
-    void processDelete(
-        RequestData& req,
-        const Client& client,
-        const RequestContext& ctx,
-        RawResponse& resp
-    );
+	void processDelete(
+		RequestData& req,
+		const Client& client,
+		const RequestContext& ctx,
+		RawResponse& resp
+	);
 
 	std::string getCgiPathFromUri(
 		const std::string& uri,

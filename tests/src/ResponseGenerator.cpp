@@ -35,7 +35,7 @@ TEST_F(ResponseGeneratorTest, BadRequest)
 {
     RawRequest rawReq;
 
-    rawReq.markBadRequest("bad bad request");
+    rawReq.markBadRequest();
     rawReq.setUri("/");
 
     ctx.resolved_path = "./assets/www/site1/";

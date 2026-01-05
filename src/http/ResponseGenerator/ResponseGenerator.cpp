@@ -375,9 +375,7 @@ namespace ResponseGenerator
 		}
 
 		size_t fileSize = static_cast<size_t>(s.st_size);
-
 		resp.setFileSize(fileSize);
-
 		resp.setBody(FileUtils::readFileToString(filePath));
 		resp.addHeader("Content-Length", std::to_string(fileSize));
 	}

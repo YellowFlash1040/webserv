@@ -12,7 +12,7 @@
 namespace PrintUtils
 {
     void printReqContext(const RequestContext& ctx);
-	void printRawRequest(const RawRequest& req, size_t idx);
+	void printRawRequest(const RawRequest& req);
 	void printAllResponses(const ClientState& clientState);
 }
 
