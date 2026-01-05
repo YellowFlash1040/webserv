@@ -370,35 +370,22 @@ namespace ResponseGenerator
 		if (stat(filePath.c_str(), &s) != 0)
 		{
 			// Fallback if file disappears between checks
-			resp.setFileMode(FileUtils::FileDeliveryMode::Streamed);
 			resp.setFileSize(0);
-			resp.setFilePath(filePath);
 			return;
 		}
 
 		size_t fileSize = static_cast<size_t>(s.st_size);
-		FileUtils::FileDeliveryMode mode = (fileSize <= MAX_IN_MEMORY_FILE_SIZE)
-									? FileUtils::FileDeliveryMode::InMemory
-									: FileUtils::FileDeliveryMode::Streamed;
-		resp.setFileMode(mode);
+
 		resp.setFileSize(fileSize);
 
-		if (mode == FileUtils::FileDeliveryMode::InMemory)
-		{
-			resp.setBody(FileUtils::readFileToString(filePath));
-			resp.addHeader("Content-Length", std::to_string(fileSize));
-		}
-		else
-		{
-			resp.setFilePath(filePath);
-		}
+		resp.setBody(FileUtils::readFileToString(filePath));
+		resp.addHeader("Content-Length", std::to_string(fileSize));
 	}
 
 	void fillAutoindexResponse(RawResponse& resp, const std::string& dirPath)
 	{
 		resp.setStatusCode(HttpStatusCode::OK);
 		resp.setMimeType("text/html");
-		resp.setFileMode(FileUtils::FileDeliveryMode::InMemory);
 
 		std::string body = FileUtils::generateAutoindex(dirPath);
 		//add catch?

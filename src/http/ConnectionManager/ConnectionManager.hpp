@@ -38,7 +38,6 @@ class ConnectionManager
 	void removeClient(int clientId);
 	ClientState& getClientState(int clientId);
 	bool processData(Client& client, const std::string& tcpData);
-	
 	size_t processReqs(Client& client, const std::string&tcpData);
 };
 

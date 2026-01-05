@@ -20,13 +20,6 @@ constexpr size_t MAX_IN_MEMORY_FILE_SIZE = 1024 * 1024;
 
 namespace FileUtils
 {
-	// Delivery mode for file content
-	enum class FileDeliveryMode
-	{
-		InMemory,
-		Streamed
-	};
-
 	bool pathExists(const std::string& path);
 	bool existsAndIsFile(const std::string& path);
 	bool existsAndIsDirectory(const std::string& path);
