@@ -247,6 +247,10 @@ void Server::processClient(Client& client)
     while (clientState.hasPendingResponseData())
     {
         ResponseData& respData = clientState.frontResponseData();
+
+        if (!respData.isReady)
+            break;
+
         std::string respStr = respData.serialize();
 
         client.appendToOutBuffer(respStr);
@@ -280,6 +284,10 @@ void Server::fillBuffer(Client& client)
     while (clientState.hasPendingResponseData())
     {
         ResponseData& respData = clientState.frontResponseData();
+
+        if (!respData.isReady)
+            break;
+
         std::string respStr = respData.serialize();
 
         client.appendToOutBuffer(respStr);
@@ -331,11 +339,12 @@ void Server::checkClientTimeouts()
 {
     for (auto it = m_clients.begin(); it != m_clients.end();)
     {
-        if (it->second->isTimedOut(std::chrono::seconds(600)))
+        if (it->second->isTimedOut(std::chrono::seconds(60)))
         {
             std::cout << "Client " << it->first << " timed out\n";
             epoll_ctl(m_epfd, EPOLL_CTL_DEL, it->first, nullptr);
             close(it->first);
+            m_connMgr.removeClient(it->first);
             it = m_clients.erase(it);
         }
         else
@@ -350,7 +359,7 @@ void Server::handleCgiTermination(int clientFd,
     (void)clientFd;
     (void)state;
 
-    char buf[4096];
+    char buf[8192];
     ssize_t n;
 
     while ((n = read(cgi.fd_stdout, buf, sizeof(buf))) > 0)
@@ -398,7 +407,7 @@ void Server::handleCgiStdout(int clientFd, ClientState& state, CGIManager::CGIDa
     (void)clientFd;
     (void)state;
     
-    char buf[4096];
+    char buf[8192];
     ssize_t n = read(cgi.fd_stdout, buf, sizeof(buf));
 
     if (n > 0)

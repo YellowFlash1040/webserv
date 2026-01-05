@@ -100,20 +100,27 @@ void ConnectionManager::genResps(Client& client)
 		// Call the separated processing function
 		RawResponse rawResp = RequestHandler::handleSingleRequest(rawReq, client, m_config, result);
 
-		if (result.spawnCgi)
-        {
-            clientState.createActiveCgi(result.requestData,
-                                        client,
-                                        result.cgiInterpreter,
-                                        result.cgiScriptPath);
-            continue;
-        }
-
 		// Convert RawResponse to ResponseData
 		ResponseData data = rawResp.toResponseData();
 
-		// Enqueue the response in the client state
-		clientState.enqueueResponseData(data);
+		if (result.spawnCgi)
+        {
+			data.isReady = false;
+			clientState.enqueueResponseData(data);
+
+			ResponseData& stored = clientState.backResponseData();
+
+            clientState.createActiveCgi(result.requestData,
+                                        client,
+                                        result.cgiInterpreter,
+                                        result.cgiScriptPath,
+										&stored);
+            continue;
+        }
+		else
+        {
+            clientState.enqueueResponseData(data);
+        }
 	}
 }
 
@@ -175,8 +182,8 @@ void ConnectionManager::onCgiExited(pid_t pid, int status)
         if (!raw.parseFromCgiOutput(cgi->output))
             raw.addDefaultError(HttpStatusCode::InternalServerError);
 
-        ResponseData data = raw.toResponseData();
-        state.enqueueResponseData(data);
+        *cgi->response = raw.toResponseData();
+        state.enqueueResponseData(*cgi->response);
 
         state.removeCgi(pid);
         break;

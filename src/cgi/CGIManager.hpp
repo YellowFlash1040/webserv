@@ -2,6 +2,7 @@
 #include "../Request/RequestData/RequestData.hpp"
 #include "../../network/NetworkEndpoint/NetworkEndpoint.hpp"
 #include "Client.hpp"
+#include "ResponseData.hpp"
 
 class CGIManager
 {
@@ -15,7 +16,8 @@ public:
         bool addedToEpoll = false;
         std::string input;
         std::string output;
-        size_t input_sent = 0; 
+        size_t input_sent = 0;
+        ResponseData* response = nullptr;
     };
 
     CGIManager() = default;

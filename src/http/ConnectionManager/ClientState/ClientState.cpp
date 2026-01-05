@@ -164,15 +164,28 @@ RawResponse ClientState::popNextRawResponse()
 	return resp;
 }
 
+ResponseData& ClientState::backResponseData()
+{
+	if (_respDataQueue.empty())
+		throw std::runtime_error("No response data in queue to peek.");
+    return _respDataQueue.back();
+}
+
 CGIManager::CGIData& ClientState::createActiveCgi(RequestData& req,
                                                   Client& client,
                                                   const std::string& interpreter,
-                                                  const std::string& scriptPath)
+                                                  const std::string& scriptPath, 
+                                                  ResponseData* resp)
 {
-    CGIManager::CGIData cgi = CGIManager::startCGI(req, client, interpreter, scriptPath);
-    _activeCGIs.push_back(cgi);
-    return _activeCGIs.back();
+    _activeCGIs.emplace_back();
+    CGIManager::CGIData& cgi = _activeCGIs.back();
+
+    cgi = CGIManager::startCGI(req, client, interpreter, scriptPath);
+    cgi.response = resp;
+
+    return cgi;
 }
+
 
 CGIManager::CGIData* ClientState::findCgiByPid(pid_t pid)
 {

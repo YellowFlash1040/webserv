@@ -75,9 +75,12 @@ class ClientState
 		
 		const std::queue<ResponseData>& getResponseQueue() const { return _respDataQueue; }
 
+		ResponseData& backResponseData();
+
 		CGIManager::CGIData& createActiveCgi(RequestData& req, Client& client,
 								const std::string& interpreter,
-								const std::string& scriptPath);
+								const std::string& scriptPath,
+								ResponseData* resp);
 								
 		std::vector<CGIManager::CGIData>& getActiveCGIs() { return _activeCGIs;	}
 		CGIManager::CGIData* findCgiByPid(pid_t pid);
