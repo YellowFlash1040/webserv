@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include "debug.hpp"
 
 // --------------CONSTRUCTION AND DESTRUCTION--------------
 
@@ -28,6 +29,10 @@ Server::~Server()
     if (m_epfd != -1)
         close(m_epfd);
     m_epfd = -1;
+
+    if (m_timerfd != -1)
+        close(m_timerfd);
+    m_timerfd = -1;
 
     std::cout << "Server stopped." << std::endl;
 }
@@ -191,11 +196,11 @@ void Server::acceptNewClient(int listeningSocket, int epoll_fd)
         throw std::runtime_error("accept");
     }
 
+    FdGuard clientFd(clientSocket);
+
     Socket::setNonBlockingAndCloexec(clientSocket);
 
     const NetworkEndpoint& ep = m_listeners.at(listeningSocket).getEndpoint();
-
-    std::string ipStr = static_cast<std::string>(ep.ip());
 
     m_clients.emplace(clientSocket,
                       std::make_unique<Client>(clientSocket, epoll_fd, clientAddr, ep));
@@ -203,11 +208,15 @@ void Server::acceptNewClient(int listeningSocket, int epoll_fd)
     m_connMgr.addClient(clientSocket);
 
     addSocketToEPoll(clientSocket, EPOLLIN);
+
+    clientFd.release();
 }
 
 void Server::removeClient(Client& client)
 {
     int clientSocket = client.getSocket();
+
+    m_connMgr.removeClient(clientSocket);
 
     if (m_epfd != -1
         && epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr) == -1)
@@ -217,9 +226,7 @@ void Server::removeClient(Client& client)
         std::cerr << "Warning: tried to remove non-existent client "
                   << clientSocket << "\n";
 
-    close(clientSocket);
-
-    std::cout << "Client removed: " << clientSocket << "\n";
+    DBG("Client removed: " << clientSocket);
 }
 
 void Server::processClient(Client& client)
@@ -237,7 +244,6 @@ void Server::processClient(Client& client)
     }
     else
     {
-        m_connMgr.removeClient(clientFd);
         removeClient(client);
         return;
     }
@@ -268,7 +274,6 @@ void Server::processClient(Client& client)
         {
             DBG("[Server]: should close, flushing buffer before closing");
             flushClientOutBuffer(client);
-            m_connMgr.removeClient(clientFd);
             removeClient(client);
             break;
         }
@@ -300,15 +305,6 @@ void Server::fillBuffer(Client& client)
             perror("epoll_ctl EPOLLOUT");
 
         clientState.popFrontResponseData();
-
-        if (respData.shouldClose)
-        {
-            DBG("[Server]: should close, flushing buffer before closing");
-            flushClientOutBuffer(client);
-            m_connMgr.removeClient(clientFd);
-            removeClient(client);
-            break;
-        }
     }
 }
 
@@ -341,11 +337,9 @@ void Server::checkClientTimeouts()
     {
         if (it->second->isTimedOut(std::chrono::seconds(60)))
         {
-            std::cout << "Client " << it->first << " timed out\n";
-            epoll_ctl(m_epfd, EPOLL_CTL_DEL, it->first, nullptr);
-            close(it->first);
-            m_connMgr.removeClient(it->first);
-            it = m_clients.erase(it);
+            DBG("Client " << it->first << " timed out");
+            removeClient(*it->second);
+            it = m_clients.begin();
         }
         else
             ++it;

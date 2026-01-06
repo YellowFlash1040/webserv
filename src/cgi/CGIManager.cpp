@@ -1,5 +1,4 @@
 #include "CGIManager.hpp"
-#include <iostream>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -44,12 +43,10 @@ CGIManager::CGIData CGIManager::startCGI(const RequestData& req,
                                          const std::string& scriptPath)
 {
 
-    std::cout << "[CGIManager] scriptPath = " << scriptPath
-              << ", interpreter = " << interpreter << std::endl;
+    DBG("[CGIManager] scriptPath = " << scriptPath
+              << ", interpreter = " << interpreter);
 
     std::string execPath = validateScriptPath(scriptPath);
-
-    std::cout << "CGI::execute: " << execPath << std::endl;
     
     int pipe_in[2], pipe_out[2];
 

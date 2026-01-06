@@ -22,6 +22,7 @@
 # include "ServerSocket.hpp"
 # include "ConnectionManager.hpp"
 # include "ClientState.hpp"
+#include "../../utils/FdGuard/FdGuard.hpp"
 
 typedef struct epoll_event t_event;
 

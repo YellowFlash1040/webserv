@@ -1,8 +1,8 @@
 #pragma once
 #include "../Request/RequestData/RequestData.hpp"
-#include "../../network/NetworkEndpoint/NetworkEndpoint.hpp"
 #include "Client.hpp"
 #include "ResponseData.hpp"
+#include "debug.hpp"
 
 class CGIManager
 {

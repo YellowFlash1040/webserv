@@ -10,8 +10,6 @@
 #include "../HttpStatusCode/HttpStatusCode.hpp"
 #include "../HttpMethod/HttpMethod.hpp"
 #include "../FileUtils/FileUtils.hpp"
-#include "CGI.hpp"
-#include "CGIHandler.hpp"
 #include "debug.hpp"
 #include "../utils/StrUtils.hpp"
 #include "UploadModule.hpp"
@@ -48,7 +46,8 @@ namespace ResponseGenerator
         RequestData& req,
         const Client& client,
         const RequestContext& ctx,
-        RawResponse& resp
+        RawResponse& resp,
+        RequestResult& result
     );
 
     void processDelete(

@@ -54,7 +54,7 @@ namespace ResponseGenerator
 			processGet(req, client, ctx, rawResp, result);
 			break;
 		case HttpMethod::POST:
-			processPost(req, client, ctx, rawResp);
+			processPost(req, client, ctx, rawResp, result);
 			break;
 		case HttpMethod::DELETE:
 			processDelete(req, client, ctx, rawResp);
@@ -319,7 +319,7 @@ namespace ResponseGenerator
 
 	void processPost(RequestData& req,
 									const Client& client,
-									const RequestContext& ctx, RawResponse& rawResp)
+									const RequestContext& ctx, RawResponse& rawResp, RequestResult& result)
 	{
 		HttpStatusCode status;
 		std::string interpreter = getCgiPathFromUri(req.uri, ctx.cgi_pass, status);
@@ -342,7 +342,10 @@ namespace ResponseGenerator
 			
 			(void)client;
 			//CGIHandler::processCGI(req, client, interpreter, ctx.resolved_path, rawResp);
-
+			result.spawnCgi = true;
+			result.cgiInterpreter = interpreter;
+			result.cgiScriptPath = ctx.resolved_path;
+			result.requestData = req;
 			return;
 		}
 
