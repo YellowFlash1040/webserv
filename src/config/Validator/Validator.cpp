@@ -338,6 +338,9 @@ void Validator::validateFolderPath(const std::string& s)
     if (s.empty())
         throw std::invalid_argument("folder path cannot be empty");
 
+    if (!(s.find('.', 0) == 0 || s.find('/', 0) == 0))
+        throw std::invalid_argument("folder path has to start from a . or a /");
+
     std::string forbiddenChars = "<>:\"|?*";
     for (char c : s)
     {
