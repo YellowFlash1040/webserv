@@ -1,20 +1,22 @@
-#ifndef RESPONSEGENERATOR_HPP
-#define RESPONSEGENERATOR_HPP
+#pragma once
 
-#include "../Response/RawResponse/RawResponse.hpp"
-#include "../ConnectionManager/ClientState/ClientState.hpp"
-#include "../../network/NetworkEndpoint/NetworkEndpoint.hpp"
-#include "../Request/RawRequest/RawRequest.hpp"
-#include "../Request/RequestData/RequestData.hpp"
-#include "../../config/Config/request_resolving/RequestContext/RequestContext.hpp"
-#include "../HttpStatusCode/HttpStatusCode.hpp"
-#include "../HttpMethod/HttpMethod.hpp"
-#include "../FileUtils/FileUtils.hpp"
-#include "CGI.hpp"
-#include "CGIHandler.hpp"
-#include "debug.hpp"
-#include "../utils/StrUtils.hpp"
-#include "UploadModule.hpp"
+#ifndef RESPONSEGENERATOR_HPP
+# define RESPONSEGENERATOR_HPP
+
+# include "../Response/RawResponse/RawResponse.hpp"
+# include "../ConnectionManager/ClientState/ClientState.hpp"
+# include "../../network/NetworkEndpoint/NetworkEndpoint.hpp"
+# include "../Request/RawRequest/RawRequest.hpp"
+# include "../Request/RequestData/RequestData.hpp"
+# include "../../config/Config/request_resolving/RequestContext/RequestContext.hpp"
+# include "../HttpStatusCode/HttpStatusCode.hpp"
+# include "../HttpMethod/HttpMethod.hpp"
+# include "../FileUtils/FileUtils.hpp"
+# include "CGI.hpp"
+# include "CGIHandler.hpp"
+# include "debug.hpp"
+# include "../utils/StrUtils.hpp"
+# include "UploadModule.hpp"
 
 
 namespace ResponseGenerator
