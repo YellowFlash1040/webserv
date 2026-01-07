@@ -15,64 +15,59 @@
 
 class ClientState
 {
-	private:
-  	// Raw requests from the client (byte level)
-	std::deque<RawRequest> _rawRequests;
+  private:
+    // Raw requests from the client (byte level)
+    std::deque<RawRequest> _rawRequests;
 
-	// Raw responses (not yet serialized), allows handling internal redirects
-	std::deque<RawResponse> _rawResponsesQueue;
+    // Raw responses (not yet serialized), allows handling internal redirects
+    std::deque<RawResponse> _rawResponsesQueue;
 
-	// Responses ready to be sent on the socket
-	std::queue<ResponseData> _respDataQueue;
-		
-	public:
-		ClientState();
-		~ClientState() = default;
-		ClientState(const ClientState& other) = default;
-		ClientState& operator=(const ClientState& other) = default;
-		ClientState(ClientState&& other) noexcept = default;
-		ClientState& operator=(ClientState&& other) noexcept = default;
+    // Responses ready to be sent on the socket
+    std::queue<ResponseData> _respDataQueue;
 
-		// size_t getRawReqCount() const;
-		
-		RawRequest& getRawRequest(size_t idx);
-		const RawRequest& getRawRequest(size_t idx) const;
-		
-		RawRequest& getLatestRawReq();
-		const RawRequest& getLatestRawReq() const;
-		
+  public:
+    ClientState();
+    ~ClientState() = default;
+    ClientState(const ClientState& other) = default;
+    ClientState& operator=(const ClientState& other) = default;
+    ClientState(ClientState&& other) noexcept = default;
+    ClientState& operator=(ClientState&& other) noexcept = default;
 
-		size_t getLatestRawReqIndex() const;
-		
-		// bool latestRawReqNeedsBody() const;
+    // size_t getRawReqCount() const;
 
+    RawRequest& getRawRequest(size_t idx);
+    const RawRequest& getRawRequest(size_t idx) const;
 
-		void enqueueResponseData(const ResponseData& resp);
+    RawRequest& getLatestRawReq();
+    const RawRequest& getLatestRawReq() const;
 
-	
-		const ResponseData& getRespDataObj() const;
+    size_t getLatestRawReqIndex() const;
 
-	
-		RawRequest& addRawRequest();
-		
+    // bool latestRawReqNeedsBody() const;
 
-		RawRequest popRawReq();
+    void enqueueResponseData(const ResponseData& resp);
 
-		
-		bool hasPendingResponseData() const;
+    const ResponseData& getRespDataObj() const;
 
-		bool hasCompleteRawRequest() const;
-		RawRequest popFirstCompleteRawRequest();
-		
-		ResponseData& frontResponseData();
-		void popFrontResponseData();
+    RawRequest& addRawRequest();
 
-		RawResponse& peekLastRawResponse();
-		RawResponse popNextRawResponse();
-		
-		const std::queue<ResponseData>& getResponseQueue() const { return _respDataQueue; }
+    RawRequest popRawReq();
 
+    bool hasPendingResponseData() const;
+
+    bool hasCompleteRawRequest() const;
+    RawRequest popFirstCompleteRawRequest();
+
+    ResponseData& frontResponseData();
+    void popFrontResponseData();
+
+    RawResponse& peekLastRawResponse();
+    RawResponse popNextRawResponse();
+
+    const std::queue<ResponseData>& getResponseQueue() const
+    {
+        return _respDataQueue;
+    }
 };
-
 
 #endif

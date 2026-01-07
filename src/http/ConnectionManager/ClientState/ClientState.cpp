@@ -1,11 +1,12 @@
 #include "ClientState.hpp"
 
 ClientState::ClientState()
-    : _rawRequests()
-    , _respDataQueue()
+  : _rawRequests()
+  , _respDataQueue()
 {
     // The first empty request so getLatestRawReq() is always valid
-    DBG("[ClientState Constructor] Creating first empty RawRequest so getLatestRawReq() is always valid");
+    DBG("[ClientState Constructor] Creating first empty RawRequest so "
+        "getLatestRawReq() is always valid");
     _rawRequests.emplace_back();
 }
 
@@ -32,12 +33,12 @@ void ClientState::enqueueResponseData(const ResponseData& resp)
 
 const ResponseData& ClientState::getRespDataObj() const
 {
-	if (_respDataQueue.empty())
-		throw std::runtime_error("No responses in queue");
-	return _respDataQueue.front();
+    if (_respDataQueue.empty())
+        throw std::runtime_error("No responses in queue");
+    return _respDataQueue.front();
 }
 
-//will always return a request
+// will always return a request
 RawRequest& ClientState::getLatestRawReq()
 {
     if (_rawRequests.empty())
@@ -50,9 +51,9 @@ RawRequest& ClientState::getLatestRawReq()
 
 const RawRequest& ClientState::getLatestRawReq() const
 {
-	if (_rawRequests.empty())
-		throw std::runtime_error("No requests available in ClientState");
-	return _rawRequests.back();
+    if (_rawRequests.empty())
+        throw std::runtime_error("No requests available in ClientState");
+    return _rawRequests.back();
 }
 
 RawRequest& ClientState::addRawRequest()
@@ -64,9 +65,10 @@ RawRequest& ClientState::addRawRequest()
 
 RawRequest& ClientState::getRawRequest(size_t idx)
 {
-    if (idx >= _rawRequests.size()) 
+    if (idx >= _rawRequests.size())
     {
-        DBG("Tried to access raw request " << idx << " but size=" << _rawRequests.size());
+        DBG("Tried to access raw request "
+            << idx << " but size=" << _rawRequests.size());
         throw std::out_of_range("getRawRequest index out of bounds");
     }
     return _rawRequests[idx];
@@ -74,17 +76,17 @@ RawRequest& ClientState::getRawRequest(size_t idx)
 
 const RawRequest& ClientState::getRawRequest(size_t idx) const
 {
-	return _rawRequests.at(idx);
+    return _rawRequests.at(idx);
 }
 
 size_t ClientState::getLatestRawReqIndex() const
 {
-	return _rawRequests.empty() ? 0 : _rawRequests.size() - 1;
+    return _rawRequests.empty() ? 0 : _rawRequests.size() - 1;
 }
 
 bool ClientState::hasPendingResponseData() const
 {
-	return !_respDataQueue.empty();
+    return !_respDataQueue.empty();
 }
 
 RawRequest ClientState::popRawReq()
@@ -112,54 +114,56 @@ RawRequest ClientState::popRawReq()
 
 bool ClientState::hasCompleteRawRequest() const
 {
-	for (std::deque<RawRequest>::const_iterator it = _rawRequests.begin(); it != _rawRequests.end(); ++it) {
-		if (it->isRequestDone())
-			return true;
-	}
-	return false;
+    for (std::deque<RawRequest>::const_iterator it = _rawRequests.begin();
+         it != _rawRequests.end(); ++it)
+    {
+        if (it->isRequestDone())
+            return true;
+    }
+    return false;
 }
 
 RawRequest ClientState::popFirstCompleteRawRequest()
 {
-	for (size_t i = 0; i < _rawRequests.size(); ++i)
-	{
-		if (_rawRequests[i].isRequestDone())
-		{
-			RawRequest completed = std::move(_rawRequests[i]);
-			_rawRequests.erase(_rawRequests.begin() + i);
-			return completed;
-		}
-	}
-	throw std::runtime_error("No complete RawRequest available");
+    for (size_t i = 0; i < _rawRequests.size(); ++i)
+    {
+        if (_rawRequests[i].isRequestDone())
+        {
+            RawRequest completed = std::move(_rawRequests[i]);
+            _rawRequests.erase(_rawRequests.begin() + i);
+            return completed;
+        }
+    }
+    throw std::runtime_error("No complete RawRequest available");
 }
 
 ResponseData& ClientState::frontResponseData()
 {
-	if (_respDataQueue.empty())
-		throw std::runtime_error("No pending responses");
-	return _respDataQueue.front();
+    if (_respDataQueue.empty())
+        throw std::runtime_error("No pending responses");
+    return _respDataQueue.front();
 }
 
 void ClientState::popFrontResponseData()
 {
-	if (_respDataQueue.empty())
-		throw std::runtime_error("No pending responses");
-	_respDataQueue.pop();
+    if (_respDataQueue.empty())
+        throw std::runtime_error("No pending responses");
+    _respDataQueue.pop();
 }
 
 RawResponse& ClientState::peekLastRawResponse()
 {
-	if (_rawResponsesQueue.empty())
-		throw std::runtime_error("No raw responses in queue to peek.");
-	return _rawResponsesQueue.back();
+    if (_rawResponsesQueue.empty())
+        throw std::runtime_error("No raw responses in queue to peek.");
+    return _rawResponsesQueue.back();
 }
 
 RawResponse ClientState::popNextRawResponse()
 {
-	if (_rawResponsesQueue.empty())
-		throw std::runtime_error("No RawResponse to pop");
+    if (_rawResponsesQueue.empty())
+        throw std::runtime_error("No RawResponse to pop");
 
-	RawResponse resp = std::move(_rawResponsesQueue.front());
-	_rawResponsesQueue.pop_front();
-	return resp;
+    RawResponse resp = std::move(_rawResponsesQueue.front());
+    _rawResponsesQueue.pop_front();
+    return resp;
 }
