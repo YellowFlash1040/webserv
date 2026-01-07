@@ -229,7 +229,7 @@ void Server::removeClient(Client& client)
         if (cgi.fd_stdin != -1)
         {
             if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdin, nullptr) == -1)
-                perror("epoll_ctl DEL cgi stdin");
+                perror("[removeClient] epoll_ctl DEL cgi stdin");
             close(cgi.fd_stdin);
             cgi.fd_stdin = -1;
         }
@@ -281,37 +281,6 @@ void Server::processClient(Client& client)
         removeClient(client);
         return;
     }
-
-    ClientState& clientState = m_connMgr.getClientState(clientFd); 
-
-    while (clientState.hasPendingResponseData())
-    {
-        ResponseData& respData = clientState.frontResponseData();
-
-        if (!respData.isReady)
-            break;
-
-        std::string respStr = respData.serialize();
-
-        client.appendToOutBuffer(respStr);
-        client.updateLastActivity();
-
-        struct epoll_event mod;
-        mod.data.fd = clientFd;
-        mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP | EPOLLOUT;
-        if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, clientFd, &mod) == -1)
-            perror("epoll_ctl EPOLLOUT");
-
-        clientState.popFrontResponseData();
-
-        if (respData.shouldClose)
-        {
-            DBG("[Server]: should close, flushing buffer before closing");
-            flushClientOutBuffer(client);
-            removeClient(client);
-            break;
-        }
-    }
 }
 
 void Server::fillBuffer(Client& client)
@@ -327,6 +296,8 @@ void Server::fillBuffer(Client& client)
         if (!respData.isReady)
             break;
 
+        bool shouldClose = respData.shouldClose;
+
         std::string respStr = respData.serialize();
 
         client.appendToOutBuffer(respStr);
@@ -339,6 +310,14 @@ void Server::fillBuffer(Client& client)
             perror("epoll_ctl EPOLLOUT");
 
         clientState.popFrontResponseData();
+
+        if (shouldClose)
+        {
+            DBG("[Server]: should close, flushing buffer before closing");
+            flushClientOutBuffer(client);
+            removeClient(client);
+            break;
+        }
     }
 }
 
@@ -398,7 +377,7 @@ void Server::handleCgiTermination(CGIManager::CGIData& cgi)
         perror("epoll_ctl DEL cgi stdout");
     if (cgi.fd_stdin != -1)
         if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdin, NULL) == -1)
-            perror("epoll_ctl DEL cgi stdin");
+            perror("[handleCgiTermination] epoll_ctl DEL cgi stdin");
 
     close(cgi.fd_stdout);
     if (cgi.fd_stdin != -1)
@@ -417,7 +396,7 @@ void Server::handleCgiStdin(CGIManager::CGIData& cgi)
     if (left == 0)
     {
         if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdin, nullptr) == -1)
-            perror("epoll_ctl DEL cgi stdin");
+            perror("[handleCgiStdin] epoll_ctl DEL cgi stdin");
         close(cgi.fd_stdin);
         cgi.fd_stdin = -1;
         return;

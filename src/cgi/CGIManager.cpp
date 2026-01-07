@@ -119,6 +119,7 @@ CGIManager::CGIData CGIManager::startCGI(const RequestData& req,
         else
         {
             close(pipe_in[1]);
+            pipe_in[1] = -1;
         }
         
         CGIData cgi;
