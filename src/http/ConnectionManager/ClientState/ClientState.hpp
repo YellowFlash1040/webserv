@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <queue>
+#include <vector>
 
 #include "../../Request/RawRequest/RawRequest.hpp"
 #include "../../Request/RequestData/RequestData.hpp"
@@ -16,11 +17,12 @@
 class ClientState
 {
   private:
+    // Properties
     // Raw requests from the client (byte level)
-    std::deque<RawRequest> _rawRequests;
+    std::vector<RawRequest> _rawRequests;
 
     // Raw responses (not yet serialized), allows handling internal redirects
-    std::deque<RawResponse> _rawResponsesQueue;
+    std::queue<RawResponse> _rawResponsesQueue;
 
     // Responses ready to be sent on the socket
     std::queue<ResponseData> _respDataQueue;
@@ -33,41 +35,17 @@ class ClientState
     ClientState(ClientState&& other) noexcept = default;
     ClientState& operator=(ClientState&& other) noexcept = default;
 
-    // size_t getRawReqCount() const;
-
-    RawRequest& getRawRequest(size_t idx);
-    const RawRequest& getRawRequest(size_t idx) const;
-
+    // Accessors
     RawRequest& getLatestRawReq();
-    const RawRequest& getLatestRawReq() const;
-
-    size_t getLatestRawReqIndex() const;
-
-    // bool latestRawReqNeedsBody() const;
-
-    void enqueueResponseData(const ResponseData& resp);
-
-    const ResponseData& getRespDataObj() const;
-
-    RawRequest& addRawRequest();
-
-    RawRequest popRawReq();
-
     bool hasPendingResponseData() const;
-
     bool hasCompleteRawRequest() const;
-    RawRequest popFirstCompleteRawRequest();
-
     ResponseData& frontResponseData();
+    const std::queue<ResponseData>& getResponseQueue() const;
+    // Methods
+    void enqueueResponseData(const ResponseData& resp);
+    RawRequest& addRawRequest();
+    RawRequest popFirstCompleteRawRequest();
     void popFrontResponseData();
-
-    RawResponse& peekLastRawResponse();
-    RawResponse popNextRawResponse();
-
-    const std::queue<ResponseData>& getResponseQueue() const
-    {
-        return _respDataQueue;
-    }
 };
 
 #endif
