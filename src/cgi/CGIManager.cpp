@@ -104,14 +104,17 @@ CGIManager::CGIData CGIManager::startCGI(const RequestData& req,
         epoll_event ev_out;
         ev_out.data.fd = pipe_out[0];
         ev_out.events = EPOLLIN | EPOLLRDHUP;
-        epoll_ctl(client.getEpollFd(), EPOLL_CTL_ADD, pipe_out[0], &ev_out);
+        
+        if (epoll_ctl(client.getEpollFd(), EPOLL_CTL_ADD, pipe_out[0], &ev_out) == -1)
+            perror("epoll_ctl ADD pipe_out");
 
         if (methodToString(req.method) == "POST")
         {
             epoll_event ev_in;
             ev_in.data.fd = pipe_in[1];
             ev_in.events = EPOLLOUT;
-            epoll_ctl(client.getEpollFd(), EPOLL_CTL_ADD, pipe_in[1], &ev_in);
+            if (epoll_ctl(client.getEpollFd(), EPOLL_CTL_ADD, pipe_in[1], &ev_in) == -1)
+                perror("epoll_ctl ADD pipe_in");
         }
         else
         {

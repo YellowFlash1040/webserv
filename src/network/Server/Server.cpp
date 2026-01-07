@@ -100,7 +100,6 @@ void Server::run(void)
                 continue;
             }
 
-
             if (auto* cgiByIn = m_connMgr.findCgiByStdinFd(fd))
             {
                 if (ev & (EPOLLHUP | EPOLLERR))
@@ -118,6 +117,7 @@ void Server::run(void)
                     handleCgiStdout(*cgiByOut);
                 continue;
             }
+
             auto itClient = m_clients.find(fd);
             if (itClient == m_clients.end())
                 continue;
@@ -367,19 +367,24 @@ int Server::createTimerFd(int interval_sec)
 
 void Server::checkClientTimeouts()
 {
-    for (auto it = m_clients.begin(); it != m_clients.end();)
+    std::vector<int> timedOutClients;
+    
+    for (const auto& pair : m_clients)
     {
-        if (it->second->isTimedOut(std::chrono::seconds(TIMEOUT)))
+        if (pair.second->isTimedOut(std::chrono::seconds(TIMEOUT)))
+            timedOutClients.push_back(pair.first);
+    }
+    
+    for (int fd : timedOutClients)
+    {
+        auto it = m_clients.find(fd);
+        if (it != m_clients.end())
         {
-            DBG("Client " << it->first << " timed out");
+            DBG("Client " << fd << " timed out");
             removeClient(*it->second);
-            it = m_clients.begin();
         }
-        else
-            ++it;
     }
 }
-
 void Server::handleCgiTermination(CGIManager::CGIData& cgi)
 {
 
@@ -389,9 +394,11 @@ void Server::handleCgiTermination(CGIManager::CGIData& cgi)
     while ((n = read(cgi.fd_stdout, buf, sizeof(buf))) > 0)
         cgi.output.append(buf, n);
 
-    epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdout, NULL);
+    if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdout, NULL) == -1)
+        perror("epoll_ctl DEL cgi stdout");
     if (cgi.fd_stdin != -1)
-        epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdin, NULL);
+        if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdin, NULL) == -1)
+            perror("epoll_ctl DEL cgi stdin");
 
     close(cgi.fd_stdout);
     if (cgi.fd_stdin != -1)
@@ -409,7 +416,8 @@ void Server::handleCgiStdin(CGIManager::CGIData& cgi)
     size_t left = cgi.input.size() - cgi.input_sent;
     if (left == 0)
     {
-        epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdin, nullptr);
+        if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdin, nullptr) == -1)
+            perror("epoll_ctl DEL cgi stdin");
         close(cgi.fd_stdin);
         cgi.fd_stdin = -1;
         return;
@@ -437,7 +445,8 @@ void Server::handleCgiStdout(CGIManager::CGIData& cgi)
         return;
     }
 
-    epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdout, nullptr);
+    if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdout, nullptr) == -1)
+        perror("epoll_ctl DEL cgi stdout");
     close(cgi.fd_stdout);
     cgi.fd_stdout = -1;
 }
