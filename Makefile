@@ -74,12 +74,13 @@ all: $(NAME)
 # Build the Executable
 $(NAME): $(OBJ)
 	@$(CC) $(CFLAGS) $^ -o $@
-	@echo "$(GREEN)Compiled $@ successfully!$(RESET)"
+	@echo "\n$(GREEN)Compiled $@ successfully!$(RESET)"
 
 # Compile Object Files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS) $(TEMPLATES) Makefile
 	$(if $(COMPILE_MSG_SHOWN),,$(eval COMPILE_MSG_SHOWN := 1) \
-	@echo "$(YELLOW)>> Compiling object files...$(RESET)")
+	@echo "$(YELLOW)>> Compiling object files:$(RESET)")
+	@printf "$(YELLOW)   %-38.38s\r" $(notdir $@)
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c $< -o $@
 
@@ -102,7 +103,8 @@ $(TESTS_NAME): $(LIBRARY_FOR_TESTS) $(TESTS_OBJ) $(GTEST_LIB)
 # Compile test object files
 $(TESTS_OBJ_DIR)/%.o: $(TESTS_SRC_DIR)/%.cpp $(HEADERS) $(TEMPLATES) Makefile
 	$(if $(TESTS_COMPILE_MSG_SHOWN),,$(eval TESTS_COMPILE_MSG_SHOWN := 1) \
-	@echo "$(YELLOW)>> Compiling tests...$(RESET)")
+	@echo "$(YELLOW)>> Compiling tests:$(RESET)")
+	@printf "$(YELLOW)   %-38.38s\r" $(notdir $@)
 	@mkdir -p $(dir $@)
 	@$(CC) $(TESTS_CFLAGS) -c $< -o $@
 
