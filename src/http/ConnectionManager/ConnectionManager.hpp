@@ -21,19 +21,12 @@
 
 class ConnectionManager
 {
-	private:
+private:
 	const Config& m_config;
 	std::unordered_map<int, ClientState> m_clients;
 	void genResps(Client& client);
 		
-	public:
-
-	struct CGIResult
-	{
-		int clientFd;
-		ClientState* state;
-		CGIManager::CGIData* cgi;
-	};
+public:
 
 	ConnectionManager() = delete;
 	ConnectionManager(const Config& config);
@@ -50,8 +43,8 @@ class ConnectionManager
 	
 	size_t processReqs(Client& client, const std::string&tcpData);
 
-	CGIResult findCgiByStdoutFdWithClient(int fd);
-	CGIResult findCgiByStdinFdWithClient(int fd);
+	CGIManager::CGIData* findCgiByStdoutFd(int fd);
+	CGIManager::CGIData* findCgiByStdinFd(int fd);
 	void onCgiExited(pid_t pid, int status);
 
 };

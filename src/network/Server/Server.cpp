@@ -13,15 +13,20 @@ Server::Server(const Config& config)
 }
 
 // Destructor
+
 Server::~Server()
 {
     for (auto& it : m_clients)
-        epoll_ctl(m_epfd, EPOLL_CTL_DEL, it.first, nullptr);
+    {
+        if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, it.first, nullptr) == -1)
+            perror("epoll_ctl DEL client");
+    }
     m_clients.clear();
 
     for (auto& it : m_listeners)
     {
-        epoll_ctl(m_epfd, EPOLL_CTL_DEL, it.first, nullptr);
+        if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, it.first, nullptr) == -1)
+            perror("epoll_ctl DEL listener");
         close(it.first);
     }
     m_listeners.clear();
@@ -36,6 +41,7 @@ Server::~Server()
 
     std::cout << "Server stopped." << std::endl;
 }
+
 
 // ---------------------------METHODS-----------------------------
 
@@ -81,7 +87,9 @@ void Server::run(void)
             if (fd == m_timerfd)
             {
                 uint64_t expirations;
-                read(m_timerfd, &expirations, sizeof(expirations));
+                ssize_t n = read(m_timerfd, &expirations, sizeof(expirations));
+                if (n != sizeof(expirations))
+                    std::cerr << "Warning: timerfd read returned unexpected size: " << n << "\n";
                 checkClientTimeouts();
                 continue;
             }
@@ -92,23 +100,22 @@ void Server::run(void)
                 continue;
             }
 
-            ConnectionManager::CGIResult resIn = m_connMgr.findCgiByStdinFdWithClient(fd);
-            if (resIn.cgi)
+
+            if (auto* cgiByIn = m_connMgr.findCgiByStdinFd(fd))
             {
                 if (ev & (EPOLLHUP | EPOLLERR))
-                    handleCgiTermination(resIn.clientFd, *resIn.state, *resIn.cgi);
+                    handleCgiTermination(*cgiByIn);
                 else if (ev & EPOLLOUT)
-                    handleCgiStdin(resIn.clientFd, *resIn.state, *resIn.cgi);
+                    handleCgiStdin(*cgiByIn);
                 continue;
             }
             
-            ConnectionManager::CGIResult resOut = m_connMgr.findCgiByStdoutFdWithClient(fd);
-            if (resOut.cgi)
+            if (auto* cgiByOut = m_connMgr.findCgiByStdoutFd(fd))
             {
                 if (ev & (EPOLLHUP | EPOLLERR))
-                    handleCgiTermination(resOut.clientFd, *resOut.state, *resOut.cgi);
+                    handleCgiTermination(*cgiByOut);
                 else if (ev & EPOLLIN)
-                    handleCgiStdout(resOut.clientFd, *resOut.state, *resOut.cgi);
+                    handleCgiStdout(*cgiByOut);
                 continue;
             }
             auto itClient = m_clients.find(fd);
@@ -215,6 +222,33 @@ void Server::acceptNewClient(int listeningSocket, int epoll_fd)
 void Server::removeClient(Client& client)
 {
     int clientSocket = client.getSocket();
+    ClientState& state = m_connMgr.getClientState(clientSocket);
+
+    for (auto& cgi : state.getActiveCGIs())
+    {
+        if (cgi.fd_stdin != -1)
+        {
+            if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdin, nullptr) == -1)
+                perror("epoll_ctl DEL cgi stdin");
+            close(cgi.fd_stdin);
+            cgi.fd_stdin = -1;
+        }
+
+        if (cgi.fd_stdout != -1)
+        {
+            if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdout, nullptr) == -1)
+                perror("epoll_ctl DEL cgi stdout");
+            close(cgi.fd_stdout);
+            cgi.fd_stdout = -1;
+        }
+
+        if (cgi.pid > 0)
+        {
+            kill(cgi.pid, SIGKILL);
+            cgi.pid = -1;
+        }
+    }
+    state.clearActiveCGIs();
 
     m_connMgr.removeClient(clientSocket);
 
@@ -232,7 +266,7 @@ void Server::removeClient(Client& client)
 void Server::processClient(Client& client)
 {
     int clientFd = client.getSocket();
-    char buf[8192];
+    char buf[BUFFER_SIZE];
     int n = read(clientFd, buf, sizeof(buf) - 1);
 
     if (n > 0)
@@ -335,7 +369,7 @@ void Server::checkClientTimeouts()
 {
     for (auto it = m_clients.begin(); it != m_clients.end();)
     {
-        if (it->second->isTimedOut(std::chrono::seconds(60)))
+        if (it->second->isTimedOut(std::chrono::seconds(TIMEOUT)))
         {
             DBG("Client " << it->first << " timed out");
             removeClient(*it->second);
@@ -346,14 +380,10 @@ void Server::checkClientTimeouts()
     }
 }
 
-void Server::handleCgiTermination(int clientFd,
-                                  ClientState& state,
-                                  CGIManager::CGIData& cgi)
+void Server::handleCgiTermination(CGIManager::CGIData& cgi)
 {
-    (void)clientFd;
-    (void)state;
 
-    char buf[8192];
+    char buf[BUFFER_SIZE];
     ssize_t n;
 
     while ((n = read(cgi.fd_stdout, buf, sizeof(buf))) > 0)
@@ -371,7 +401,7 @@ void Server::handleCgiTermination(int clientFd,
     cgi.fd_stdin  = -1;
 }
 
-void Server::handleCgiStdin(int clientFd, ClientState& state, CGIManager::CGIData& cgi)
+void Server::handleCgiStdin(CGIManager::CGIData& cgi)
 {
     if (cgi.fd_stdin == -1)
         return;
@@ -389,19 +419,16 @@ void Server::handleCgiStdin(int clientFd, ClientState& state, CGIManager::CGIDat
 
     if (n <= 0)
     {
-        handleCgiTermination(clientFd, state, cgi);
+        handleCgiTermination(cgi);
         return;
     }
 
     cgi.input_sent += n;
 }
 
-void Server::handleCgiStdout(int clientFd, ClientState& state, CGIManager::CGIData& cgi)
+void Server::handleCgiStdout(CGIManager::CGIData& cgi)
 {
-    (void)clientFd;
-    (void)state;
-    
-    char buf[8192];
+    char buf[BUFFER_SIZE];
     ssize_t n = read(cgi.fd_stdout, buf, sizeof(buf));
 
     if (n > 0)

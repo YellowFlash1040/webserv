@@ -8,10 +8,9 @@ void ConnectionManager::addClient(int clientId)
 	m_clients.emplace(clientId, ClientState());
 }
 
-// Remove a client
 void ConnectionManager::removeClient(int clientId)
 {
-	DBG("m_clinets'client removed: " << );
+	DBG("m_clinets'client removed: " << clientId);
 	m_clients.erase(clientId);
 }
 
@@ -124,37 +123,34 @@ void ConnectionManager::genResps(Client& client)
 	}
 }
 
-ConnectionManager::CGIResult ConnectionManager::findCgiByStdoutFdWithClient(int fd)
+CGIManager::CGIData* ConnectionManager::findCgiByStdoutFd(int fd)
 {
     for (auto& pair : m_clients)
     {
-        int clientFd = pair.first;
         ClientState& state = pair.second;
-
         for (auto& cgi : state.getActiveCGIs())
         {
             if (cgi.fd_stdout == fd)
-                return {clientFd, &state, &cgi};
+                return &cgi;
         }
     }
-    return {-1, nullptr, nullptr};
+    return nullptr;
 }
 
-ConnectionManager::CGIResult ConnectionManager::findCgiByStdinFdWithClient(int fd)
+CGIManager::CGIData* ConnectionManager::findCgiByStdinFd(int fd)
 {
     for (auto& pair : m_clients)
     {
-        int clientFd = pair.first;
         ClientState& state = pair.second;
-
         for (auto& cgi : state.getActiveCGIs())
         {
             if (cgi.fd_stdin == fd)
-                return {clientFd, &state, &cgi};
+                return &cgi;
         }
     }
-    return {-1, nullptr, nullptr};
+    return nullptr;
 }
+
 
 void ConnectionManager::onCgiExited(pid_t pid, int status)
 {

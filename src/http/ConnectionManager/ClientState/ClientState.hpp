@@ -86,6 +86,7 @@ class ClientState
 		CGIManager::CGIData* findCgiByPid(pid_t pid);
 		void removeCgi(pid_t pid);
 
+		void clearActiveCGIs();
 };
 
 

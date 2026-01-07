@@ -206,3 +206,8 @@ void ClientState::removeCgi(pid_t pid)
     if (it != _activeCGIs.end())
         _activeCGIs.erase(it, _activeCGIs.end());
 }
+
+void ClientState::clearActiveCGIs()
+{
+    _activeCGIs.clear();
+}

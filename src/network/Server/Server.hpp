@@ -22,7 +22,7 @@
 # include "ServerSocket.hpp"
 # include "ConnectionManager.hpp"
 # include "ClientState.hpp"
-#include "../../utils/FdGuard/FdGuard.hpp"
+# include "../../utils/FdGuard/FdGuard.hpp"
 
 typedef struct epoll_event t_event;
 
@@ -40,6 +40,8 @@ class Server
     // Constants
     static constexpr int QUEUE_SIZE = 100;
     static constexpr int MAX_EVENTS = 50;
+    static constexpr size_t BUFFER_SIZE = 8192;
+    static constexpr size_t TIMEOUT = 60;
     // Methods
     void run(void);
     void addEndpoint(const NetworkEndpoint& endpoint);
@@ -61,9 +63,9 @@ class Server
     void processClient(Client& client);
     void flushClientOutBuffer(Client& client);
 
-    void handleCgiTermination(int clientFd, ClientState& state, CGIManager::CGIData& cgi);
-    void handleCgiStdin(int clientFd, ClientState& state, CGIManager::CGIData& cgi);
-    void handleCgiStdout(int clientFd, ClientState& state, CGIManager::CGIData& cgi);
+    void handleCgiTermination(CGIManager::CGIData& cgi);
+    void handleCgiStdin(CGIManager::CGIData& cgi);
+    void handleCgiStdout(CGIManager::CGIData& cgi);
     void reapDeadCgis();
     void fillBuffer(Client& client);
 };
