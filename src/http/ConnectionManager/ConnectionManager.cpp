@@ -8,10 +8,9 @@ void ConnectionManager::addClient(int clientId)
 	m_clients.emplace(clientId, ClientState());
 }
 
-// Remove a client
 void ConnectionManager::removeClient(int clientId)
 {
-	DBG("m_clinets'client removed");
+	DBG("m_clinets'client removed: " << clientId);
 	m_clients.erase(clientId);
 }
 
@@ -20,23 +19,23 @@ ClientState& ConnectionManager::getClientState(int clientId)
 	return m_clients.at(clientId);
 }
 
-bool ConnectionManager::processData(const NetworkEndpoint& endpoint, int clientId, const std::string& tcpData)
+bool ConnectionManager::processData(Client& client, const std::string& tcpData)
 {
 
 	// 1. Parse incoming TCP data
-	size_t reqsNum = processReqs(clientId, tcpData);
+	size_t reqsNum = processReqs(client, tcpData);
 
 	// 2. Generate responses for all ready requests
 	if (reqsNum > 0)
-		genResps(clientId, endpoint);
+		genResps(client);
 				
 	return reqsNum > 0;
 }
 
-size_t ConnectionManager::processReqs(int clientId, const std::string& data)
+size_t ConnectionManager::processReqs(Client& client, const std::string& data)
 {
 	DBG("DEBUG: processReqs: ");
-	auto it = m_clients.find(clientId);
+	auto it = m_clients.find(client.getSocket());
 	if (it == m_clients.end())
 		return 0;
 
@@ -80,9 +79,9 @@ size_t ConnectionManager::processReqs(int clientId, const std::string& data)
 	return parsedCount;
 }
 
-void ConnectionManager::genResps(int clientId, const NetworkEndpoint& endpoint)
+void ConnectionManager::genResps(Client& client)
 {
-	auto it = m_clients.find(clientId);
+	auto it = m_clients.find(client.getSocket());
 	if (it == m_clients.end())
 		return; // client not found
 
@@ -95,13 +94,94 @@ void ConnectionManager::genResps(int clientId, const NetworkEndpoint& endpoint)
 		RawRequest rawReq = clientState.popFirstCompleteRawRequest();
 		rawReq.printRequest();
 
+		RequestResult result;
+
 		// Call the separated processing function
-		RawResponse rawResp = RequestHandler::handleSingleRequest(rawReq, endpoint, m_config);
+		RawResponse rawResp = RequestHandler::handleSingleRequest(rawReq, client, m_config, result);
 
 		// Convert RawResponse to ResponseData
 		ResponseData data = rawResp.toResponseData();
 
-		// Enqueue the response in the client state
-		clientState.enqueueResponseData(data);
+		if (result.spawnCgi)
+        {
+			data.isReady = false;
+			clientState.enqueueResponseData(data);
+
+			ResponseData& stored = clientState.backResponseData();
+
+            clientState.createActiveCgi(result.requestData,
+                                        client,
+                                        result.cgiInterpreter,
+                                        result.cgiScriptPath,
+										&stored);
+            continue;
+        }
+		else
+        {
+            clientState.enqueueResponseData(data);
+        }
 	}
+}
+
+CGIManager::CGIData* ConnectionManager::findCgiByStdoutFd(int fd)
+{
+    for (auto& pair : m_clients)
+    {
+        ClientState& state = pair.second;
+        for (auto& cgi : state.getActiveCGIs())
+        {
+            if (cgi.fd_stdout == fd)
+                return &cgi;
+        }
+    }
+    return nullptr;
+}
+
+CGIManager::CGIData* ConnectionManager::findCgiByStdinFd(int fd)
+{
+    for (auto& pair : m_clients)
+    {
+        ClientState& state = pair.second;
+        for (auto& cgi : state.getActiveCGIs())
+        {
+            if (cgi.fd_stdin == fd)
+                return &cgi;
+        }
+    }
+    return nullptr;
+}
+
+
+void ConnectionManager::onCgiExited(pid_t pid, int status)
+{
+    if (WIFEXITED(status))
+    {
+        int exitCode = WEXITSTATUS(status);
+        if (exitCode != 0)
+            std::cerr << "[CGI] Process " << pid << " exited with code " << exitCode << "\n";
+    }
+    else if (WIFSIGNALED(status))
+    {
+        int sig = WTERMSIG(status);
+        std::cerr << "[CGI] Process " << pid << " killed by signal " << sig << "\n";
+    }
+
+    for (auto& it : m_clients)
+    {
+        ClientState& state = it.second;
+
+        CGIManager::CGIData* cgi = state.findCgiByPid(pid);
+        if (!cgi)
+            continue;
+
+        RawResponse raw;
+        if (!raw.parseFromCgiOutput(cgi->output))
+            raw.addDefaultError(HttpStatusCode::InternalServerError);
+
+        *cgi->response = raw.toResponseData();
+        state.enqueueResponseData(*cgi->response);
+
+        state.removeCgi(pid);
+        break;
+    }
 }

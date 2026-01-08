@@ -1,6 +1,5 @@
 #include "CGIParser.hpp"
 #include <stdexcept>
-#include <algorithm>
 #include <cctype>
 
 CGIParser::CGIParser(std::string_view raw) : _raw(raw) {}

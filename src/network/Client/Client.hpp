@@ -13,13 +13,13 @@
 
 class Client
 {
-  public:
-    Client(int fd, const sockaddr_in& addr,
-           const NetworkEndpoint& listeningEndpoint);
+public:
+    Client(int fd, int epoll_fd, const sockaddr_in& addr, const NetworkEndpoint& listeningEndpoint);
     ~Client();
 
     // Accessors
     int getSocket() const;
+    int getEpollFd() const;
     const sockaddr_in& getAddress() const;
     const NetworkEndpoint& getListeningEndpoint() const;
     std::string& getOutBuffer();
@@ -30,11 +30,16 @@ class Client
     bool isTimedOut(std::chrono::seconds timeout) const;
     void printInfo() const;
 
+    void setShouldClose(bool shouldClose);
+    bool shouldClose() const;
+
   private:
     // Properties
     int socket_fd;
+    int epoll_fd;
     sockaddr_in address;
     NetworkEndpoint listeningEndpoint;
+    bool _shouldClose;
     std::string out_buffer;
     std::chrono::steady_clock::time_point lastActivity;
 };

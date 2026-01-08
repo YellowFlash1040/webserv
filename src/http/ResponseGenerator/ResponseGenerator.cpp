@@ -3,8 +3,8 @@
 
 namespace ResponseGenerator
 {
-	void genResponse(const RawRequest& rawReq, const NetworkEndpoint& endpoint,
-		const RequestContext& ctx, RawResponse& rawResp)
+	void genResponse(const RawRequest& rawReq, const Client& client,
+		const RequestContext& ctx, RawResponse& rawResp, RequestResult& result)
 	{
 		DBG("[processRequest]:");
 		
@@ -51,13 +51,13 @@ namespace ResponseGenerator
 		switch (req.method)
 		{
 		case HttpMethod::GET:
-			processGet(req, endpoint, ctx, rawResp);
+			processGet(req, client, ctx, rawResp, result);
 			break;
 		case HttpMethod::POST:
-			processPost(req, endpoint, ctx, rawResp);
+			processPost(req, client, ctx, rawResp, result);
 			break;
 		case HttpMethod::DELETE:
-			processDelete(req, endpoint, ctx, rawResp);
+			processDelete(req, client, ctx, rawResp);
 			break;
 		default:
 			rawResp.addErrorDetails(ctx, HttpStatusCode::MethodNotAllowed);
@@ -86,7 +86,7 @@ namespace ResponseGenerator
 		return false;
 	}
 
-	void processGet(RequestData& req, const NetworkEndpoint& endpoint, const RequestContext& ctx, RawResponse& rawResp)
+	void processGet(RequestData& req, const Client& client, const RequestContext& ctx, RawResponse& rawResp, RequestResult& result)
 	{
 		DBG("[processGet] Processing request for resolved path: " << ctx.resolved_path);
 
@@ -125,8 +125,13 @@ namespace ResponseGenerator
 			{
 				DBG("Executing CGI interpreter: " << interpreter << 
 					" for script: " << ctx.resolved_path);
-				CGIHandler::processCGI(req, endpoint, interpreter, ctx.resolved_path, rawResp);
-
+					
+				(void)client;
+				//CGIHandler::processCGI(req, client, interpreter, ctx.resolved_path, rawResp);
+				result.spawnCgi = true;
+				result.cgiInterpreter = interpreter;
+				result.cgiScriptPath = ctx.resolved_path;
+				result.requestData = req;
 				return;
 			}
 		}
@@ -257,10 +262,10 @@ namespace ResponseGenerator
 		return "";
 	}
 
-	void processDelete(RequestData& req, const NetworkEndpoint& endpoint, const RequestContext& ctx, RawResponse& rawResp)
+	void processDelete(RequestData& req, const Client& client, const RequestContext& ctx, RawResponse& rawResp)
 	{
 		(void)req;
-		(void)endpoint;
+		(void)client;
 
 		DBG("[processDelete] Processing DELETE for path: "
 				<< ctx.resolved_path);
@@ -313,8 +318,8 @@ namespace ResponseGenerator
 	}
 
 	void processPost(RequestData& req,
-									const NetworkEndpoint& endpoint,
-									const RequestContext& ctx, RawResponse& rawResp)
+									const Client& client,
+									const RequestContext& ctx, RawResponse& rawResp, RequestResult& result)
 	{
 		HttpStatusCode status;
 		std::string interpreter = getCgiPathFromUri(req.uri, ctx.cgi_pass, status);
@@ -334,8 +339,13 @@ namespace ResponseGenerator
 		if (!ctx.cgi_pass.empty())
 		{
 			DBG("[processPost] CGI configured, executing...");
-			CGIHandler::processCGI(req, endpoint, interpreter, ctx.resolved_path, rawResp);
-
+			
+			(void)client;
+			//CGIHandler::processCGI(req, client, interpreter, ctx.resolved_path, rawResp);
+			result.spawnCgi = true;
+			result.cgiInterpreter = interpreter;
+			result.cgiScriptPath = ctx.resolved_path;
+			result.requestData = req;
 			return;
 		}
 

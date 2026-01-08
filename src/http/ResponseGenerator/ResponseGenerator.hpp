@@ -10,11 +10,11 @@
 #include "../HttpStatusCode/HttpStatusCode.hpp"
 #include "../HttpMethod/HttpMethod.hpp"
 #include "../FileUtils/FileUtils.hpp"
-#include "CGI.hpp"
-#include "CGIHandler.hpp"
 #include "debug.hpp"
 #include "../utils/StrUtils.hpp"
 #include "UploadModule.hpp"
+#include "../network/Client/Client.hpp"
+#include "RequestResult.hpp"
 
 
 namespace ResponseGenerator
@@ -22,9 +22,10 @@ namespace ResponseGenerator
     // Main entry point
     void genResponse(
         const RawRequest& rawReq,
-        const NetworkEndpoint& endpoint,
+        const Client& client,
         const RequestContext& ctx,
-        RawResponse& rawResp
+        RawResponse& rawResp,
+        RequestResult& result
     );
 
     // Helper functions
@@ -35,21 +36,23 @@ namespace ResponseGenerator
 
     void processGet(
         RequestData& req,
-        const NetworkEndpoint& endpoint,
+        const Client& client,
         const RequestContext& ctx,
-        RawResponse& resp
+        RawResponse& resp,
+        RequestResult& result
     );
 
     void processPost(
         RequestData& req,
-        const NetworkEndpoint& endpoint,
+        const Client& client,
         const RequestContext& ctx,
-        RawResponse& resp
+        RawResponse& resp,
+        RequestResult& result
     );
 
     void processDelete(
         RequestData& req,
-        const NetworkEndpoint& endpoint,
+        const Client& client,
         const RequestContext& ctx,
         RawResponse& resp
     );

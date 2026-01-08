@@ -270,3 +270,21 @@ void RawResponse::addDefaultError(HttpStatusCode code)
 	DBG("[addDefaultError] Default error page generated, length = " 
 		<< _body.size());
 }
+
+bool RawResponse::parseFromCgiOutput(const std::string& cgiOutput)
+{
+    try
+    {
+        ParsedCGI parsed = CGIParser::parse(cgiOutput);
+
+		setStatusCode(static_cast<HttpStatusCode>(parsed.status));
+        _headers = parsed.headers;
+        _body = parsed.body;
+
+        return true;
+    }
+    catch (const std::exception&)
+    {
+        return false;
+    }
+}

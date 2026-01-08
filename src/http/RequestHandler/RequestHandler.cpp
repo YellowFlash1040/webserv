@@ -3,10 +3,11 @@
 namespace RequestHandler
 {
 	void handleExternalRedirect(const RawRequest& rawReq,
-								const NetworkEndpoint& endpoint,
+								const Client& client,
 								const RequestContext& ctx,
 								const RawResponse& curRawResp,
-								RawResponse& redirResp)
+								RawResponse& redirResp,
+								RequestResult& result)
 	{
 		if (!FileUtils::existsAndIsFile(ctx.resolved_path) || access(ctx.resolved_path.c_str(), R_OK) != 0)
 		{
@@ -19,30 +20,31 @@ namespace RequestHandler
 			dummyReq.setUri(ctx.resolved_path);
 			dummyReq.setShouldClose(rawReq.shouldClose());
 
-			ResponseGenerator::genResponse(dummyReq, endpoint, ctx, redirResp);
+			ResponseGenerator::genResponse(dummyReq, client, ctx, redirResp, result);
 			redirResp.setStatusCode(curRawResp.getStatusCode());
 		}
 	}
 
 	RawResponse handleSingleRequest(const RawRequest& rawReq,
-									 const NetworkEndpoint& endpoint,
-									 const Config& config)
+									 const Client& client,
+									 const Config& config,
+									RequestResult& result)
 	{
-		RequestContext ctx = config.createRequestContext(endpoint, rawReq.getHost(), rawReq.getUri());
-		RawResponse curRawResp;
+		RequestContext ctx = config.createRequestContext(client.getListeningEndpoint(), rawReq.getHost(), rawReq.getUri());
+	RawResponse curRawResp;
 
 		if (rawReq.shouldClose())
 			curRawResp.addHeader("Connection", "close");
 
-		ResponseGenerator::genResponse(rawReq, endpoint, ctx, curRawResp);
+		ResponseGenerator::genResponse(rawReq, client, ctx, curRawResp, result);
 
 		if (curRawResp.isInternalRedirect())
 		{
 			std::string newUri = curRawResp.getErrorPageUri(ctx.error_pages, curRawResp.getStatusCode());
-			RequestContext newCtx = config.createRequestContext(endpoint, rawReq.getHost(), newUri);
+			RequestContext newCtx = config.createRequestContext(client.getListeningEndpoint(), rawReq.getHost(), newUri);
 			RawResponse redirResp;
 
-			handleExternalRedirect(rawReq, endpoint, newCtx, curRawResp, redirResp);
+			handleExternalRedirect(rawReq, client, newCtx, curRawResp, redirResp, result);
 			return redirResp;
 		}
 
