@@ -28,14 +28,17 @@ class RawRequest
     RawRequest(RawRequest&& other) noexcept = default;
     RawRequest& operator=(RawRequest&& other) noexcept = default;
 
+    // Methods
     bool parse();
     void markBadRequest(const std::string& msg);
+    void addHeader(const std::string& name, const std::string& value);
     void appendBodyBytes(const std::string& data);
     void separateHeadersFromBody();
     void appendTempBuffer(const std::string& data);
     RequestData buildRequestData() const;
     void printRequest(size_t idx = 0) const;
 
+    // Accessors
     bool isHeadersDone() const;
     bool isBodyDone() const;
     bool isRequestDone() const;
@@ -63,9 +66,9 @@ class RawRequest
     void setHeadersDone();
     void setBodyDone();
     void setChunkedBuffer(std::string&& newBuffer);
-    void addHeader(const std::string& name, const std::string& value);
 
   private:
+    // Properties
     std::string _tempBuffer;
     std::string _rlAndHeadersBuffer;
     std::string _body;
@@ -89,10 +92,13 @@ class RawRequest
     bool _isBadRequest;
     bool _shouldClose;
 
+    // Accessors
+    size_t remainingConLen() const;
+
+    // Methods
     std::string decodeChunkedBody(size_t& bytesProcessed);
     void parseRequestLineAndHeaders(const std::string& headerPart);
     void appendToChunkedBuffer(const std::string& data);
-    size_t remainingConLen() const;
     void consumeTempBuffer(size_t n);
     void appendToConLenBuffer(const std::string& data);
     void parseRequestLine(const std::string& firstLine);
