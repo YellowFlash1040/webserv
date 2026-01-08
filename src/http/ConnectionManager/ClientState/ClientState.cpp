@@ -95,12 +95,13 @@ RawResponse& ClientState::peekLastRawResponse()
 
 RawResponse ClientState::popNextRawResponse()
 {
-	if (_rawResponsesQueue.empty())
-		throw std::runtime_error("No RawResponse to pop");
+    if (_rawResponsesQueue.empty())
+        throw std::runtime_error("RawResponse queue is empty");
 
-	RawResponse resp = std::move(_rawResponsesQueue.front());
-	_rawResponsesQueue.pop_front();
-	return resp;
+    RawResponse resp = _rawResponsesQueue.front();
+    _rawResponsesQueue.pop();
+
+    return resp;
 }
 
 ResponseData& ClientState::backResponseData()
