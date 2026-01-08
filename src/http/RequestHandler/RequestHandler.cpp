@@ -3,7 +3,7 @@
 namespace RequestHandler
 {
 
-void handleExternalRedirect(const RawRequest& rawReq,
+void handleInternalRedirect(const RawRequest& rawReq,
                             const NetworkEndpoint& endpoint,
                             const RequestContext& ctx,
                             const RawResponse& curRawResp,
@@ -47,7 +47,7 @@ RawResponse handleSingleRequest(const RawRequest& rawReq,
             = config.createRequestContext(endpoint, rawReq.getHost(), newUri);
         RawResponse redirResp;
 
-        handleExternalRedirect(rawReq, endpoint, newCtx, curRawResp, redirResp);
+        handleInternalRedirect(rawReq, endpoint, newCtx, curRawResp, redirResp);
         return redirResp;
     }
 

@@ -14,7 +14,7 @@ RawResponse handleSingleRequest(const RawRequest& rawReq,
                                 const NetworkEndpoint& endpoint,
                                 const Config& config);
 
-void handleExternalRedirect(const RawRequest& rawReq,
+void handleInternalRedirect(const RawRequest& rawReq,
                             const NetworkEndpoint& endpoint,
                             const RequestContext& ctx,
                             const RawResponse& curRawResp,
