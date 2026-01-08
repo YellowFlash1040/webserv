@@ -1,25 +1,30 @@
 #include "ConnectionManager.hpp"
 
+// -----------------------CONSTRUCTION AND DESTRUCTION-------------------------
+
 ConnectionManager::ConnectionManager(const Config& config)
   : m_config(config)
 {
 }
+
+// ---------------------------ACCESSORS-----------------------------
+
+ClientState& ConnectionManager::getClientState(int clientId)
+{
+    return m_clients.at(clientId);
+}
+
+// ---------------------------METHODS-----------------------------
 
 void ConnectionManager::addClient(int clientId)
 {
     m_clients.emplace(clientId, ClientState());
 }
 
-// Remove a client
 void ConnectionManager::removeClient(int clientId)
 {
     DBG("m_clinets'client removed");
     m_clients.erase(clientId);
-}
-
-ClientState& ConnectionManager::getClientState(int clientId)
-{
-    return m_clients.at(clientId);
 }
 
 bool ConnectionManager::processData(const NetworkEndpoint& endpoint,
