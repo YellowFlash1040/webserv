@@ -9,6 +9,7 @@ Client::Client(int fd, int epoll_fd, const sockaddr_in& addr,
   , epoll_fd(epoll_fd)
   , address(addr)
   , listeningEndpoint(listeningEndpoint)
+  , _shouldClose(false)
   , in_buffer("")
   , out_buffer("")
 {
@@ -94,4 +95,14 @@ void Client::updateLastActivity()
 bool Client::isTimedOut(std::chrono::seconds timeout) const
 {
     return (std::chrono::steady_clock::now() - lastActivity) > timeout;
+}
+
+void Client::setShouldClose(bool shouldClose)
+{
+    _shouldClose = shouldClose;
+}
+
+bool Client::shouldClose() const
+{
+    return _shouldClose;
 }

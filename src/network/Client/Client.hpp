@@ -35,11 +35,15 @@ public:
 
     void printInfo() const;
 
+    void setShouldClose(bool shouldClose);
+    bool shouldClose() const;
+
   private:
     int socket_fd;
     int epoll_fd;
     sockaddr_in address;
     NetworkEndpoint listeningEndpoint;
+    bool _shouldClose;
     std::string in_buffer;
     std::string out_buffer;
     std::chrono::steady_clock::time_point lastActivity;

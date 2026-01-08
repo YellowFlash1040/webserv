@@ -168,6 +168,11 @@ void Server::flushClientOutBuffer(Client& client)
         mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP;
         if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, fd, &mod) == -1)
             perror("epoll_ctl mod");
+        if (client.shouldClose())
+        {
+            DBG("[Server]: shouldClose");
+            removeClient(client);
+        }
     }
 }
 
@@ -296,10 +301,9 @@ void Server::fillBuffer(Client& client)
         if (!respData.isReady)
             break;
 
-        bool shouldClose = respData.shouldClose;
-
         std::string respStr = respData.serialize();
 
+        client.setShouldClose(respData.shouldClose);
         client.appendToOutBuffer(respStr);
         client.updateLastActivity();
 
@@ -310,14 +314,6 @@ void Server::fillBuffer(Client& client)
             perror("epoll_ctl EPOLLOUT");
 
         clientState.popFrontResponseData();
-
-        if (shouldClose)
-        {
-            DBG("[Server]: should close, flushing buffer before closing");
-            flushClientOutBuffer(client);
-            removeClient(client);
-            break;
-        }
     }
 }
 
