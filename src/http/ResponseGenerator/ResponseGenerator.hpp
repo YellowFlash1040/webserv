@@ -35,6 +35,11 @@ namespace ResponseGenerator
         const std::vector<HttpMethod>& allowed_methods
     );
 
+    void addAllowHeader(
+        RawResponse& rawResp,
+        const std::vector<HttpMethod>& allowed_methods
+    );
+
     void processGet(
         RequestData& req,
         const NetworkEndpoint& endpoint,
