@@ -14,8 +14,10 @@ RawResponse handleSingleRequest(const RawRequest& rawReq,
                                 const NetworkEndpoint& endpoint,
                                 const Config& config);
 
-void handleExternalRedirect(const RequestContext& newCtx,
-                            std::string& newUri,
+void handleExternalRedirect(const RawRequest& rawReq,
+                            const NetworkEndpoint& endpoint,
+                            const RequestContext& ctx,
+                            const RawResponse& curRawResp,
                             RawResponse& redirResp);
 
 } // namespace RequestHandler
