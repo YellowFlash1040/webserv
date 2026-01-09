@@ -27,12 +27,11 @@ class RawRequest
 	RawRequest& operator=(RawRequest&& other) noexcept = default;
 	
 	bool parse();
-	void markBadRequest(const std::string& msg);
+	void markBadRequest();
 	void appendBodyBytes(const std::string& data);
 	void separateHeadersFromBody();
 	void appendTempBuffer(const std::string& data);
 	RequestData buildRequestData() const;
-	void printRequest(size_t idx = 0) const;
 	
 	bool isHeadersDone() const;
 	bool isBodyDone() const;
@@ -53,7 +52,6 @@ class RawRequest
 	const std::unordered_map<std::string, std::string>& getHeaders() const;
 	
 	void setMethod(HttpMethod method);
-	void setGetMethod();
 	void setUri(const std::string& uri);
 	void setRequestDone();
 	void setTempBuffer(const std::string& buffer);
@@ -65,7 +63,6 @@ class RawRequest
 
 	private:
 	std::string _tempBuffer;
-	std::string _rlAndHeadersBuffer;
 	std::string _body;
 	std::string _chunkedBuffer;
 	std::string _conLenBuffer;
@@ -77,7 +74,6 @@ class RawRequest
 	std::string _httpVersion;
 	std::unordered_map<std::string, std::string> _headers;
 	BodyType::Type _bodyType;
-	std::string _errorMessage;
 	
 	// Parsing state
 	bool _headersDone;

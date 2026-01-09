@@ -26,10 +26,7 @@ class RawResponse
 	
 	std::string _mimeType;      // Content type of file
 	size_t _fileSize;    // file size (always set)
-	FileUtils::FileDeliveryMode _fileMode = FileUtils::FileDeliveryMode::InMemory;
-	std::string _filePath;      // Only used if streamed
-	
-	
+
 	public:
 
 	RawResponse();
@@ -62,8 +59,6 @@ class RawResponse
 	void setBody(const std::string& body);
 
 	void setInternalRedirect(bool flag);
-	void setFileMode(FileUtils::FileDeliveryMode mode);
-	void setFilePath(const std::string& path);
 	void setMimeType(const std::string& mime);
 
 	void setFileSize(size_t size);

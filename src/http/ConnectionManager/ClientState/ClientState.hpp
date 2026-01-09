@@ -20,7 +20,7 @@ class ClientState
   private:
     // Properties
     // Raw requests from the client (byte level)
-    std::vector<RawRequest> _rawRequests;
+    std::deque<RawRequest> _rawRequests;
 
     // Raw responses (not yet serialized), allows handling internal redirects
     std::queue<RawResponse> _rawResponsesQueue;
@@ -28,6 +28,7 @@ class ClientState
     // Responses ready to be sent on the socket
     std::queue<ResponseData> _respDataQueue;
 
+    // Active CGI processes for this client
 	  std::vector<CGIManager::CGIData> _activeCGIs;
 
   public:

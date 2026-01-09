@@ -18,12 +18,14 @@
 #include "../network/Client/Client.hpp"
 #include "debug.hpp"
 #include "RequestResult.hpp"
+#include "../utils/PrintUtils.hpp"
 
 class ConnectionManager
 {
 private:
 	const Config& m_config;
 	std::unordered_map<int, ClientState> m_clients;
+  size_t processReqs(Client& client, const std::string& tcpData);
 	void genResps(Client& client);
 		
 public:
@@ -40,8 +42,6 @@ public:
 	void removeClient(int clientId);
 	ClientState& getClientState(int clientId);
 	bool processData(Client& client, const std::string& tcpData);
-	
-	size_t processReqs(Client& client, const std::string&tcpData);
 
 	CGIManager::CGIData* findCgiByStdoutFd(int fd);
 	CGIManager::CGIData* findCgiByStdinFd(int fd);

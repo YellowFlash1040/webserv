@@ -15,12 +15,7 @@ struct ResponseData
 	std::unordered_map<std::string, std::string> headers{};
 	std::string body{};
 	
-	//streaming info
-	FileUtils::FileDeliveryMode fileMode{FileUtils::FileDeliveryMode::InMemory};
-	std::string filePath{};
 	size_t fileSize{0};
-	ssize_t bytesSent{0};
-	
 	bool shouldClose{false};
 
 	void addHeader(const std::string& key, const std::string& value)

@@ -45,11 +45,6 @@ ResponseData& ClientState::frontResponseData()
     return _respDataQueue.front();
 }
 
-const std::queue<ResponseData>& ClientState::getResponseQueue() const
-{
-    return _respDataQueue;
-}
-
 // ---------------------------METHODS-----------------------------
 
 void ClientState::enqueueResponseData(const ResponseData& resp)
@@ -77,6 +72,11 @@ RawRequest ClientState::popFirstCompleteRawRequest()
         }
     }
     throw std::runtime_error("No complete RawRequest available");
+}
+
+const std::queue<ResponseData>& ClientState::getResponseQueue() const
+{
+	return _respDataQueue;
 }
 
 void ClientState::popFrontResponseData()

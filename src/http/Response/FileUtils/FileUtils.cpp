@@ -75,7 +75,6 @@ namespace FileUtils
 		return ""; // no valid index file found
 	}
 
-
 	std::string generateAutoindex(const std::string &dirPath)
 	{
 		DIR *dir = opendir(dirPath.c_str());

@@ -9,10 +9,10 @@
 
 enum class HttpMethod
 {
-    NONE,
-    GET,
-    POST,
-    DELETE
+	NONE,
+	GET,
+	POST,
+	DELETE
 };
 
 // Convert HttpMethod enum to string
