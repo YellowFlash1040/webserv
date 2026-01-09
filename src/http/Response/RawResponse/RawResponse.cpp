@@ -125,7 +125,10 @@ ResponseData RawResponse::toResponseData() const
         if (!noBody)
             data.headers["Content-Length"] = std::to_string(data.body.size());
 
-        data.headers["Content-Type"] = _mimeType;
+        // data.headers["Content-Type"] = _mimeType;
+		// need to use type from CGI output if it filled
+    	if (data.headers.find("Content-Type") == data.headers.end() || data.headers["Content-Type"].empty())
+        	data.headers["Content-Type"] = _mimeType;
 
         return data;
     }
