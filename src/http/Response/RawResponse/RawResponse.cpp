@@ -114,33 +114,25 @@ ResponseData RawResponse::toResponseData() const
                   || (static_cast<int>(_statusCode) >= 100
                       && static_cast<int>(_statusCode) < 200);
 
+    data.fileMode = _fileMode;
+    data.body = _body;
+
     // --- IN-MEMORY DELIVERY ---
     if (_fileMode == FileUtils::FileDeliveryMode::InMemory)
     {
-        data.fileMode = FileUtils::FileDeliveryMode::InMemory;
-
-        if (!noBody)
-            data.body = _body;
-        else
+        if (noBody)
             data.body.clear();
-
-        return data;
     }
 
     // --- STREAMED DELIVERY ---
     else
     {
-        data.fileMode = FileUtils::FileDeliveryMode::Streamed;
+        data.body.clear();
         data.filePath = _filePath;
         data.fileSize = _fileSize;
-
-        if (!noBody)
-            data.body = "";
-        else
-            data.body.clear();
-
-        return data;
     }
+
+    return data;
 }
 
 bool RawResponse::isInternalRedirect() const
