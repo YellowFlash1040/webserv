@@ -21,25 +21,25 @@
 
 class ConnectionManager
 {
-	private:
-	const Config& m_config;
-	std::unordered_map<int, ClientState> m_clients;
-	void genResps(Client& client);
-		
-	public:
-	ConnectionManager() = delete;
-	ConnectionManager(const Config& config);
-	~ConnectionManager() = default;
-	ConnectionManager(const ConnectionManager&) = default;
-	ConnectionManager& operator=(const ConnectionManager&) = delete;
-	ConnectionManager(ConnectionManager&&) noexcept = default;
-	ConnectionManager& operator=(ConnectionManager&&) noexcept = delete;
+  private:
+    const Config& m_config;
+    std::unordered_map<int, ClientState> m_clients;
+    void genResps(Client& client);
 
-	void addClient(int clientId);
-	void removeClient(int clientId);
-	ClientState& getClientState(int clientId);
-	bool processData(Client& client, const std::string& tcpData);
-	size_t processReqs(Client& client, const std::string&tcpData);
+  public:
+    ConnectionManager() = delete;
+    ConnectionManager(const Config& config);
+    ~ConnectionManager() = default;
+    ConnectionManager(const ConnectionManager&) = default;
+    ConnectionManager& operator=(const ConnectionManager&) = delete;
+    ConnectionManager(ConnectionManager&&) noexcept = default;
+    ConnectionManager& operator=(ConnectionManager&&) noexcept = delete;
+
+    void addClient(int clientId);
+    void removeClient(int clientId);
+    ClientState& getClientState(int clientId);
+    bool processData(Client& client, const std::string& tcpData);
+    size_t processReqs(Client& client, const std::string& tcpData);
 };
 
 #endif
