@@ -183,27 +183,49 @@ TEST(LexerTest, NumericValues)
     expectToken(tokens[3], TokenType::END, "");
 }
 
-TEST(LexerTest, QuotedStrings)
+TEST(LexerTest, QuotedString)
 {
     auto tokens = Lexer::tokenize("error_log \"/var/log/nginx/error.log\";");
     ASSERT_EQ(tokens.size(), 4u);
 
     expectToken(tokens[0], TokenType::DIRECTIVE, "error_log");
-    expectToken(tokens[1], TokenType::VALUE, "\"/var/log/nginx/error.log\"");
+    expectToken(tokens[1], TokenType::VALUE, "/var/log/nginx/error.log");
     expectToken(tokens[2], TokenType::SEMICOLON, ";");
     expectToken(tokens[3], TokenType::END, "");
 }
 
-TEST(LexerTest, SingleQuotedStrings)
+TEST(LexerTest, QuotedStringWithSpace)
+{
+    auto tokens = Lexer::tokenize("server_name \"hi there\";");
+    ASSERT_EQ(tokens.size(), 4u);
+
+    expectToken(tokens[0], TokenType::DIRECTIVE, "server_name");
+    expectToken(tokens[1], TokenType::VALUE, "hi there");
+    expectToken(tokens[2], TokenType::SEMICOLON, ";");
+    expectToken(tokens[3], TokenType::END, "");
+}
+
+TEST(LexerTest, SingleQuotedString)
 {
     auto tokens = Lexer::tokenize("add_header 'X-Frame-Options' 'SAMEORIGIN';");
     ASSERT_EQ(tokens.size(), 5u);
 
     expectToken(tokens[0], TokenType::DIRECTIVE, "add_header");
-    expectToken(tokens[1], TokenType::VALUE, "'X-Frame-Options'");
-    expectToken(tokens[2], TokenType::VALUE, "'SAMEORIGIN'");
+    expectToken(tokens[1], TokenType::VALUE, "X-Frame-Options");
+    expectToken(tokens[2], TokenType::VALUE, "SAMEORIGIN");
     expectToken(tokens[3], TokenType::SEMICOLON, ";");
     expectToken(tokens[4], TokenType::END, "");
+}
+
+TEST(LexerTest, SingleQuotedStringWithSpace)
+{
+    auto tokens = Lexer::tokenize("server_name 'hi there';");
+    ASSERT_EQ(tokens.size(), 4u);
+
+    expectToken(tokens[0], TokenType::DIRECTIVE, "server_name");
+    expectToken(tokens[1], TokenType::VALUE, "hi there");
+    expectToken(tokens[2], TokenType::SEMICOLON, ";");
+    expectToken(tokens[3], TokenType::END, "");
 }
 
 TEST(LexerTest, ValuesWithSpecialCharacters)
