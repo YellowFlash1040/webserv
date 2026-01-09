@@ -124,11 +124,6 @@ ResponseData RawResponse::toResponseData() const
         else
             data.body.clear();
 
-        if (!noBody)
-            data.headers["Content-Length"] = std::to_string(data.body.size());
-
-        data.headers["Content-Type"] = _mimeType;
-
         return data;
     }
 
@@ -144,12 +139,6 @@ ResponseData RawResponse::toResponseData() const
         else
             data.body.clear();
 
-        if (!noBody)
-            data.headers["Content-Length"] = std::to_string(_fileSize);
-
-        data.headers["Content-Type"] = _mimeType;
-
-        data.shouldClose = shouldClose();
         return data;
     }
 }
@@ -239,7 +228,6 @@ void RawResponse::addErrorDetails(const RequestContext& ctx,
         DBG("[addErrorDetails] Generating DEFAULT error page for "
             << static_cast<int>(code));
         addDefaultError(code);
-        addHeader("Content-Type", "text/html");
     }
 }
 
@@ -247,10 +235,6 @@ void RawResponse::addDefaultError(HttpStatusCode code)
 {
     DBG("[addDefaultError] Called for code " << static_cast<int>(code) << " ("
                                              << codeToText(code) << ")");
-
-    setStatusCode(code);
-
-    // _statusText = codeToText(code);
 
     std::string htmlBody
         = "<html>\n"
@@ -268,7 +252,6 @@ void RawResponse::addDefaultError(HttpStatusCode code)
 
     setBody(htmlBody);
     addHeader("Content-Type", "text/html");
-    addHeader("Content-Length", std::to_string(_body.size()));
 
     DBG("[addDefaultError] Default error page generated, length = "
         << _body.size());
