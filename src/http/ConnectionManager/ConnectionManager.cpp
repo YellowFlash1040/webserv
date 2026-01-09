@@ -179,6 +179,8 @@ void ConnectionManager::onCgiExited(pid_t pid, int status)
             raw.addDefaultError(HttpStatusCode::InternalServerError);
 
         *cgi->response = raw.toResponseData();
+		// for ab test connection should be closed after CGI
+		cgi->response->shouldClose= true;
         state.enqueueResponseData(*cgi->response);
 
         state.removeCgi(pid);
