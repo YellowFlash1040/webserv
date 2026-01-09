@@ -22,8 +22,11 @@
 class ConnectionManager
 {
   private:
+    // Properties
     const Config& m_config;
     std::unordered_map<int, ClientState> m_clients;
+    // Methods
+    size_t processReqs(Client& client, const std::string& tcpData);
     void genResps(Client& client);
 
   public:
@@ -35,11 +38,12 @@ class ConnectionManager
     ConnectionManager(ConnectionManager&&) noexcept = default;
     ConnectionManager& operator=(ConnectionManager&&) noexcept = delete;
 
+    // Accessors
+    ClientState& getClientState(int clientId);
+    // Methods
     void addClient(int clientId);
     void removeClient(int clientId);
-    ClientState& getClientState(int clientId);
     bool processData(Client& client, const std::string& tcpData);
-    size_t processReqs(Client& client, const std::string& tcpData);
 };
 
 #endif
