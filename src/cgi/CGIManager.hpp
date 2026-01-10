@@ -5,25 +5,12 @@
 
 # include "Client.hpp"
 # include "RequestData.hpp"
-# include "ResponseData.hpp"
+# include "CGIData.hpp"
 # include "debug.hpp"
 
 class CGIManager
 {
   public:
-    struct CGIData
-    {
-        pid_t pid = -1;
-        int fd_stdout = -1;
-        int fd_stdin = -1;
-        time_t start_time;
-        bool addedToEpoll = false;
-        std::string input;
-        std::string output;
-        size_t input_sent = 0;
-        ResponseData* response = nullptr;
-    };
-
     // Construction
     CGIManager() = default;
     ~CGIManager() = default;
