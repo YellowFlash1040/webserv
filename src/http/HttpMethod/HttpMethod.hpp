@@ -4,8 +4,6 @@
 # define HTTPMETHOD_HPP
 
 # include <string>
-# include <stdexcept>
-# include <vector>
 # include <map>
 
 enum class HttpMethod
