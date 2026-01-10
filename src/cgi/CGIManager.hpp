@@ -12,8 +12,8 @@ class CGIManager
 {
   public:
     // Construction
-    CGIManager() = default;
-    ~CGIManager() = default;
+    CGIManager() = delete;
+    ~CGIManager() = delete;
 
     // Methods
     static CGIData startCGI(const RequestData& req, Client& client,
