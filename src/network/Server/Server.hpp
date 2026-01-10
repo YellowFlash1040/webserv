@@ -62,9 +62,9 @@ class Server
     void processClient(Client& client);
     void flushClientOutBuffer(Client& client);
 
-    void handleCgiTermination(CGIManager::CGIData& cgi);
-    void handleCgiStdin(CGIManager::CGIData& cgi);
-    void handleCgiStdout(CGIManager::CGIData& cgi);
+    void handleCgiTermination(CGIData& cgi);
+    void handleCgiStdin(CGIData& cgi);
+    void handleCgiStdout(CGIData& cgi);
     void reapDeadCgis();
     void fillBuffer(Client& client);
 };

@@ -46,9 +46,9 @@ class ConnectionManager
     void removeClient(int clientId);
     bool processData(Client& client, const std::string& tcpData);
 
-    CGIManager::CGIData* findCgiByStdoutFd(int fd);
-	CGIManager::CGIData* findCgiByStdinFd(int fd);
-	void onCgiExited(pid_t pid, int status);
+    CGIData* findCgiByStdoutFd(int fd);
+    CGIData* findCgiByStdinFd(int fd);
+    void onCgiExited(pid_t pid, int status);
 };
 
 #endif

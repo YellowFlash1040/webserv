@@ -24,7 +24,7 @@ class ClientState
     // Responses ready to be sent on the socket
     std::queue<ResponseData> _respDataQueue;
 
-    std::vector<CGIManager::CGIData> _activeCGIs;
+    std::vector<CGIData> _activeCGIs;
 
   public:
     ClientState();
@@ -48,16 +48,15 @@ class ClientState
 
     ResponseData& backResponseData();
 
-	CGIManager::CGIData& createActiveCgi(RequestData& req, Client& client,
-							const std::string& interpreter,
-							const std::string& scriptPath,
-							ResponseData* resp);
-							
-	std::vector<CGIManager::CGIData>& getActiveCGIs() { return _activeCGIs;	}
-	CGIManager::CGIData* findCgiByPid(pid_t pid);
-	void removeCgi(pid_t pid);
+    CGIData& createActiveCgi(RequestData& req, Client& client,
+                             const std::string& interpreter,
+                             const std::string& scriptPath, ResponseData* resp);
 
-	void clearActiveCGIs();
+    std::vector<CGIData>& getActiveCGIs() { return _activeCGIs; }
+    CGIData* findCgiByPid(pid_t pid);
+    void removeCgi(pid_t pid);
+
+    void clearActiveCGIs();
 };
 
 #endif
