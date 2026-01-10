@@ -2,17 +2,17 @@
 
 std::string httpMethodToString(HttpMethod method)
 {
-    switch (method)
-    {
-    case HttpMethod::GET:
-        return "GET";
-    case HttpMethod::POST:
-        return "POST";
-    case HttpMethod::DELETE:
-        return "DELETE";
-    default:
+    static const std::map<HttpMethod, std::string> mapping = {
+        {HttpMethod::GET, "GET"},
+        {HttpMethod::POST, "POST"},
+        {HttpMethod::DELETE, "DELETE"},
+    };
+
+    auto it = mapping.find(method);
+    if (it == mapping.end())
         return "UNKNOWN";
-    }
+
+    return it->second;
 }
 
 HttpMethod stringToHttpMethod(const std::string& string)
