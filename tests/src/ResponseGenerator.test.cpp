@@ -11,16 +11,16 @@
 // Test fixture
 class ResponseGeneratorTest : public ::testing::Test
 {
-protected:
+  protected:
     // Common objects for all tests
     ClientState clientState;
     NetworkEndpoint endpoint;
     RequestContext ctx;
     RawResponse resp;
-    
+
     Client client;
     ResponseGeneratorTest()
-        : client(3, sockaddr_in{}, NetworkEndpoint{}) // dummy socket_fd, zero addr, default endpoint
+      : client(3, sockaddr_in{}, NetworkEndpoint{}) // dummy socket_fd, zero addr, default endpoint
     {}
 
     void SetUp() override
@@ -30,7 +30,6 @@ protected:
     }
 };
 
-
 TEST_F(ResponseGeneratorTest, BadRequest)
 {
     RawRequest rawReq;
@@ -39,10 +38,10 @@ TEST_F(ResponseGeneratorTest, BadRequest)
     rawReq.setUri("/");
 
     ctx.resolved_path = "./assets/www/site1/";
-    ctx.allowed_methods = { HttpMethod::GET };
-    ctx.index_files = { "index.html" };
+    ctx.allowed_methods = {HttpMethod::GET};
+    ctx.index_files = {"index.html"};
     ctx.autoindex_enabled = false;
-    
+
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
 
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::BadRequest);
@@ -56,8 +55,8 @@ TEST_F(ResponseGeneratorTest, ExternalRedirection)
     rawReq.setUri("/oldpage");
 
     ctx.resolved_path = "./assets/www/site1/oldpage";
-    ctx.allowed_methods = { HttpMethod::GET };
-    ctx.index_files = { "index.html" };
+    ctx.allowed_methods = {HttpMethod::GET};
+    ctx.index_files = {"index.html"};
     ctx.autoindex_enabled = false;
     ctx.redirection.isSet = true;
     ctx.redirection.url = "/newpage";
@@ -68,7 +67,6 @@ TEST_F(ResponseGeneratorTest, ExternalRedirection)
     EXPECT_TRUE(resp.hasHeader("Location"));
     EXPECT_EQ(resp.getHeader("Location"), "/newpage");
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::MovedPermanently);
-    
 }
 
 TEST_F(ResponseGeneratorTest, MethodNotAllowed)
@@ -79,21 +77,20 @@ TEST_F(ResponseGeneratorTest, MethodNotAllowed)
 
     RequestContext ctx;
     ctx.resolved_path = "./www/site1/";
-    ctx.allowed_methods = { HttpMethod::POST};
-    ctx.index_files = { "index.html" };
+    ctx.allowed_methods = {HttpMethod::POST};
+    ctx.index_files = {"index.html"};
     ctx.error_pages[HttpStatusCode::MethodNotAllowed] = "/errors/405.html";
     ctx.autoindex_enabled = true;
 
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
-    
+
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::MethodNotAllowed);
     EXPECT_EQ(resp.isInternalRedirect(), true);
     EXPECT_TRUE(resp.hasHeader("Allow"));
     EXPECT_EQ(resp.getHeader("Allow"), "POST");
-
 }
 
-//File
+// File
 
 TEST_F(ResponseGeneratorTest, FileNoReadPermission)
 {
@@ -111,9 +108,9 @@ TEST_F(ResponseGeneratorTest, FileNoReadPermission)
     rawReq.setUri("/unreadable.html");
 
     ctx.resolved_path = tmpFile;
-    ctx.allowed_methods = { HttpMethod::GET };
+    ctx.allowed_methods = {HttpMethod::GET};
     ctx.client_max_body_size = 1024;
-    ctx.index_files = { "index.html" };
+    ctx.index_files = {"index.html"};
     ctx.autoindex_enabled = false;
 
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
@@ -134,18 +131,18 @@ TEST_F(ResponseGeneratorTest, FileMissing)
     rawReq.setUri("non_existing.html");
 
     ctx.resolved_path = "./assets/www/site1/non_existing.html";
-    ctx.allowed_methods = { HttpMethod::GET };
+    ctx.allowed_methods = {HttpMethod::GET};
     ctx.client_max_body_size = 1024;
-    ctx.index_files = { "index.html" };
+    ctx.index_files = {"index.html"};
     ctx.autoindex_enabled = false;
 
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
-    
+
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::NotFound);
     EXPECT_EQ(resp.isInternalRedirect(), false);
 }
 
-//Directory
+// Directory
 
 TEST_F(ResponseGeneratorTest, DirectoryMissing)
 {
@@ -154,13 +151,13 @@ TEST_F(ResponseGeneratorTest, DirectoryMissing)
     rawReq.setUri("/non_existing");
 
     ctx.resolved_path = "./assets/www/site1/non_existing/";
-    ctx.allowed_methods = { HttpMethod::GET };
+    ctx.allowed_methods = {HttpMethod::GET};
     ctx.client_max_body_size = 1024;
-    ctx.index_files = { "index.html" };
+    ctx.index_files = {"index.html"};
     ctx.autoindex_enabled = false;
 
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
-    
+
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::NotFound);
     EXPECT_EQ(resp.isInternalRedirect(), false);
 }
@@ -172,16 +169,15 @@ TEST_F(ResponseGeneratorTest, SecondIndexOk)
     rawReq.setUri("/");
 
     ctx.resolved_path = "./assets/www/site1/";
-    ctx.allowed_methods = { HttpMethod::GET };
+    ctx.allowed_methods = {HttpMethod::GET};
     ctx.client_max_body_size = 1024;
-    ctx.index_files = { "wrong_index.html" ,"index.html" };
+    ctx.index_files = {"wrong_index.html", "index.html"};
     ctx.autoindex_enabled = false;
 
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
-    
+
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
     EXPECT_EQ(resp.isInternalRedirect(), false);
-
 }
 
 TEST_F(ResponseGeneratorTest, BadIndexAutoindexOff)
@@ -192,15 +188,15 @@ TEST_F(ResponseGeneratorTest, BadIndexAutoindexOff)
 
     RequestContext ctx;
     ctx.resolved_path = "./assets/www/site1/";
-    ctx.allowed_methods = { HttpMethod::GET };
-    ctx.index_files = { "non_existing.html" };
+    ctx.allowed_methods = {HttpMethod::GET};
+    ctx.index_files = {"non_existing.html"};
     ctx.autoindex_enabled = false;
     ctx.error_pages[HttpStatusCode::NotFound] = "/errors/404.html";
 
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
-    
+
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::Forbidden);
-    EXPECT_EQ(resp.isInternalRedirect(), false); //we need 403, not 403
+    EXPECT_EQ(resp.isInternalRedirect(), false); // we need 403, not 403
 }
 
 TEST_F(ResponseGeneratorTest, NoIndexAutoIndexOn)
@@ -211,18 +207,17 @@ TEST_F(ResponseGeneratorTest, NoIndexAutoIndexOn)
 
     RequestContext ctx;
     ctx.resolved_path = "./assets/www/site1/";
-    ctx.allowed_methods = { HttpMethod::GET};
+    ctx.allowed_methods = {HttpMethod::GET};
     // ctx.index_files = { "index.html" };
     ctx.autoindex_enabled = true;
 
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
-    
+
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
     EXPECT_EQ(resp.isInternalRedirect(), false);
-
 }
 
-TEST_F(ResponseGeneratorTest, BadIndexAutoindexOn) //directory listing
+TEST_F(ResponseGeneratorTest, BadIndexAutoindexOn) // directory listing
 {
     RawRequest rawReq;
     rawReq.setMethod(HttpMethod::GET);
@@ -230,14 +225,14 @@ TEST_F(ResponseGeneratorTest, BadIndexAutoindexOn) //directory listing
 
     RequestContext ctx;
     ctx.resolved_path = "./assets/www/site1/";
-    ctx.allowed_methods = { HttpMethod::GET };
+    ctx.allowed_methods = {HttpMethod::GET};
     ctx.client_max_body_size = 1024;
-    ctx.index_files = { "non_existing.html" };
+    ctx.index_files = {"non_existing.html"};
     ctx.autoindex_enabled = true;
     ctx.error_pages[HttpStatusCode::NotFound] = "/errors/404.html";
 
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
-    
+
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
     EXPECT_EQ(resp.isInternalRedirect(), false);
 }
@@ -252,8 +247,8 @@ TEST_F(ResponseGeneratorTest, GetWithConnectionCloseHeader)
 
     // Prepare context
     ctx.resolved_path = "./assets/www/site1/index.html";
-    ctx.allowed_methods = { HttpMethod::GET };
-    ctx.index_files = { "index.js" };
+    ctx.allowed_methods = {HttpMethod::GET};
+    ctx.index_files = {"index.js"};
     ctx.autoindex_enabled = false;
 
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
@@ -280,13 +275,13 @@ TEST_F(ResponseGeneratorTest, MethodNotAllowedWithConnectionClose)
 
     RequestContext ctx;
     ctx.resolved_path = "./www/site1/";
-    ctx.allowed_methods = { HttpMethod::POST };
-    ctx.index_files = { "index.html" };
+    ctx.allowed_methods = {HttpMethod::POST};
+    ctx.index_files = {"index.html"};
     ctx.error_pages[HttpStatusCode::MethodNotAllowed] = "/errors/405.html";
     ctx.autoindex_enabled = true;
 
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
-    
+
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::MethodNotAllowed);
     EXPECT_EQ(resp.isInternalRedirect(), true);
 
@@ -303,13 +298,13 @@ TEST_F(ResponseGeneratorTest, GoodRequest)
     rawReq.setUri("/");
 
     ctx.resolved_path = "./assets/www/site1/";
-    ctx.allowed_methods = { HttpMethod::GET };
+    ctx.allowed_methods = {HttpMethod::GET};
     ctx.client_max_body_size = 1024;
-    ctx.index_files = { "index.html" };
+    ctx.index_files = {"index.html"};
     ctx.autoindex_enabled = false;
 
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
-    
+
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
     EXPECT_EQ(resp.isInternalRedirect(), false);
 }
@@ -321,7 +316,7 @@ TEST_F(ResponseGeneratorTest, DeleteNotFound)
     rawReq.setUri("/does_not_exist.txt");
 
     ctx.resolved_path = "./assets/www/site1/does_not_exist.txt";
-    ctx.allowed_methods = { HttpMethod::DELETE };
+    ctx.allowed_methods = {HttpMethod::DELETE};
 
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
 
@@ -335,14 +330,13 @@ TEST_F(ResponseGeneratorTest, DeleteDirectoryForbidden)
     rawReq.setMethod(HttpMethod::DELETE);
     rawReq.setUri("/");
 
-    ctx.resolved_path = "./assets/www/site1";   // This is a directory
-    ctx.allowed_methods = { HttpMethod::DELETE };
+    ctx.resolved_path = "./assets/www/site1"; // This is a directory
+    ctx.allowed_methods = {HttpMethod::DELETE};
 
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
 
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::Forbidden);
     EXPECT_EQ(resp.isInternalRedirect(), false);
-
 }
 
 TEST_F(ResponseGeneratorTest, DeleteNoWritePermission)
@@ -353,14 +347,14 @@ TEST_F(ResponseGeneratorTest, DeleteNoWritePermission)
     tmp.close();
 
     // Remove write permission
-    chmod(tmpFile.c_str(), 0444);  // Read-only file
+    chmod(tmpFile.c_str(), 0444); // Read-only file
 
     RawRequest rawReq;
     rawReq.setMethod(HttpMethod::DELETE);
     rawReq.setUri("/no_write.txt");
 
     ctx.resolved_path = tmpFile;
-    ctx.allowed_methods = { HttpMethod::DELETE };
+    ctx.allowed_methods = {HttpMethod::DELETE};
 
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
 
@@ -384,13 +378,12 @@ TEST_F(ResponseGeneratorTest, DeleteSuccess)
     rawReq.setUri("/deletable.txt");
 
     ctx.resolved_path = tmpFile;
-    ctx.allowed_methods = { HttpMethod::DELETE };
+    ctx.allowed_methods = {HttpMethod::DELETE};
 
     ResponseGenerator::genResponse(rawReq, client, ctx, resp);
 
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::NoContent);
-    EXPECT_FALSE(FileUtils::pathExists(tmpFile));  // File should be gone
-        auto it = resp.getHeaders().find("Content-Length");
+    EXPECT_FALSE(FileUtils::pathExists(tmpFile)); // File should be gone
+    auto it = resp.getHeaders().find("Content-Length");
     ASSERT_EQ(it, resp.getHeaders().end());
 }
-
