@@ -1,18 +1,18 @@
 #pragma once
 
 #ifndef HTTPMETHOD_HPP
-#define HTTPMETHOD_HPP
+# define HTTPMETHOD_HPP
 
-#include <string>
-#include <stdexcept>
-#include <vector>
+# include <string>
+# include <stdexcept>
+# include <vector>
 
 enum class HttpMethod
 {
-	NONE,
-	GET,
-	POST,
-	DELETE
+    NONE,
+    GET,
+    POST,
+    DELETE
 };
 
 // Convert HttpMethod enum to string
