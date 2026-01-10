@@ -209,7 +209,7 @@ void Server::processClient(Client& client)
         return;
     }
 
-    ClientState& clientState = m_connMgr.getClientState(clientFd); 
+    ClientState& clientState = m_connMgr.getClientState(clientFd);
 
     while (clientState.hasPendingResponseData())
     {
