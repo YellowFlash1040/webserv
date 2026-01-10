@@ -3,8 +3,8 @@
 #ifndef CGIMANAGER_HPP
 # define CGIMANAGER_HPP
 
-# include "../Request/RequestData/RequestData.hpp"
 # include "Client.hpp"
+# include "RequestData.hpp"
 # include "ResponseData.hpp"
 # include "debug.hpp"
 
