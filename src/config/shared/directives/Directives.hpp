@@ -176,7 +176,7 @@ const std::map<std::string, DirectiveSpec> directives = {
     }},
     {CGI_PASS, {
         Type::SIMPLE,
-        {LOCATION},
+        {SERVER, LOCATION},
         {
             {{ArgumentType::FileExtension}, 1, 1},
             {{ArgumentType::BinaryPath}, 1, 1}

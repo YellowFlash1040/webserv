@@ -338,6 +338,9 @@ void Validator::validateFolderPath(const std::string& s)
     if (s.empty())
         throw std::invalid_argument("folder path cannot be empty");
 
+    if (!(s.find('.', 0) == 0 || s.find('/', 0) == 0))
+        throw std::invalid_argument("folder path has to start from a . or a /");
+
     std::string forbiddenChars = "<>:\"|?*";
     for (char c : s)
     {
@@ -465,11 +468,7 @@ void Validator::validateFileExtension(const std::string& s)
 
 void Validator::validateBinaryPath(const std::string& s)
 {
-    static std::string allowedBinariesFolder = "/usr/bin/";
-
-    if (s.compare(0, allowedBinariesFolder.size(), allowedBinariesFolder) != 0)
-        throw std::invalid_argument("binaries outside " + allowedBinariesFolder
-                                    + " are not allowed");
+    (void)s;
 }
 
 //-------------------------THOUGHTS-------------------------------

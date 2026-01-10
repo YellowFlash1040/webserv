@@ -5,6 +5,7 @@
 #include "ResponseData.hpp"
 #include "NetworkEndpoint.hpp"
 #include "HttpStatusCode.hpp"
+#include "Client.hpp"
 #include <gtest/gtest.h>
 
 // Test fixture
@@ -17,6 +18,11 @@ protected:
     RequestContext ctx;
     RawResponse resp;
     
+    Client client;
+    ResponseGeneratorTest()
+        : client(3, sockaddr_in{}, NetworkEndpoint{}) // dummy socket_fd, zero addr, default endpoint
+    {}
+
     void SetUp() override
     {
         ctx.index_files = {"index.html"};
@@ -29,15 +35,15 @@ TEST_F(ResponseGeneratorTest, BadRequest)
 {
     RawRequest rawReq;
 
-    rawReq.markBadRequest("bad bad request");
+    rawReq.markBadRequest();
     rawReq.setUri("/");
 
     ctx.resolved_path = "./assets/www/site1/";
     ctx.allowed_methods = { HttpMethod::GET };
     ctx.index_files = { "index.html" };
     ctx.autoindex_enabled = false;
-
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
 
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::BadRequest);
     EXPECT_EQ(resp.isInternalRedirect(), false);
@@ -56,7 +62,7 @@ TEST_F(ResponseGeneratorTest, ExternalRedirection)
     ctx.redirection.isSet = true;
     ctx.redirection.url = "/newpage";
     ctx.redirection.statusCode = HttpStatusCode::MovedPermanently;
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
 
     EXPECT_EQ(resp.isInternalRedirect(), false);
     EXPECT_TRUE(resp.hasHeader("Location"));
@@ -78,7 +84,7 @@ TEST_F(ResponseGeneratorTest, MethodNotAllowed)
     ctx.error_pages[HttpStatusCode::MethodNotAllowed] = "/errors/405.html";
     ctx.autoindex_enabled = true;
 
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
     
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::MethodNotAllowed);
     EXPECT_EQ(resp.isInternalRedirect(), true);
@@ -110,7 +116,7 @@ TEST_F(ResponseGeneratorTest, FileNoReadPermission)
     ctx.index_files = { "index.html" };
     ctx.autoindex_enabled = false;
 
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
 
     // Expect Forbidden because the file exists but is not readable
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::Forbidden);
@@ -133,7 +139,7 @@ TEST_F(ResponseGeneratorTest, FileMissing)
     ctx.index_files = { "index.html" };
     ctx.autoindex_enabled = false;
 
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
     
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::NotFound);
     EXPECT_EQ(resp.isInternalRedirect(), false);
@@ -153,7 +159,7 @@ TEST_F(ResponseGeneratorTest, DirectoryMissing)
     ctx.index_files = { "index.html" };
     ctx.autoindex_enabled = false;
 
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
     
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::NotFound);
     EXPECT_EQ(resp.isInternalRedirect(), false);
@@ -171,7 +177,7 @@ TEST_F(ResponseGeneratorTest, SecondIndexOk)
     ctx.index_files = { "wrong_index.html" ,"index.html" };
     ctx.autoindex_enabled = false;
 
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
     
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
     EXPECT_EQ(resp.isInternalRedirect(), false);
@@ -191,7 +197,7 @@ TEST_F(ResponseGeneratorTest, BadIndexAutoindexOff)
     ctx.autoindex_enabled = false;
     ctx.error_pages[HttpStatusCode::NotFound] = "/errors/404.html";
 
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
     
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::Forbidden);
     EXPECT_EQ(resp.isInternalRedirect(), false); //we need 403, not 403
@@ -209,7 +215,7 @@ TEST_F(ResponseGeneratorTest, NoIndexAutoIndexOn)
     // ctx.index_files = { "index.html" };
     ctx.autoindex_enabled = true;
 
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
     
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
     EXPECT_EQ(resp.isInternalRedirect(), false);
@@ -230,7 +236,7 @@ TEST_F(ResponseGeneratorTest, BadIndexAutoindexOn) //directory listing
     ctx.autoindex_enabled = true;
     ctx.error_pages[HttpStatusCode::NotFound] = "/errors/404.html";
 
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
     
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
     EXPECT_EQ(resp.isInternalRedirect(), false);
@@ -250,7 +256,7 @@ TEST_F(ResponseGeneratorTest, GetWithConnectionCloseHeader)
     ctx.index_files = { "index.js" };
     ctx.autoindex_enabled = false;
 
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
 
     // The server should produce a normal 200 OK
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
@@ -279,7 +285,7 @@ TEST_F(ResponseGeneratorTest, MethodNotAllowedWithConnectionClose)
     ctx.error_pages[HttpStatusCode::MethodNotAllowed] = "/errors/405.html";
     ctx.autoindex_enabled = true;
 
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
     
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::MethodNotAllowed);
     EXPECT_EQ(resp.isInternalRedirect(), true);
@@ -302,7 +308,7 @@ TEST_F(ResponseGeneratorTest, GoodRequest)
     ctx.index_files = { "index.html" };
     ctx.autoindex_enabled = false;
 
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
     
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
     EXPECT_EQ(resp.isInternalRedirect(), false);
@@ -317,7 +323,7 @@ TEST_F(ResponseGeneratorTest, DeleteNotFound)
     ctx.resolved_path = "./assets/www/site1/does_not_exist.txt";
     ctx.allowed_methods = { HttpMethod::DELETE };
 
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
 
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::NotFound);
     EXPECT_EQ(resp.isInternalRedirect(), false);
@@ -332,7 +338,7 @@ TEST_F(ResponseGeneratorTest, DeleteDirectoryForbidden)
     ctx.resolved_path = "./assets/www/site1";   // This is a directory
     ctx.allowed_methods = { HttpMethod::DELETE };
 
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
 
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::Forbidden);
     EXPECT_EQ(resp.isInternalRedirect(), false);
@@ -356,7 +362,7 @@ TEST_F(ResponseGeneratorTest, DeleteNoWritePermission)
     ctx.resolved_path = tmpFile;
     ctx.allowed_methods = { HttpMethod::DELETE };
 
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
 
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::Forbidden);
 
@@ -380,7 +386,7 @@ TEST_F(ResponseGeneratorTest, DeleteSuccess)
     ctx.resolved_path = tmpFile;
     ctx.allowed_methods = { HttpMethod::DELETE };
 
-    ResponseGenerator::genResponse(rawReq, endpoint, ctx, resp);
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp);
 
     EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::NoContent);
     EXPECT_FALSE(FileUtils::pathExists(tmpFile));  // File should be gone

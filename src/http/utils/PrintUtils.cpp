@@ -44,9 +44,8 @@ namespace PrintUtils
 		DBG(TEAL << "------------------------" << RESET << "\n");
 	}
 	
-	void printRawRequest(const RawRequest& req, size_t idx)
+	void printRawRequest(const RawRequest& req)
 	{
-		(void)idx;
 		DBG(
 		"\n[RawRequest]"
 		<< "\nMethod: " << httpMethodToString(req.getMethod())

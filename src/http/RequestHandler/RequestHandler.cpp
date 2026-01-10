@@ -16,7 +16,7 @@ namespace RequestHandler
 		else
 		{
 			RawRequest dummyReq;
-			dummyReq.setGetMethod();
+			dummyReq.setMethod(HttpMethod::GET);
 			dummyReq.setUri(ctx.resolved_path);
 			dummyReq.setShouldClose(rawReq.shouldClose());
 

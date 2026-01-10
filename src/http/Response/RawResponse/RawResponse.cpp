@@ -8,9 +8,7 @@ RawResponse::RawResponse()
 	  _body(),
 	  _isInternalRedirect(false),
 	  _mimeType(""),
-	  _fileSize(0),
-	  _fileMode(FileUtils::FileDeliveryMode::InMemory),
-	  _filePath("")
+	  _fileSize(0)
 {
 	setDefaultHeaders();
 }
@@ -45,17 +43,6 @@ bool RawResponse::hasHeader(const std::string& key) const
 	return _headers.find(key) != _headers.end();
 }
 
-
-
-	void RawResponse::setFileMode(FileUtils::FileDeliveryMode mode)
-	{ 
-		_fileMode = mode;
-	}
-	
-	void RawResponse::setFilePath(const std::string& path)
-	{ 
-		_filePath = path;
-	}
 	
 	void RawResponse::setMimeType(const std::string& mime)
 	{
@@ -112,11 +99,6 @@ ResponseData RawResponse::toResponseData() const
                   (_statusCode == HttpStatusCode::NotModified) || 
                   (static_cast<int>(_statusCode) >= 100 && static_cast<int>(_statusCode) < 200);
 
-    // --- IN-MEMORY DELIVERY ---
-    if (_fileMode == FileUtils::FileDeliveryMode::InMemory)
-    {
-        data.fileMode = FileUtils::FileDeliveryMode::InMemory;
-
         if (!noBody)
             data.body = _body;
         else
@@ -131,28 +113,7 @@ ResponseData RawResponse::toResponseData() const
         	data.headers["Content-Type"] = _mimeType;
 
         return data;
-    }
 
-    // --- STREAMED DELIVERY ---
-    else
-    {
-        data.fileMode = FileUtils::FileDeliveryMode::Streamed;
-        data.filePath = _filePath;
-        data.fileSize = _fileSize;
-
-        if (!noBody)
-            data.body = "";
-        else
-            data.body.clear();
-
-        if (!noBody)
-            data.headers["Content-Length"] = std::to_string(_fileSize);
-
-        data.headers["Content-Type"] = _mimeType;
-
-        data.shouldClose = shouldClose();
-        return data;
-    }
 }
 
 bool RawResponse::isInternalRedirect() const
@@ -171,14 +132,6 @@ std::string RawResponse::getHeader(const std::string& key) const
 {
 	auto it = _headers.find(key);
 	return it != _headers.end() ? it->second : "";
-}
-
-
-
-
-const std::string& RawResponse::getFilePath() const
-{
-	return _filePath;
 }
 
 const std::string& RawResponse::getBody() const
@@ -231,8 +184,6 @@ void RawResponse::addErrorDetails(const RequestContext& ctx,
 	{
 		DBG("[addErrorDetails] Using CUSTOM error page: " << pageUri);
 		setInternalRedirect(true);
-
-		setFilePath(pageUri);
 
 		DBG("[addErrorDetails] Marked as internal redirect");
 		return;

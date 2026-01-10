@@ -292,7 +292,7 @@ void Server::fillBuffer(Client& client)
 {
     int clientFd = client.getSocket();
 
-    ClientState& clientState = m_connMgr.getClientState(clientFd); 
+    ClientState& clientState = m_connMgr.getClientState(clientFd);
 
     while (clientState.hasPendingResponseData())
     {

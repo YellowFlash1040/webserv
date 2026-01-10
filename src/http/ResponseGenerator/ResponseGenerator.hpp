@@ -28,11 +28,10 @@ namespace ResponseGenerator
         RequestResult& result
     );
 
-    // Helper functions
-    bool isMethodAllowed(
-        HttpMethod method,
-        const std::vector<HttpMethod>& allowed_methods
-    );
+	bool isMethodAllowed(
+		HttpMethod method,
+		const std::vector<HttpMethod>& allowed_methods
+	);
 
     void processGet(
         RequestData& req,
@@ -50,40 +49,40 @@ namespace ResponseGenerator
         RequestResult& result
     );
 
-    void processDelete(
-        RequestData& req,
-        const Client& client,
-        const RequestContext& ctx,
-        RawResponse& resp
-    );
+	void processDelete(
+		RequestData& req,
+		const Client& client,
+		const RequestContext& ctx,
+		RawResponse& resp
+	);
 
-    std::string getCgiPathFromUri(
-        const std::string& uri,
-        const std::map<std::string, std::string>& cgi_pass,
-        HttpStatusCode& outStatus
-    );
+	std::string getCgiPathFromUri(
+		const std::string& uri,
+		const std::map<std::string, std::string>& cgi_pass,
+		HttpStatusCode& outStatus
+	);
 
-    void handleExternalRedirect(
-        const RequestContext& ctx,
-        std::string& reqUri,
-        RawResponse& rawResp
-    );
+	void handleExternalRedirect(
+		const RequestContext& ctx,
+		std::string& reqUri,
+		RawResponse& rawResp
+	);
 
-    void processUpload(
-        RequestData &req,
-        const RequestContext &ctx,
-        RawResponse &resp
-    );
+	void processUpload(
+		RequestData &req,
+		const RequestContext &ctx,
+		RawResponse &resp
+	);
 
-    void fillSuccessfulResponse(
-        RawResponse& resp,
-        const std::string& filePath
-    );
+	void fillSuccessfulResponse(
+		RawResponse& resp,
+		const std::string& filePath
+	);
 
-    void fillAutoindexResponse(
-        RawResponse& resp,
-        const std::string& dirPath
-    );
+	void fillAutoindexResponse(
+		RawResponse& resp,
+		const std::string& dirPath
+	);
 }
 
 #endif
