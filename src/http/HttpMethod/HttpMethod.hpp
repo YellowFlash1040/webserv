@@ -6,6 +6,7 @@
 # include <string>
 # include <stdexcept>
 # include <vector>
+# include <map>
 
 enum class HttpMethod
 {
@@ -19,6 +20,6 @@ enum class HttpMethod
 std::string httpMethodToString(HttpMethod method);
 
 // Convert string to HttpMethod
-HttpMethod stringToHttpMethod(const std::string& method);
+HttpMethod stringToHttpMethod(const std::string& string);
 
 #endif
