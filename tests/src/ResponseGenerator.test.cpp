@@ -18,8 +18,8 @@ class ResponseGeneratorTest : public ::testing::Test
     RequestContext ctx;
     RawResponse resp;
     RequestResult res;
-
     Client client;
+
     ResponseGeneratorTest()
       : client(3, 4, sockaddr_in{}, NetworkEndpoint{}) // dummy socket_fd, zero addr, default endpoint
     {}
@@ -56,6 +56,7 @@ TEST_F(ResponseGeneratorTest, ExternalRedirection)
     ctx.redirection.isSet = true;
     ctx.redirection.url = "/newpage";
     ctx.redirection.statusCode = HttpStatusCode::MovedPermanently;
+
     ResponseGenerator::genResponse(rawReq, client, ctx, resp, res);
 
     EXPECT_EQ(resp.isInternalRedirect(), false);
