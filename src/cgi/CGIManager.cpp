@@ -128,55 +128,93 @@ std::vector<std::string> CGIManager::buildEnvFromRequest(
 {
     std::vector<std::string> env;
 
-    env.push_back("REQUEST_METHOD=" + httpMethodToString(req.method));
-    env.push_back("QUERY_STRING=" + req.query);
-    env.push_back("CONTENT_LENGTH=" + std::to_string(req.body.size()));
+    addEnv(env, "GATEWAY_INTERFACE", "CGI/1.1");
+    addRequestInfo(env, client, req, scriptPath);
+    addServerInfo(env, req, client);
 
-    std::string contentType = req.getHeader("content-type");
+    return env;
+}
+
+void CGIManager::addEnv(std::vector<std::string>& env, const std::string& key,
+                        const std::string& value)
+{
+    env.push_back(key + "=" + value);
+}
+
+void CGIManager::addRequestInfo(std::vector<std::string>& env,
+                                const Client& client, const RequestData& req,
+                                const std::string& scriptPath)
+{
+    addEnv(env, "SCRIPT_NAME", req.uri);
+    addEnv(env, "SCRIPT_FILENAME", scriptPath);
+
+    addEnv(env, "REQUEST_METHOD", httpMethodToString(req.method));
+    addEnv(env, "QUERY_STRING", req.query);
+    addEnv(env, "CONTENT_LENGTH", std::to_string(req.body.size()));
+
+    const std::string& contentType = req.getHeader("content-type");
     if (!contentType.empty())
-        env.push_back("CONTENT_TYPE=" + contentType);
+        addEnv(env, "CONTENT_TYPE", contentType);
 
-    env.push_back("SCRIPT_NAME=" + req.uri);
-    env.push_back("SCRIPT_FILENAME=" + scriptPath);
-    env.push_back("SERVER_PROTOCOL=" + req.httpVersion);
-    env.push_back("GATEWAY_INTERFACE=CGI/1.1");
+    addRemoteAddr(env, client);
+}
 
-    const NetworkEndpoint& endpoint = client.getListeningEndpoint();
-    NetworkInterface localIp = endpoint.ip();
-    int localPort = endpoint.port();
-
-    env.push_back("SERVER_ADDR=" + static_cast<std::string>(localIp));
-    env.push_back("SERVER_PORT=" + std::to_string(localPort));
-
-    const sockaddr_in& clientAddr = client.getAddress();
-    uint32_t ip = ntohl(clientAddr.sin_addr.s_addr);
-    int remotePort = ntohs(clientAddr.sin_port);
-    std::string remoteIp = std::to_string((ip >> 24) & 0xFF) + "."
-                           + std::to_string((ip >> 16) & 0xFF) + "."
-                           + std::to_string((ip >> 8) & 0xFF) + "."
-                           + std::to_string(ip & 0xFF);
-    env.push_back("REMOTE_ADDR=" + remoteIp);
-    env.push_back("REMOTE_PORT=" + std::to_string(remotePort));
-
-    std::string host = req.getHeader("Host");
-
-    if (!host.empty())
-        env.push_back("SERVER_NAME=" + host);
-    else
-        env.push_back("SERVER_NAME=" + static_cast<std::string>(localIp));
-
+void CGIManager::addReqHeaders(std::vector<std::string>& env,
+                               const RequestData& req)
+{
     for (auto& h : req.headers)
     {
-        std::string name = "HTTP_" + h.first;
-        for (auto& c : name)
+        std::string key = "HTTP_" + h.first;
+        for (auto& c : key)
         {
             if (c == '-')
                 c = '_';
             else
                 c = std::toupper(c);
         }
-        env.push_back(name + "=" + h.second);
+        const std::string& value = h.second;
+        addEnv(env, key, value);
     }
+}
 
-    return env;
+void CGIManager::addServerInfo(std::vector<std::string>& env,
+                               const RequestData& req, const Client& client)
+{
+    addServerName(env, req, client);
+    addServerAddr(env, client);
+}
+
+void CGIManager::addServerName(std::vector<std::string>& env,
+                               const RequestData& req, const Client& client)
+{
+    const std::string& hostName = req.getHeader("Host");
+    const std::string& hostIp = client.getListeningEndpoint().ip();
+
+    const std::string& serverName = hostName.empty() ? hostIp : hostName;
+
+    addEnv(env, "SERVER_NAME", serverName);
+}
+
+void CGIManager::addServerAddr(std::vector<std::string>& env,
+                               const Client& client)
+{
+    const NetworkEndpoint& endpoint = client.getListeningEndpoint();
+
+    const std::string& ip = endpoint.ip();
+    const std::string& port = std::to_string(endpoint.port());
+
+    addEnv(env, "SERVER_ADDR", ip);
+    addEnv(env, "SERVER_PORT", port);
+}
+
+void CGIManager::addRemoteAddr(std::vector<std::string>& env,
+                               const Client& client)
+{
+    const sockaddr_in& addr = client.getAddress();
+
+    const std::string& ip = NetworkInterface(ntohl(addr.sin_addr.s_addr));
+    const std::string& port = std::to_string(ntohs(addr.sin_port));
+
+    addEnv(env, "REMOTE_ADDR", ip);
+    addEnv(env, "REMOTE_PORT", port);
 }
