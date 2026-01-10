@@ -20,14 +20,17 @@ class CGIManager
         ResponseData* response = nullptr;
     };
 
+    // Construction
     CGIManager() = default;
     ~CGIManager() = default;
 
+    // Methods
     static CGIData startCGI(const RequestData& req, Client& client,
                             const std::string& interpreter,
                             const std::string& scriptPath);
 
   private:
+    // Methods
     static std::vector<std::string> buildEnvFromRequest(
         const RequestData& req, Client& client, const std::string& scriptPath);
 };
