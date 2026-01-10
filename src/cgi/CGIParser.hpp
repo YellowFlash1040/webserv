@@ -25,7 +25,7 @@ class CGIParser
     CGIParser(std::string_view raw);
 
     // Methods
-    ParsedCGI run();
+    ParsedCGI parse();
     size_t findSeparator();
     void parseHeaders(std::string_view header_part, ParsedCGI& out);
     void validate(ParsedCGI& out);

@@ -9,11 +9,10 @@ CGIParser::CGIParser(std::string_view raw)
 
 ParsedCGI CGIParser::parse(std::string_view cgi)
 {
-    CGIParser parser(cgi);
-    return parser.run();
+    return CGIParser(cgi).parse();
 }
 
-ParsedCGI CGIParser::run()
+ParsedCGI CGIParser::parse()
 {
     ParsedCGI out;
 
