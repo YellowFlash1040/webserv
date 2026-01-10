@@ -199,121 +199,21 @@ std::string RawRequest::extractHost(const std::string& hostHeader) const
 	return (portPos != std::string::npos) ? hostHeader.substr(0, portPos) : hostHeader;
 }
 
-void RawRequest::appendToChunkedBuffer(const std::string& data)
-{
-	DBG("\n[appendToChunkedBuffer]\nBefore append, _chunkedBuffer size = " << _chunkedBuffer.size());
+// void RawRequest::appendToChunkedBuffer(const std::string& data)
+// {
+// 	DBG("\n[appendToChunkedBuffer]\nBefore append, _chunkedBuffer size = " << _chunkedBuffer.size());
 
-	_chunkedBuffer += data;
+// 	_chunkedBuffer += data;
 
-	DBG("[appendToChunkedBuffer] After append, _chunkedBuffer size = " << _chunkedBuffer.size());
-}
+// 	DBG("[appendToChunkedBuffer] After append, _chunkedBuffer size = " << _chunkedBuffer.size());
+// }
 
-std::string RawRequest::decodeChunkedBody(size_t& bytesProcessed)
-{
-	DBG("[decodeChunkedBody]:"
-		<< " START: _chunkedBuffer = |" << _chunkedBuffer 
-		<< "|, _chunkedBuffer size = " << _chunkedBuffer.size());
 
-	std::string decoded;
-	size_t pos = 0;
-	bytesProcessed = 0;
 
-	while (pos < _chunkedBuffer.size())
-	{
-		// Find end of the current chunk header line
-		size_t chunkLineEnd = _chunkedBuffer.find("\r\n", pos);
-		if (chunkLineEnd == std::string::npos)
-		{
-			DBG("[decodeChunkedBody]: Incomplete chunkHeaderLine, waiting for more data");
-			break; // wait for more data
-		}
-
-		std::string chunkHeaderLine = _chunkedBuffer.substr(pos, chunkLineEnd - pos);
-		DBG("[decodeChunkedBody]: chunkHeaderLine is |" << chunkHeaderLine);
-		
-		// Extract chunk size (if there are extensions ignore them)
-		size_t semicolonPos = chunkHeaderLine.find(';');
-		std::string chunkSizeStr = semicolonPos == std::string::npos 
-			? chunkHeaderLine : chunkHeaderLine.substr(0, semicolonPos);
-		size_t chunkSize = 0;
-		try
-		{
-			chunkSize = std::stoul(chunkSizeStr, nullptr, 16);
-		}
-		catch (...)
-		{
-			DBG("[decodeChunkedBody]: Invalid chunk size |" << chunkSizeStr << "|, throwing exception");
-			throw std::runtime_error("Invalid chunk size in chunked body");
-		}
-
-		DBG("[decodeChunkedBody]: Found the chunkHeaderLine |" << chunkHeaderLine 
-			<< "|, so chunkSize = " << chunkSize << " bytes");
-
-		size_t chunkDataStart = chunkLineEnd + 2; // skip \r\n
-		DBG("[decodeChunkedBody]: Skipped \\r\\n from chunkLineEnd at pos " << chunkLineEnd << ". chunkDataStart pos is " << chunkDataStart);
-		
-		size_t chunkDataEnd = chunkDataStart + chunkSize;
-		DBG("[decodeChunkedBody]: chunkDataEnd pos is " << chunkDataEnd);
-
-		if (chunkDataEnd > _chunkedBuffer.size())
-		{
-			DBG("[decodeChunkedBody]: Incomplete chunkData, waiting for more data");
-			break; // wait for more data
-		}
-
-		// Append chunk data
-		if (chunkSize > 0)
-		{
-			// Append chunk data
-			std::string chunkData = _chunkedBuffer.substr(chunkDataStart, chunkSize);
-			decoded += chunkData;
-			DBG("[decodeChunkedBody]: Appended chunkData |" << chunkData 
-				<< "|, to decoded. decoded is now |" << decoded
-				<< "|, decoded.size = " << decoded.size());
-			
-				pos = chunkDataEnd + 2; // skip chunkData + trailing \r\n
-				DBG("[decodeChunkedBody]: skipped chunkData + chunkTrailer, pos is " << pos);
-			}
-		else
-		{
-			// terminating zero chunk, make sure final CRLF exists
-			DBG("[decodeChunkedBody]: reached terminating zero chunk!!");
-
-			// make sure the final CRLF exists
-			size_t zeroChunkEnd = chunkDataStart + 2; // chunkDataStart points after the first \r\n
-			DBG("[decodeChunkedBody]: zeroChunkEnd is set to 2 bytes after chunkDataStart (" << chunkDataStart
-				<< "), so at " << zeroChunkEnd);
-			
-
-			if (_chunkedBuffer.size() >= zeroChunkEnd
-				&& _chunkedBuffer[chunkDataStart] == '\r'
-				&& _chunkedBuffer[chunkDataStart + 1] == '\n')
-			{
-				pos = zeroChunkEnd;
-				_terminatingZeroMet = true;
-				DBG("[decodeChunkedBody]: Zero-size chunk fully consumed, pos = " << pos);
-				break;
-			}
-			else
-			{
-				DBG("[decodeChunkedBody]: waiting for final CRLF after zero chunk");
-				break; // wait for more data
-			}
-			break; // zero chunk ends the loop
-		}
-	}
-	
-	bytesProcessed = pos;
-	DBG("[decodeChunkedBody]: END: decoded is |" << decoded << "| with size = " << decoded.size()
-		<< ", bytesProcessed = " << bytesProcessed);
-
-	return decoded;
-}
-
-void RawRequest::appendToConLenBuffer(const std::string& data)
-{
-	_conLenBuffer += data;
-}
+// void RawRequest::appendToConLenBuffer(const std::string& data)
+// {
+// 	_conLenBuffer += data;
+// }
 
 void RawRequest::setTempBuffer(const std::string& buffer)
 {
@@ -323,13 +223,6 @@ void RawRequest::setTempBuffer(const std::string& buffer)
 void RawRequest::appendTempBuffer(const std::string& data)
 {
 	_tempBuffer += data;
-}
-
-size_t RawRequest::remainingConLen() const
-{
-	return static_cast<size_t>(getContentLengthValue()) > _conLenBuffer.size()
-		? static_cast<size_t>(getContentLengthValue()) - _conLenBuffer.size()
-		: 0;
 }
 
 void RawRequest::consumeTempBuffer(size_t n)
@@ -359,96 +252,51 @@ void RawRequest::appendToBody(const std::string& data)
 	DBG("[appendToBody]: _body now = |" << _body << "|");
 }
 
-void RawRequest::setChunkedBuffer(std::string&& newBuffer)
-{
-	DBG("[setChunkedBuffer]: old size of _chunkedBuffer = " << _chunkedBuffer.size());
-
-	_chunkedBuffer = std::move(newBuffer);
-
-	DBG("[setChunkedBuffer]: new size of _chunkedBuffer = " << _chunkedBuffer.size()
-		<< ", content = |" << _chunkedBuffer << "|");
-}
-void RawRequest::parseSizedBody(const std::string& data)
-{
-	size_t remaining = remainingConLen(); // bytes still needed
-	DBG("[appendBodyBytes]: remaining bytes of content to append = " << remaining);
-	
-	size_t toAppend = std::min(remaining, data.size());
-	DBG("[appendBodyBytes]: bytes to append in reality = " << toAppend);
-	
-	appendToConLenBuffer(data.substr(0, toAppend));
-	consumeTempBuffer(toAppend); // remove exactly what we consumed
-	
-	if (conLenReached())
-	{
-		appendToBody(_conLenBuffer);
-		setBodyDone();
-		DBG("[appendBodyBytes]: Content-Length body finished, body done set");
-	}
-}
-
-void RawRequest::parseChunkedBody()
-{
-
-	appendToChunkedBuffer(_tempBuffer);
-	DBG("[appendBodyBytes]: appended _chunkedBuffer with data from _tempBuffer, _chunkedBuffer size = " 
-		<< _chunkedBuffer.size());
-	
-	setTempBuffer(""); // consumed for decoding
-	size_t bytesProcessed = 0;
-	
-	// decode as much as possible
-	std::string decoded = decodeChunkedBody(bytesProcessed);
-	appendToBody(decoded); // append only the decoded chunks
-	DBG("[appendBodyBytes]: decoded chunked body appended, decoded size = " << decoded.size());
-	
-	// remove processed bytes from _chunkedBuffer
-	setChunkedBuffer(_chunkedBuffer.substr(bytesProcessed));
-	DBG("[appendBodyBytes]: _chunkedBuffer resized after processing, new size = " << _chunkedBuffer.size());
-	
-	if (_terminatingZeroMet)
-	{
-		setBodyDone();
-		setTempBuffer(_chunkedBuffer);
-		_chunkedBuffer.clear();
-		DBG("[appendBodyBytes]: Terminating zero chunk found, body done set, tempBuffer updated, _chunkedBuffer cleared");
-	}
-	else
-	{
-		// partial chunk left? move leftovers to tempBuffer for next process
-		setTempBuffer(_chunkedBuffer + _tempBuffer);
-		
-		DBG("[appendBodyBytes]: Terminating zero not found, leftovers moved to tempBuffer");
-	}
-}
-
 void RawRequest::appendBodyBytes(const std::string& data)
 {
-
 	switch (_bodyType)
 	{
 		case BodyType::SIZED:
 		{
-			parseSizedBody(data);
+			// Call BodyParser's version with references
+			BodyParser::parseSizedBody(
+				data,            // incomingData
+				_conLenBuffer,   // conLenBuffer
+				_tempBuffer,     // tempBuffer
+				getContentLengthValue(), // expectedLength
+				_bodyDone        // bodyDone
+			);
+
+			if (_bodyDone)
+			{
+				appendToBody(_conLenBuffer); // only append when done
+				DBG("[appendBodyBytes]: Content-Length body finished, body appended, bodyDone set");
+			}
 			break;
 		}
 
 		case BodyType::CHUNKED:
 		{
-			parseChunkedBody();
+			// Call BodyParser's reference-based parseChunkedBody
+			BodyParser::parseChunkedBody(
+				_chunkedBuffer,    // chunkedBuffer
+				_tempBuffer,       // tempBuffer
+				_body,             // body
+				_terminatingZeroMet, // terminatingZeroMet
+				_bodyDone          // bodyDone
+			);
 			break;
 		}
 
 		case BodyType::NO_BODY:
-			// Nothing to append
 			DBG("[appendBodyBytes]: No body type, nothing to append");
 			break;
 
 		case BodyType::ERROR:
 			throw std::runtime_error("Cannot append body data: request in ERROR state");
 	}
+
 	DBG("[appendBodyBytes]: END");
-	
 }
 
 RequestData RawRequest::buildRequestData() const

@@ -3,69 +3,82 @@
 
 #include <string>
 #include <unordered_map>
-#include <iostream>
-#include <variant>
 #include <sstream>
-#include <algorithm>
 #include <stdexcept>
 
 #include "../utils/StrUtils.hpp"
 #include "../HttpMethod/HttpMethod.hpp"
 #include "../RequestData/RequestData.hpp"
 #include "../../BodyType/BodyType.hpp"
-#include "../utils/UriUtils.hpp" 
+#include "../utils/UriUtils.hpp"
 #include "debug.hpp"
+#include "BodyParser.hpp"
 
 class RawRequest
 {
-	public:
+public:
 	RawRequest();
 	~RawRequest() = default;
-	RawRequest(const RawRequest& other) = delete;
-	RawRequest& operator=(const RawRequest& other) = delete;
-	RawRequest(RawRequest&& other) noexcept = default;
-	RawRequest& operator=(RawRequest&& other) noexcept = default;
-	
+
+	RawRequest(const RawRequest&) = delete;
+	RawRequest& operator=(const RawRequest&) = delete;
+	RawRequest(RawRequest&&) noexcept = default;
+	RawRequest& operator=(RawRequest&&) noexcept = default;
+
+	// ---- high-level parsing ----
 	bool parse();
-	void markBadRequest();
 	void appendBodyBytes(const std::string& data);
 	void separateHeadersFromBody();
-	void appendTempBuffer(const std::string& data);
-	RequestData buildRequestData() const;
-	
+
+	// ---- request state ----
 	bool isHeadersDone() const;
 	bool isBodyDone() const;
 	bool isRequestDone() const;
 	bool isBadRequest() const;
 	bool shouldClose() const;
+
+	// ---- body helpers ----
 	bool conLenReached() const;
-	
 	size_t getContentLengthValue() const;
+	const std::string& getBody() const;
+
+	// ---- accessors ----
 	const std::string& getTempBuffer() const;
-	const std::string getHeader(const std::string& name) const;
 	const std::string& getUri() const;
 	std::string getHost() const;
 	HttpMethod getMethod() const;
 	const std::string& getHttpVersion() const;
-	const std::string& getBody() const;
 	BodyType::Type getBodyType() const;
 	const std::unordered_map<std::string, std::string>& getHeaders() const;
-	
+	const std::string getHeader(const std::string& name) const;
+
+	// ---- mutation ----
 	void setMethod(HttpMethod method);
+	void setGetMethod();
 	void setUri(const std::string& uri);
-	void setRequestDone();
-	void setTempBuffer(const std::string& buffer);
 	void setShouldClose(bool value);
 	void setHeadersDone();
 	void setBodyDone();
-	void setChunkedBuffer(std::string&& newBuffer);
+	void setRequestDone();
+	void markBadRequest();
 	void addHeader(const std::string& name, const std::string& value);
+	void appendTempBuffer(const std::string& data);
+	void setTempBuffer(const std::string& buffer);
 
-	private:
+
+	// ---- finalization ----
+	RequestData buildRequestData() const;
+	void printRequest(size_t idx = 0) const;
+
+private:
+	// ---- buffers (OWNED HERE) ----
 	std::string _tempBuffer;
+	std::string _rlAndHeadersBuffer;
 	std::string _body;
 	std::string _chunkedBuffer;
 	std::string _conLenBuffer;
+
+	// ---- request metadata ----
 	HttpMethod _method;
 	std::string _rawUri;
 	std::string _uri;
@@ -74,8 +87,8 @@ class RawRequest
 	std::string _httpVersion;
 	std::unordered_map<std::string, std::string> _headers;
 	BodyType::Type _bodyType;
-	
-	// Parsing state
+
+	// ---- parsing state ----
 	bool _headersDone;
 	bool _terminatingZeroMet;
 	bool _bodyDone;
@@ -83,19 +96,17 @@ class RawRequest
 	bool _isBadRequest;
 	bool _shouldClose;
 
-	std::string decodeChunkedBody(size_t& bytesProcessed);
+	std::string _errorMessage;
+
+	// ---- INTERNAL helpers (still belong here) ----
 	void parseRequestLineAndHeaders(const std::string& headerPart);
-	void appendToChunkedBuffer(const std::string& data);
-	size_t remainingConLen() const;
-	void consumeTempBuffer(size_t n);
-	void appendToConLenBuffer(const std::string& data);
 	void parseRequestLine(const std::string& firstLine);
 	void parseHeaders(std::istringstream& stream);
-	void parseSizedBody(const std::string& data);
-	void parseChunkedBody();
-	void appendToBody(const std::string& data);
 	std::string extractHost(const std::string& hostHeader) const;
 
+	// ---- body ownership helpers ----
+	void appendToBody(const std::string& data);
+	void consumeTempBuffer(size_t n);
 };
 
 #endif
