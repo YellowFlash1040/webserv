@@ -23,21 +23,6 @@ std::string validateScriptPath(const std::string& scriptPath)
     return scriptPath;
 }
 
-std::string methodToString(HttpMethod method)
-{
-    switch (method)
-    {
-    case HttpMethod::GET:
-        return "GET";
-    case HttpMethod::POST:
-        return "POST";
-    case HttpMethod::DELETE:
-        return "DELETE";
-    default:
-        return "NONE";
-    }
-}
-
 CGIManager::CGIData CGIManager::startCGI(const RequestData& req, Client& client,
                                          const std::string& interpreter,
                                          const std::string& scriptPath)
@@ -110,7 +95,7 @@ CGIManager::CGIData CGIManager::startCGI(const RequestData& req, Client& client,
             == -1)
             perror("epoll_ctl ADD pipe_out");
 
-        if (methodToString(req.method) == "POST")
+        if (req.method == HttpMethod::POST)
         {
             epoll_event ev_in;
             ev_in.data.fd = pipe_in[1];
@@ -143,7 +128,7 @@ std::vector<std::string> CGIManager::buildEnvFromRequest(
 {
     std::vector<std::string> env;
 
-    env.push_back("REQUEST_METHOD=" + methodToString(req.method));
+    env.push_back("REQUEST_METHOD=" + httpMethodToString(req.method));
     env.push_back("QUERY_STRING=" + req.query);
     env.push_back("CONTENT_LENGTH=" + std::to_string(req.body.size()));
 
