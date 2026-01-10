@@ -1,8 +1,12 @@
 #pragma once
-#include "../Request/RequestData/RequestData.hpp"
-#include "Client.hpp"
-#include "ResponseData.hpp"
-#include "debug.hpp"
+
+#ifndef CGIMANAGER_HPP
+# define CGIMANAGER_HPP
+
+# include "../Request/RequestData/RequestData.hpp"
+# include "Client.hpp"
+# include "ResponseData.hpp"
+# include "debug.hpp"
 
 class CGIManager
 {
@@ -34,3 +38,5 @@ class CGIManager
     static std::vector<std::string> buildEnvFromRequest(
         const RequestData& req, Client& client, const std::string& scriptPath);
 };
+
+#endif
