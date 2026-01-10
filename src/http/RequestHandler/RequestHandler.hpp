@@ -4,11 +4,12 @@
 #include "../ResponseGenerator/ResponseGenerator.hpp"
 #include "Config.hpp"
 #include "../../config/Config/request_resolving/RequestContext/RequestContext.hpp"
+#include "../network/Client/Client.hpp"
 
 namespace RequestHandler
 {
 	RawResponse handleSingleRequest(const RawRequest& rawReq,
-									const NetworkEndpoint& endpoint,
+									const Client& client,
 									const Config& config);
 									
 	void handleExternalRedirect(const RequestContext& newCtx,

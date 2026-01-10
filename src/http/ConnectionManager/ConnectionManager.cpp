@@ -20,23 +20,23 @@ ClientState& ConnectionManager::getClientState(int clientId)
 	return m_clients.at(clientId);
 }
 
-bool ConnectionManager::processData(const NetworkEndpoint& endpoint, int clientId, const std::string& tcpData)
+bool ConnectionManager::processData(Client& client, const std::string& tcpData)
 {
 
 	// 1. Parse incoming TCP data
-	size_t reqsNum = processReqs(clientId, tcpData);
+	size_t reqsNum = processReqs(client, tcpData);
 
 	// 2. Generate responses for all ready requests
 	if (reqsNum > 0)
-		genResps(clientId, endpoint);
+		genResps(client);
 				
 	return reqsNum > 0;
 }
 
-size_t ConnectionManager::processReqs(int clientId, const std::string& data)
+size_t ConnectionManager::processReqs(Client& client, const std::string& data)
 {
 	DBG("DEBUG: processReqs: ");
-	auto it = m_clients.find(clientId);
+	auto it = m_clients.find(client.getSocket());
 	if (it == m_clients.end())
 		return 0;
 
@@ -80,9 +80,9 @@ size_t ConnectionManager::processReqs(int clientId, const std::string& data)
 	return parsedCount;
 }
 
-void ConnectionManager::genResps(int clientId, const NetworkEndpoint& endpoint)
+void ConnectionManager::genResps(Client& client)
 {
-	auto it = m_clients.find(clientId);
+	auto it = m_clients.find(client.getSocket());
 	if (it == m_clients.end())
 		return; // client not found
 
@@ -93,10 +93,10 @@ void ConnectionManager::genResps(int clientId, const NetworkEndpoint& endpoint)
 	{
 		// Pop the first complete raw request
 		RawRequest rawReq = clientState.popFirstCompleteRawRequest();
-		rawReq.printRequest();
+		PrintUtils::printRawRequest(rawReq);
 
 		// Call the separated processing function
-		RawResponse rawResp = RequestHandler::handleSingleRequest(rawReq, endpoint, m_config);
+		RawResponse rawResp = RequestHandler::handleSingleRequest(rawReq, client, m_config);
 
 		// Convert RawResponse to ResponseData
 		ResponseData data = rawResp.toResponseData();
