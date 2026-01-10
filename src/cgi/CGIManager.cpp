@@ -23,9 +23,9 @@ std::string validateScriptPath(const std::string& scriptPath)
     return scriptPath;
 }
 
-CGIManager::CGIData CGIManager::startCGI(const RequestData& req, Client& client,
-                                         const std::string& interpreter,
-                                         const std::string& scriptPath)
+CGIData CGIManager::startCGI(const RequestData& req, Client& client,
+                             const std::string& interpreter,
+                             const std::string& scriptPath)
 {
 
     DBG("[CGIManager] scriptPath = " << scriptPath

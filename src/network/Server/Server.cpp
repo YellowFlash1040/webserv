@@ -42,7 +42,6 @@ Server::~Server()
     std::cout << "Server stopped." << std::endl;
 }
 
-
 // ---------------------------METHODS-----------------------------
 
 void Server::run(void)
@@ -70,7 +69,7 @@ void Server::run(void)
             if (state.hasPendingResponseData() && client.getOutBuffer().empty())
                 fillBuffer(client);
         }
-        
+
         int readyFDs = epoll_wait(m_epfd, events, MAX_EVENTS, -1);
         if (readyFDs == -1)
         {
@@ -89,7 +88,9 @@ void Server::run(void)
                 uint64_t expirations;
                 ssize_t n = read(m_timerfd, &expirations, sizeof(expirations));
                 if (n != sizeof(expirations))
-                    std::cerr << "Warning: timerfd read returned unexpected size: " << n << "\n";
+                    std::cerr
+                        << "Warning: timerfd read returned unexpected size: "
+                        << n << "\n";
                 checkClientTimeouts();
                 continue;
             }
@@ -108,7 +109,7 @@ void Server::run(void)
                     handleCgiStdin(*cgiByIn);
                 continue;
             }
-            
+
             if (auto* cgiByOut = m_connMgr.findCgiByStdoutFd(fd))
             {
                 if (ev & (EPOLLHUP | EPOLLERR))
@@ -214,8 +215,9 @@ void Server::acceptNewClient(int listeningSocket, int epoll_fd)
 
     const NetworkEndpoint& ep = m_listeners.at(listeningSocket).getEndpoint();
 
-    m_clients.emplace(clientSocket,
-                      std::make_unique<Client>(clientSocket, epoll_fd, clientAddr, ep));
+    m_clients.emplace(
+        clientSocket,
+        std::make_unique<Client>(clientSocket, epoll_fd, clientAddr, ep));
 
     m_connMgr.addClient(clientSocket);
 
@@ -343,13 +345,13 @@ int Server::createTimerFd(int interval_sec)
 void Server::checkClientTimeouts()
 {
     std::vector<int> timedOutClients;
-    
+
     for (const auto& pair : m_clients)
     {
         if (pair.second->isTimedOut(std::chrono::seconds(TIMEOUT)))
             timedOutClients.push_back(pair.first);
     }
-    
+
     for (int fd : timedOutClients)
     {
         auto it = m_clients.find(fd);
@@ -360,7 +362,7 @@ void Server::checkClientTimeouts()
         }
     }
 }
-void Server::handleCgiTermination(CGIManager::CGIData& cgi)
+void Server::handleCgiTermination(CGIData& cgi)
 {
 
     char buf[BUFFER_SIZE];
@@ -380,10 +382,10 @@ void Server::handleCgiTermination(CGIManager::CGIData& cgi)
         close(cgi.fd_stdin);
 
     cgi.fd_stdout = -1;
-    cgi.fd_stdin  = -1;
+    cgi.fd_stdin = -1;
 }
 
-void Server::handleCgiStdin(CGIManager::CGIData& cgi)
+void Server::handleCgiStdin(CGIData& cgi)
 {
     if (cgi.fd_stdin == -1)
         return;
@@ -409,7 +411,7 @@ void Server::handleCgiStdin(CGIManager::CGIData& cgi)
     cgi.input_sent += n;
 }
 
-void Server::handleCgiStdout(CGIManager::CGIData& cgi)
+void Server::handleCgiStdout(CGIData& cgi)
 {
     char buf[BUFFER_SIZE];
     ssize_t n = read(cgi.fd_stdout, buf, sizeof(buf));

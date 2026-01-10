@@ -22,31 +22,29 @@
 
 class ConnectionManager
 {
-private:
-	const Config& m_config;
-	std::unordered_map<int, ClientState> m_clients;
-  size_t processReqs(Client& client, const std::string& tcpData);
-	void genResps(Client& client);
-		
-public:
+  private:
+    const Config& m_config;
+    std::unordered_map<int, ClientState> m_clients;
+    size_t processReqs(Client& client, const std::string& tcpData);
+    void genResps(Client& client);
 
-	ConnectionManager() = delete;
-	ConnectionManager(const Config& config);
-	~ConnectionManager() = default;
-	ConnectionManager(const ConnectionManager&) = default;
-	ConnectionManager& operator=(const ConnectionManager&) = delete;
-	ConnectionManager(ConnectionManager&&) noexcept = default;
-	ConnectionManager& operator=(ConnectionManager&&) noexcept = delete;
+  public:
+    ConnectionManager() = delete;
+    ConnectionManager(const Config& config);
+    ~ConnectionManager() = default;
+    ConnectionManager(const ConnectionManager&) = default;
+    ConnectionManager& operator=(const ConnectionManager&) = delete;
+    ConnectionManager(ConnectionManager&&) noexcept = default;
+    ConnectionManager& operator=(ConnectionManager&&) noexcept = delete;
 
-	void addClient(int clientId);
-	void removeClient(int clientId);
-	ClientState& getClientState(int clientId);
-	bool processData(Client& client, const std::string& tcpData);
+    void addClient(int clientId);
+    void removeClient(int clientId);
+    ClientState& getClientState(int clientId);
+    bool processData(Client& client, const std::string& tcpData);
 
-	CGIManager::CGIData* findCgiByStdoutFd(int fd);
-	CGIManager::CGIData* findCgiByStdinFd(int fd);
-	void onCgiExited(pid_t pid, int status);
-
+    CGIData* findCgiByStdoutFd(int fd);
+    CGIData* findCgiByStdinFd(int fd);
+    void onCgiExited(pid_t pid, int status);
 };
 
 #endif

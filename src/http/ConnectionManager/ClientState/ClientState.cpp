@@ -76,7 +76,7 @@ RawRequest ClientState::popFirstCompleteRawRequest()
 
 const std::queue<ResponseData>& ClientState::getResponseQueue() const
 {
-	return _respDataQueue;
+    return _respDataQueue;
 }
 
 void ClientState::popFrontResponseData()
@@ -88,9 +88,9 @@ void ClientState::popFrontResponseData()
 
 RawResponse& ClientState::peekLastRawResponse()
 {
-	if (_rawResponsesQueue.empty())
-		throw std::runtime_error("No raw responses in queue to peek.");
-	return _rawResponsesQueue.back();
+    if (_rawResponsesQueue.empty())
+        throw std::runtime_error("No raw responses in queue to peek.");
+    return _rawResponsesQueue.back();
 }
 
 RawResponse ClientState::popNextRawResponse()
@@ -106,19 +106,18 @@ RawResponse ClientState::popNextRawResponse()
 
 ResponseData& ClientState::backResponseData()
 {
-	if (_respDataQueue.empty())
-		throw std::runtime_error("No response data in queue to peek.");
+    if (_respDataQueue.empty())
+        throw std::runtime_error("No response data in queue to peek.");
     return _respDataQueue.back();
 }
 
-CGIManager::CGIData& ClientState::createActiveCgi(RequestData& req,
-                                                  Client& client,
-                                                  const std::string& interpreter,
-                                                  const std::string& scriptPath, 
-                                                  ResponseData* resp)
+CGIData& ClientState::createActiveCgi(RequestData& req, Client& client,
+                                      const std::string& interpreter,
+                                      const std::string& scriptPath,
+                                      ResponseData* resp)
 {
     _activeCGIs.emplace_back();
-    CGIManager::CGIData& cgi = _activeCGIs.back();
+    CGIData& cgi = _activeCGIs.back();
 
     cgi = CGIManager::startCGI(req, client, interpreter, scriptPath);
     cgi.response = resp;
@@ -126,8 +125,7 @@ CGIManager::CGIData& ClientState::createActiveCgi(RequestData& req,
     return cgi;
 }
 
-
-CGIManager::CGIData* ClientState::findCgiByPid(pid_t pid)
+CGIData* ClientState::findCgiByPid(pid_t pid)
 {
     for (auto& cgi : _activeCGIs)
     {
@@ -139,10 +137,9 @@ CGIManager::CGIData* ClientState::findCgiByPid(pid_t pid)
 
 void ClientState::removeCgi(pid_t pid)
 {
-    auto it = std::remove_if(_activeCGIs.begin(), _activeCGIs.end(),
-                             [pid](const CGIManager::CGIData& cgi) {
-                                 return cgi.pid == pid;
-                             });
+    auto it
+        = std::remove_if(_activeCGIs.begin(), _activeCGIs.end(),
+                         [pid](const CGIData& cgi) { return cgi.pid == pid; });
     if (it != _activeCGIs.end())
         _activeCGIs.erase(it, _activeCGIs.end());
 }

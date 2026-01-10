@@ -29,7 +29,7 @@ class ClientState
     std::queue<ResponseData> _respDataQueue;
 
     // Active CGI processes for this client
-	  std::vector<CGIManager::CGIData> _activeCGIs;
+    std::vector<CGIData> _activeCGIs;
 
   public:
     ClientState();
@@ -52,18 +52,17 @@ class ClientState
     void popFrontResponseData();
     RawResponse& peekLastRawResponse();
     RawResponse popNextRawResponse();
-		ResponseData& backResponseData();
+    ResponseData& backResponseData();
 
-		CGIManager::CGIData& createActiveCgi(RequestData& req, Client& client,
-								const std::string& interpreter,
-								const std::string& scriptPath,
-								ResponseData* resp);
-								
-		std::vector<CGIManager::CGIData>& getActiveCGIs() { return _activeCGIs;	}
+    CGIData& createActiveCgi(RequestData& req, Client& client,
+                             const std::string& interpreter,
+                             const std::string& scriptPath, ResponseData* resp);
 
-		CGIManager::CGIData* findCgiByPid(pid_t pid);
-		void removeCgi(pid_t pid);
-		void clearActiveCGIs();
+    std::vector<CGIData>& getActiveCGIs() { return _activeCGIs; }
+
+    CGIData* findCgiByPid(pid_t pid);
+    void removeCgi(pid_t pid);
+    void clearActiveCGIs();
 };
 
 #endif
