@@ -6,16 +6,10 @@ namespace Converter
 
 HttpMethod toHttpMethod(const std::string& value)
 {
-    static const std::map<std::string, HttpMethod> httpMethods = {
-        {"GET", HttpMethod::GET},
-        {"POST", HttpMethod::POST},
-        {"DELETE", HttpMethod::DELETE},
-    };
-
-    auto it = httpMethods.find(value);
-    if (it == httpMethods.end())
+    HttpMethod method = stringToHttpMethod(value);
+    if (method == HttpMethod::NONE)
         throw std::invalid_argument("unknown HttpMethod '" + value + "'");
-    return it->second;
+    return method;
 }
 
 bool toBool(const std::string& value)
