@@ -17,7 +17,8 @@ std::string validateScriptPath(const std::string& scriptPath)
         throw std::runtime_error("CGI script is a directory: " + scriptPath);
 
     if (!(st.st_mode & S_IXUSR))
-        throw std::runtime_error("CGI script is not executable by this user: " + scriptPath);
+        throw std::runtime_error("CGI script is not executable by this user: "
+                                 + scriptPath);
 
     return scriptPath;
 }
@@ -37,20 +38,19 @@ std::string methodToString(HttpMethod method)
     }
 }
 
-CGIManager::CGIData CGIManager::startCGI(const RequestData& req,
-                                         Client& client,
+CGIManager::CGIData CGIManager::startCGI(const RequestData& req, Client& client,
                                          const std::string& interpreter,
                                          const std::string& scriptPath)
 {
 
     DBG("[CGIManager] scriptPath = " << scriptPath
-              << ", interpreter = " << interpreter);
+                                     << ", interpreter = " << interpreter);
 
     std::string execPath = validateScriptPath(scriptPath);
-    
+
     int pipe_in[2], pipe_out[2];
 
-    if ( pipe(pipe_out) == -1)
+    if (pipe(pipe_out) == -1)
         throw std::runtime_error("Failed to create pipes");
 
     if (pipe(pipe_in) == -1)
@@ -80,9 +80,10 @@ CGIManager::CGIData CGIManager::startCGI(const RequestData& req,
         c_args.push_back(const_cast<char*>(scriptPath.c_str()));
         c_args.push_back(nullptr);
 
-        std::vector<std::string> envVec = buildEnvFromRequest(req, client, scriptPath);
+        std::vector<std::string> envVec
+            = buildEnvFromRequest(req, client, scriptPath);
         std::vector<char*> c_env;
-        for (auto& e : envVec) 
+        for (auto& e : envVec)
             c_env.push_back(const_cast<char*>(e.c_str()));
         c_env.push_back(nullptr);
 
@@ -104,8 +105,9 @@ CGIManager::CGIData CGIManager::startCGI(const RequestData& req,
         epoll_event ev_out;
         ev_out.data.fd = pipe_out[0];
         ev_out.events = EPOLLIN | EPOLLRDHUP;
-        
-        if (epoll_ctl(client.getEpollFd(), EPOLL_CTL_ADD, pipe_out[0], &ev_out) == -1)
+
+        if (epoll_ctl(client.getEpollFd(), EPOLL_CTL_ADD, pipe_out[0], &ev_out)
+            == -1)
             perror("epoll_ctl ADD pipe_out");
 
         if (methodToString(req.method) == "POST")
@@ -113,7 +115,9 @@ CGIManager::CGIData CGIManager::startCGI(const RequestData& req,
             epoll_event ev_in;
             ev_in.data.fd = pipe_in[1];
             ev_in.events = EPOLLOUT;
-            if (epoll_ctl(client.getEpollFd(), EPOLL_CTL_ADD, pipe_in[1], &ev_in) == -1)
+            if (epoll_ctl(client.getEpollFd(), EPOLL_CTL_ADD, pipe_in[1],
+                          &ev_in)
+                == -1)
                 perror("epoll_ctl ADD pipe_in");
         }
         else
@@ -121,7 +125,7 @@ CGIManager::CGIData CGIManager::startCGI(const RequestData& req,
             close(pipe_in[1]);
             pipe_in[1] = -1;
         }
-        
+
         CGIData cgi;
 
         cgi.pid = pid;
@@ -129,12 +133,13 @@ CGIManager::CGIData CGIManager::startCGI(const RequestData& req,
         cgi.fd_stdout = pipe_out[0];
         cgi.start_time = std::time(nullptr);
         cgi.input = req.body;
-  
+
         return cgi;
     }
 }
 
-std::vector<std::string> CGIManager::buildEnvFromRequest(const RequestData& req, Client& client, const std::string& scriptPath)
+std::vector<std::string> CGIManager::buildEnvFromRequest(
+    const RequestData& req, Client& client, const std::string& scriptPath)
 {
     std::vector<std::string> env;
 
@@ -161,10 +166,10 @@ std::vector<std::string> CGIManager::buildEnvFromRequest(const RequestData& req,
     const sockaddr_in& clientAddr = client.getAddress();
     uint32_t ip = ntohl(clientAddr.sin_addr.s_addr);
     int remotePort = ntohs(clientAddr.sin_port);
-    std::string remoteIp = std::to_string((ip >> 24) & 0xFF) + "." +
-                           std::to_string((ip >> 16) & 0xFF) + "." +
-                           std::to_string((ip >> 8) & 0xFF) + "." +
-                           std::to_string(ip & 0xFF);
+    std::string remoteIp = std::to_string((ip >> 24) & 0xFF) + "."
+                           + std::to_string((ip >> 16) & 0xFF) + "."
+                           + std::to_string((ip >> 8) & 0xFF) + "."
+                           + std::to_string(ip & 0xFF);
     env.push_back("REMOTE_ADDR=" + remoteIp);
     env.push_back("REMOTE_PORT=" + std::to_string(remotePort));
 
@@ -182,7 +187,7 @@ std::vector<std::string> CGIManager::buildEnvFromRequest(const RequestData& req,
         {
             if (c == '-')
                 c = '_';
-            else 
+            else
                 c = std::toupper(c);
         }
         env.push_back(name + "=" + h.second);
