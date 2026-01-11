@@ -199,22 +199,6 @@ std::string RawRequest::extractHost(const std::string& hostHeader) const
 	return (portPos != std::string::npos) ? hostHeader.substr(0, portPos) : hostHeader;
 }
 
-// void RawRequest::appendToChunkedBuffer(const std::string& data)
-// {
-// 	DBG("\n[appendToChunkedBuffer]\nBefore append, _chunkedBuffer size = " << _chunkedBuffer.size());
-
-// 	_chunkedBuffer += data;
-
-// 	DBG("[appendToChunkedBuffer] After append, _chunkedBuffer size = " << _chunkedBuffer.size());
-// }
-
-
-
-// void RawRequest::appendToConLenBuffer(const std::string& data)
-// {
-// 	_conLenBuffer += data;
-// }
-
 void RawRequest::setTempBuffer(const std::string& buffer)
 {
 	_tempBuffer = buffer;
