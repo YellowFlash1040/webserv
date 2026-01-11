@@ -2,7 +2,7 @@
 
 namespace RequestHandler
 {
-	void handleExternalRedirect(const RawRequest& rawReq,
+	void handleInternalRedirect(const RawRequest& rawReq,
 								const Client& client,
 								const RequestContext& ctx,
 								const RawResponse& curRawResp,
@@ -42,7 +42,7 @@ namespace RequestHandler
 			RequestContext newCtx = config.createRequestContext(client.getListeningEndpoint(), rawReq.getHost(), newUri);
 			RawResponse redirResp;
 
-			handleExternalRedirect(rawReq, client, newCtx, curRawResp, redirResp);
+			handleInternalRedirect(rawReq, client, newCtx, curRawResp, redirResp);
 			return redirResp;
 		}
 
