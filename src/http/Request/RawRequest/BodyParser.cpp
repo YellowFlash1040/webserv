@@ -27,12 +27,10 @@ namespace BodyParser
 		size_t toAppend = std::min(remaining, incomingData.size());
 		DBG("[appendBodyBytes]: bytes to append in reality = " << toAppend);
 		
-		// appendToConLenBuffer(data.substr(0, toAppend));
 		conLenBuffer.append(incomingData, 0, toAppend);
 		
 		tempBuffer.erase(0, toAppend);
 		
-		// if (conLenReached())
 		if (conLenBuffer.size() == expectedLength)
 		{
 			// appendToBody(_conLenBuffer); !!

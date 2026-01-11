@@ -2,7 +2,6 @@
 #define BODYPARSER_HPP
 
 #include <string>
-#include <cstddef>
 #include "debug.hpp"
 
 namespace BodyParser

@@ -154,41 +154,45 @@ void RawRequest::parseHeaders(std::istringstream& stream)
 	while (std::getline(stream, line) && !line.empty() && line != "\r")
 	{
 		StrUtils::removeCarriageReturns(line);
-		auto colonPos = line.find(':');
-		if (colonPos == std::string::npos)
-			throw std::invalid_argument("Malformed header line: " + line);
-
-		std::string key = line.substr(0, colonPos);
-		std::string value = line.substr(colonPos + 1);
-		StrUtils::trimLeadingWhitespace(value);
-		try
-		{
-			addHeader(key, value);
-		}
-		catch(const std::exception& e)
-		{
-			throw std::invalid_argument("Header parse error: " + std::string(e.what()));
-		}
-		if (StrUtils::equalsIgnoreCase(key, "Host"))
-		{
-			_host = extractHost(value);
-		}
+		processHeaderLine(line);
 	}
 
-	// Decide body type
+	// Decide body type and connection behavior
+	finalizeHeaderParsing();
+}
+
+void RawRequest::processHeaderLine(const std::string& line)
+{
+	auto colonPos = line.find(':');
+	if (colonPos == std::string::npos)
+		throw std::invalid_argument("Malformed header line: " + line);
+
+	std::string key = line.substr(0, colonPos);
+	std::string value = line.substr(colonPos + 1);
+	StrUtils::trimLeadingWhitespace(value);
+	try
+	{
+		addHeader(key, value);
+	}
+	catch(const std::exception& e)
+	{
+		throw std::invalid_argument("Header parse error: " + std::string(e.what()));
+	}
+	if (StrUtils::equalsIgnoreCase(key, "Host"))
+	{
+		_host = extractHost(value);
+	}
+}
+
+void RawRequest::finalizeHeaderParsing()
+{
 	if (StrUtils::equalsIgnoreCase(getHeader("Transfer-Encoding"), "chunked"))
-	{
 		_bodyType = BodyType::CHUNKED;
-	}
 	else if (!getHeader("Content-Length").empty())
-	{
 		_bodyType = BodyType::SIZED;
-	}
-	
+
 	if (StrUtils::equalsIgnoreCase(getHeader("Connection"), "close"))
-	{
 		_shouldClose = true;
-	}
 
 	_headersDone = true;
 }
@@ -291,10 +295,10 @@ bool RawRequest::isBadRequest() const
 	return _isBadRequest;
 }
 
-bool RawRequest::conLenReached() const
-{
-	return _conLenBuffer.size() >= static_cast<size_t>(getContentLengthValue());
-}
+// bool RawRequest::conLenReached() const
+// {
+// 	return _conLenBuffer.size() >= static_cast<size_t>(getContentLengthValue());
+// }
 
 bool RawRequest::isRequestDone() const
 { 

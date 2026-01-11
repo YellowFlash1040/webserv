@@ -16,96 +16,93 @@
 
 class RawRequest
 {
-public:
-	RawRequest();
-	~RawRequest() = default;
+	public:
+		RawRequest();
+		~RawRequest() = default;
+		RawRequest(const RawRequest&) = delete;
+		RawRequest& operator=(const RawRequest&) = delete;
+		RawRequest(RawRequest&&) noexcept = default;
+		RawRequest& operator=(RawRequest&&) noexcept = default;
 
-	RawRequest(const RawRequest&) = delete;
-	RawRequest& operator=(const RawRequest&) = delete;
-	RawRequest(RawRequest&&) noexcept = default;
-	RawRequest& operator=(RawRequest&&) noexcept = default;
+		bool parse();
+		void separateHeadersFromBody();
+		void appendBodyBytes(const std::string& data);
 
-	// ---- high-level parsing ----
-	bool parse();
-	void appendBodyBytes(const std::string& data);
-	void separateHeadersFromBody();
+		// ---- request state ----
+		bool isHeadersDone() const;
+		bool isBodyDone() const;
+		bool isRequestDone() const;
+		bool isBadRequest() const;
+		bool shouldClose() const;
 
-	// ---- request state ----
-	bool isHeadersDone() const;
-	bool isBodyDone() const;
-	bool isRequestDone() const;
-	bool isBadRequest() const;
-	bool shouldClose() const;
+		// ---- body helpers ----
+		bool conLenReached() const;
+		size_t getContentLengthValue() const;
+		const std::string& getBody() const;
 
-	// ---- body helpers ----
-	bool conLenReached() const;
-	size_t getContentLengthValue() const;
-	const std::string& getBody() const;
+		// ---- accessors ----
+		const std::string& getTempBuffer() const;
+		const std::string& getUri() const;
+		std::string getHost() const;
+		HttpMethod getMethod() const;
+		const std::string& getHttpVersion() const;
+		BodyType::Type getBodyType() const;
+		const std::string getHeader(const std::string& name) const;
+		const std::unordered_map<std::string, std::string>& getHeaders() const;
+		
 
-	// ---- accessors ----
-	const std::string& getTempBuffer() const;
-	const std::string& getUri() const;
-	std::string getHost() const;
-	HttpMethod getMethod() const;
-	const std::string& getHttpVersion() const;
-	BodyType::Type getBodyType() const;
-	const std::unordered_map<std::string, std::string>& getHeaders() const;
-	const std::string getHeader(const std::string& name) const;
+		// ---- mutation ----
+		void setMethod(HttpMethod method);
+		void setGetMethod();
+		void setUri(const std::string& uri);
+		void setShouldClose(bool value);
+		void setHeadersDone();
+		void setBodyDone();
+		void setRequestDone();
+		void markBadRequest();
+		void addHeader(const std::string& name, const std::string& value);
+		void appendTempBuffer(const std::string& data);
+		void setTempBuffer(const std::string& buffer);
 
-	// ---- mutation ----
-	void setMethod(HttpMethod method);
-	void setGetMethod();
-	void setUri(const std::string& uri);
-	void setShouldClose(bool value);
-	void setHeadersDone();
-	void setBodyDone();
-	void setRequestDone();
-	void markBadRequest();
-	void addHeader(const std::string& name, const std::string& value);
-	void appendTempBuffer(const std::string& data);
-	void setTempBuffer(const std::string& buffer);
+		// ---- finalization ----
+		RequestData buildRequestData() const;
 
+	private:
+		// ---- buffers
+		std::string _tempBuffer;
+		std::string _rlAndHeadersBuffer;
+		std::string _body;
+		std::string _chunkedBuffer;
+		std::string _conLenBuffer;
 
-	// ---- finalization ----
-	RequestData buildRequestData() const;
-	void printRequest(size_t idx = 0) const;
+		// ---- request metadata ----
+		HttpMethod _method;
+		std::string _rawUri;
+		std::string _uri;
+		std::string _host;
+		std::string _query;
+		std::string _httpVersion;
+		std::unordered_map<std::string, std::string> _headers;
+		BodyType::Type _bodyType;
 
-private:
-	// ---- buffers (OWNED HERE) ----
-	std::string _tempBuffer;
-	std::string _rlAndHeadersBuffer;
-	std::string _body;
-	std::string _chunkedBuffer;
-	std::string _conLenBuffer;
+		// ---- parsing state ----
+		bool _headersDone;
+		bool _terminatingZeroMet;
+		bool _bodyDone;
+		bool _requestDone;
+		bool _isBadRequest;
+		bool _shouldClose;
 
-	// ---- request metadata ----
-	HttpMethod _method;
-	std::string _rawUri;
-	std::string _uri;
-	std::string _host;
-	std::string _query;
-	std::string _httpVersion;
-	std::unordered_map<std::string, std::string> _headers;
-	BodyType::Type _bodyType;
+		// ---- INTERNAL helpers
+		void parseRequestLineAndHeaders(const std::string& headerPart);
+		void parseRequestLine(const std::string& firstLine);
+		void parseHeaders(std::istringstream& stream);
+		void processHeaderLine(const std::string& line);
+		void finalizeHeaderParsing();
+		std::string extractHost(const std::string& hostHeader) const;
 
-	// ---- parsing state ----
-	bool _headersDone;
-	bool _terminatingZeroMet;
-	bool _bodyDone;
-	bool _requestDone;
-	bool _isBadRequest;
-	bool _shouldClose;
-
-	std::string _errorMessage;
-
-	// ---- INTERNAL helpers (still belong here) ----
-	void parseRequestLineAndHeaders(const std::string& headerPart);
-	void parseRequestLine(const std::string& firstLine);
-	void parseHeaders(std::istringstream& stream);
-	std::string extractHost(const std::string& hostHeader) const;
-
-	// ---- body ownership helpers ----
-	void appendToBody(const std::string& data);
+		// ---- body ownership helpers ----
+		void appendToBody(const std::string& data);
 };
 
 #endif
