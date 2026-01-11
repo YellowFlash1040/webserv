@@ -13,6 +13,7 @@ void ServerBlock::applyTo(EffectiveConfig& config) const
     applyIfSet(autoindex, config.autoindex_enabled, Replace{});
     applyIfSet(index, config.index_files, Replace{});
     applyIfSet(uploadStore, config.upload_store, Replace{});
+    applyIfSet(cgiPass, config.cgi_pass, MergeMap{});
 
     if (httpRedirection.isSet() && !config.redirection.isSet)
     {

@@ -34,6 +34,7 @@ struct ServerBlock : public ConfigBlock
     Property<bool> autoindex{};
     Property<std::vector<std::string>> index;
     Property<std::string> uploadStore;
+    Property<std::map<std::string, std::string>> cgiPass;
     // Methods
     void applyTo(EffectiveConfig& context) const override;
 };

@@ -133,6 +133,8 @@ ServerBlock Config::buildServerBlock(
             assign(serverBlock.httpRedirection, args);
         else if (name == Directives::UPLOAD_STORE)
             assign(serverBlock.uploadStore, args);
+        else if (name == Directives::CGI_PASS)
+            assign(serverBlock.cgiPass, args);
     }
 
     if (serverBlock.listen->empty())
