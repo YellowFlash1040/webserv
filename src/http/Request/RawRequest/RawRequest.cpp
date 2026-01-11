@@ -5,12 +5,16 @@ RawRequest::RawRequest()
 	_headers(), _bodyType(BodyType::NO_BODY), _headersDone(false), _terminatingZeroMet(false), _bodyDone(false),
 	_requestDone(false), _isBadRequest(false), _shouldClose(false) {}
 
+// -----------------------------
+// Public Parsing / Data Methods
+// -----------------------------
+
 bool RawRequest::parse()
 {
 	// Parse headers if not done
 	if (!isHeadersDone())
 	{
-		separateHeadersFromBody();
+		handleHeaderPart();
 
 		if (isBadRequest())
 		{
@@ -49,18 +53,153 @@ bool RawRequest::parse()
 	return false;
 }
 
-void RawRequest::separateHeadersFromBody()
+RequestData RawRequest::buildRequestData() const
 {
-	DBG("separateHeadersFromBody");
+	RequestData data;
 
-	size_t headerEnd = _tempBuffer.find("\r\n\r\n");
-	if (headerEnd == std::string::npos)
+	data.method = _method;
+	data.uri = _uri;
+	data.query = _query;
+	data.httpVersion = _httpVersion;
+	data.headers = _headers;
+	data.body = _body;
+	return data;
+}
+
+bool RawRequest::isRequestDone() const
+{ 
+	return _requestDone;
+}
+
+bool RawRequest::isBadRequest() const
+{
+	return _isBadRequest;
+}
+
+bool RawRequest::shouldClose() const
+{ 
+	return _shouldClose;
+}
+
+HttpMethod RawRequest::getMethod() const
+{
+	return _method;
+}
+
+const std::string& RawRequest::getUri() const
+{
+	return _uri;
+}
+
+const std::string& RawRequest::getHttpVersion() const 
+{
+	return _httpVersion;
+}
+
+const std::unordered_map<std::string, std::string>& RawRequest::getHeaders() const
+{
+	return _headers;
+}
+
+const std::string RawRequest::getHeader(const std::string& name) const
+{
+	auto it = _headers.find(name);
+	return (it != _headers.end()) ? it->second : "";
+}
+
+std::string RawRequest::getHost() const
+{
+	return _host;
+}
+
+BodyType::Type RawRequest::getBodyType() const
+{
+	return _bodyType;
+}
+
+const std::string& RawRequest::getTempBuffer() const
+{
+	return _tempBuffer;
+}
+
+const std::string& RawRequest::getBody() const
+{
+	return _body;
+}
+
+// -----------------------------
+// Public Setters / Modifiers
+// -----------------------------
+
+void RawRequest::setMethod(HttpMethod method)
+{
+	_method = method;
+}
+
+void RawRequest::setUri(const std::string& uri)
+{
+	_uri = uri;
+}
+
+void RawRequest::setHeadersDone()
+{ 
+	_headersDone = true;
+}
+
+void RawRequest::addHeader(const std::string& name, const std::string& value)
+{
+	auto it = _headers.find(name);
+	if (it != _headers.end())
 	{
-		DBG("Headers incomplete (\\r\\n\\r\\n not found)");
-		return; // headers incomplete
+		// Header already exists
+		if (!StrUtils::equalsIgnoreCase(it->second, value))
+		{
+			// Conflict: same header with different values
+			_bodyType = BodyType::ERROR;
+			throw std::runtime_error("Header conflict: " + name +
+									 " has values [" + it->second + "] and [" + value + "]");
+		}
+		else
+		{
+			// Duplicate with same value: harmless
+			return;
+		}
 	}
+	_headers[name] = value;
 
-	std::string headerPart = _tempBuffer.substr(0, headerEnd + 4);
+}
+
+void RawRequest::setShouldClose(bool value)
+{
+	_shouldClose = value;
+}
+
+void RawRequest::setTempBuffer(const std::string& buffer)
+{
+	_tempBuffer = buffer;
+}
+
+void RawRequest::appendTempBuffer(const std::string& data)
+{
+	_tempBuffer += data;
+}
+
+// -----------------------------
+// Private Parsing Helpers
+// -----------------------------
+
+void RawRequest::handleHeaderPart()
+{
+	DBG("handleHeaderPart");
+
+	std::string headerPart;
+	
+	if (!extractHeaderPart(headerPart))
+	{
+		DBG("Headers incomplete");
+		return;
+	}
+	
 	DBG("Header part extracted, length = " << headerPart.size());
 
 	parseRequestLineAndHeaders(headerPart);
@@ -72,18 +211,22 @@ void RawRequest::separateHeadersFromBody()
 		_requestDone = true;
 	}
 
+	finalizeHeaderPart();
+}
+
+bool RawRequest::extractHeaderPart(std::string& headerPart)
+{
+	size_t headerEnd = _tempBuffer.find("\r\n\r\n");
+	if (headerEnd == std::string::npos)
+		return false;
+
+	headerPart = _tempBuffer.substr(0, headerEnd + 4);
+	
 	// Keep leftover (after headers) in tempBuffer
 	_tempBuffer = _tempBuffer.substr(headerEnd + 4);
 	DBG("Temp buffer length after header removal = " << _tempBuffer.size());
 
-	try
-	{
-		_uri =  UriUtils::normalizePath(_uri);  // validate path AFTER leftovers are handled
-	}
-	catch (const std::exception&)
-	{
-		markBadRequest();
-	}
+	return true;
 }
 
 void RawRequest::parseRequestLineAndHeaders(const std::string& headerPart)
@@ -132,7 +275,11 @@ void RawRequest::parseRequestLine(const std::string& firstLine)
 		// 400 Bad Request
 	}
 
-	// --- Split URI into path + query ---
+	splitUriAndQuery();
+}
+
+void RawRequest::splitUriAndQuery()
+{
 	size_t qpos = _rawUri.find('?');
 	if (qpos != std::string::npos)
 	{
@@ -145,7 +292,7 @@ void RawRequest::parseRequestLine(const std::string& firstLine)
 		_query.clear();
 	}
 
-	DBG("[parseRequestLine]: _uri is " << _uri);
+	DBG("[splitUriAndQuery]: _uri = " << _uri << ", _query = " << _query);
 }
 
 void RawRequest::parseHeaders(std::istringstream& stream)
@@ -154,14 +301,14 @@ void RawRequest::parseHeaders(std::istringstream& stream)
 	while (std::getline(stream, line) && !line.empty() && line != "\r")
 	{
 		StrUtils::removeCarriageReturns(line);
-		processHeaderLine(line);
+		parseAndStoreHeaderLine(line);
 	}
 
 	// Decide body type and connection behavior
-	finalizeHeaderParsing();
+	finalizeHeaders();
 }
 
-void RawRequest::processHeaderLine(const std::string& line)
+void RawRequest::parseAndStoreHeaderLine(const std::string& line)
 {
 	auto colonPos = line.find(':');
 	if (colonPos == std::string::npos)
@@ -180,11 +327,12 @@ void RawRequest::processHeaderLine(const std::string& line)
 	}
 	if (StrUtils::equalsIgnoreCase(key, "Host"))
 	{
-		_host = extractHost(value);
+		size_t portPos = value.find(':');
+		_host = (portPos != std::string::npos) ? value.substr(0, portPos) : value;
 	}
 }
 
-void RawRequest::finalizeHeaderParsing()
+void RawRequest::finalizeHeaders()
 {
 	if (StrUtils::equalsIgnoreCase(getHeader("Transfer-Encoding"), "chunked"))
 		_bodyType = BodyType::CHUNKED;
@@ -195,6 +343,25 @@ void RawRequest::finalizeHeaderParsing()
 		_shouldClose = true;
 
 	_headersDone = true;
+}
+
+void RawRequest::finalizeHeaderPart()
+{
+	if (_bodyType == BodyType::NO_BODY)
+	{
+		DBG("No body, marking body done and request done");
+		_bodyDone = true;
+		_requestDone = true;
+	}
+
+	try
+	{
+		_uri = UriUtils::normalizePath(_uri);
+	}
+	catch (const std::exception&)
+	{
+		markBadRequest();
+	}
 }
 
 void RawRequest::appendBodyBytes(const std::string& data)
@@ -244,104 +411,6 @@ void RawRequest::appendBodyBytes(const std::string& data)
 	DBG("[appendBodyBytes]: END");
 }
 
-RequestData RawRequest::buildRequestData() const
-{
-	RequestData data;
-
-	data.method = _method;
-	data.uri = _uri;
-	data.query = _query;
-	data.httpVersion = _httpVersion;
-	data.headers = _headers;
-	data.body = _body;
-	return data;
-}
-
-void RawRequest::markBadRequest()
-{
-	_isBadRequest = true;
-	_headersDone = true;
-	_bodyDone = true;
-	_requestDone = true;
-}
-
-std::string RawRequest::extractHost(const std::string& hostHeader) const
-{
-	size_t portPos = hostHeader.find(':');
-	return (portPos != std::string::npos) ? hostHeader.substr(0, portPos) : hostHeader;
-}
-
-bool RawRequest::isBadRequest() const
-{
-	return _isBadRequest;
-}
-
-bool RawRequest::isRequestDone() const
-{ 
-	return _requestDone;
-}
-
-bool RawRequest::isHeadersDone() const
-{ 
-	return _headersDone;
-}
-
-bool RawRequest::isBodyDone() const
-{ 
-	return _bodyDone;
-}
-
-bool RawRequest::shouldClose() const
-{ 
-	return _shouldClose;
-}
-
-HttpMethod RawRequest::getMethod() const
-{
-	return _method;
-}
-
-const std::string& RawRequest::getBody() const
-{
-	return _body;
-}
-
-const std::string& RawRequest::getHttpVersion() const 
-{
-	return _httpVersion;
-}
-
-const std::string& RawRequest::getUri() const
-{
-	return _uri;
-}
-
-std::string RawRequest::getHost() const
-{
-	return _host;
-}
-
-const std::unordered_map<std::string, std::string>& RawRequest::getHeaders() const
-{
-	return _headers;
-}
-
-BodyType::Type RawRequest::getBodyType() const
-{
-	return _bodyType;
-}
-
-const std::string RawRequest::getHeader(const std::string& name) const
-{
-	auto it = _headers.find(name);
-	return (it != _headers.end()) ? it->second : "";
-}
-
-const std::string& RawRequest::getTempBuffer() const
-{
-	return _tempBuffer;
-}
-
 size_t RawRequest::getContentLengthValue() const
 {
 	// Look for Content-Length
@@ -363,64 +432,6 @@ size_t RawRequest::getContentLengthValue() const
 	}
 }
 
-void RawRequest::setUri(const std::string& uri)
-{
-	_uri = uri;
-}
-
-void RawRequest::setMethod(HttpMethod method)
-{
-	_method = method;
-}
-
-void RawRequest::setShouldClose(bool value)
-{
-	_shouldClose = value;
-}
-
-void RawRequest::setHeadersDone()
-{ 
-	_headersDone = true;
-}
-
-void RawRequest::setRequestDone()
-{
-	_requestDone = true;
-}
-
-void RawRequest::addHeader(const std::string& name, const std::string& value)
-{
-	auto it = _headers.find(name);
-	if (it != _headers.end())
-	{
-		// Header already exists
-		if (!StrUtils::equalsIgnoreCase(it->second, value))
-		{
-			// Conflict: same header with different values
-			_bodyType = BodyType::ERROR;
-			throw std::runtime_error("Header conflict: " + name +
-									 " has values [" + it->second + "] and [" + value + "]");
-		}
-		else
-		{
-			// Duplicate with same value: harmless
-			return;
-		}
-	}
-	_headers[name] = value;
-
-}
-
-void RawRequest::setTempBuffer(const std::string& buffer)
-{
-	_tempBuffer = buffer;
-}
-
-void RawRequest::appendTempBuffer(const std::string& data)
-{
-	_tempBuffer += data;
-}
-
 void RawRequest::appendToBody(const std::string& data)
 {
 	DBG("[appendToBody]: Appending " << data.size() << " bytes to _body");
@@ -428,4 +439,27 @@ void RawRequest::appendToBody(const std::string& data)
 	_body += data;
 
 	DBG("[appendToBody]: _body now = |" << _body << "|");
+}
+
+bool RawRequest::isHeadersDone() const
+{ 
+	return _headersDone;
+}
+
+bool RawRequest::isBodyDone() const
+{ 
+	return _bodyDone;
+}
+
+void RawRequest::setRequestDone()
+{
+	_requestDone = true;
+}
+
+void RawRequest::markBadRequest()
+{
+	_isBadRequest = true;
+	_headersDone = true;
+	_bodyDone = true;
+	_requestDone = true;
 }
