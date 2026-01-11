@@ -106,7 +106,6 @@ private:
 
 	// ---- body ownership helpers ----
 	void appendToBody(const std::string& data);
-	void consumeTempBuffer(size_t n);
 };
 
 #endif

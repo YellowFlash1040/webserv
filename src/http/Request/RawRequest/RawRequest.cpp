@@ -209,24 +209,6 @@ void RawRequest::appendTempBuffer(const std::string& data)
 	_tempBuffer += data;
 }
 
-void RawRequest::consumeTempBuffer(size_t n)
-{
-	DBG("[consumeTempBuffer]: _tempBuffer before: |" << _tempBuffer 
-		<< "|, size = " << _tempBuffer.size());
-
-	if (n >= _tempBuffer.size())
-	{
-		_tempBuffer.clear();
-	}
-	else
-	{
-		_tempBuffer.erase(0, n);  // remove the first n bytes
-	}
-
-	DBG("[consumeTempBuffer]: after consuming: |" << _tempBuffer 
-		<< "|, size = " << _tempBuffer.size());
-}
-
 void RawRequest::appendToBody(const std::string& data)
 {
 	DBG("[appendToBody]: Appending " << data.size() << " bytes to _body");

@@ -30,8 +30,6 @@ namespace BodyParser
 		// appendToConLenBuffer(data.substr(0, toAppend));
 		conLenBuffer.append(incomingData, 0, toAppend);
 		
-		// Consume exactly what we used from tempBuffer
-		// consumeTempBuffer(toAppend);
 		tempBuffer.erase(0, toAppend);
 		
 		// if (conLenReached())
