@@ -64,11 +64,10 @@ namespace ResponseGenerator
 		DBG("[isMethodAllowed] Checking if method " << httpMethodToString(method)
 			<< " is allowed");
 
-		for (std::vector<HttpMethod>::const_iterator it = allowed_methods.begin();
-			it != allowed_methods.end(); ++it)
+		for (const auto& allowedMethod : allowed_methods)
 		{
 			DBG("[isMethodAllowed] Comparing with allowed method: " << httpMethodToString(*it));
-			if (*it == method)
+			if (method == allowedMethod)
 			{
 				DBG("[isMethodAllowed] Method allowed!");
 				return true;
