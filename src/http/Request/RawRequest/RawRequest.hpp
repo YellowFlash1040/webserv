@@ -36,7 +36,6 @@ class RawRequest
 		bool shouldClose() const;
 
 		// ---- body helpers ----
-		bool conLenReached() const;
 		size_t getContentLengthValue() const;
 		const std::string& getBody() const;
 
@@ -50,14 +49,12 @@ class RawRequest
 		const std::string getHeader(const std::string& name) const;
 		const std::unordered_map<std::string, std::string>& getHeaders() const;
 		
-
 		// ---- mutation ----
 		void setMethod(HttpMethod method);
 		void setGetMethod();
 		void setUri(const std::string& uri);
 		void setShouldClose(bool value);
 		void setHeadersDone();
-		void setBodyDone();
 		void setRequestDone();
 		void markBadRequest();
 		void addHeader(const std::string& name, const std::string& value);

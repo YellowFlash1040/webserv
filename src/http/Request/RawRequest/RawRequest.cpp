@@ -197,31 +197,6 @@ void RawRequest::finalizeHeaderParsing()
 	_headersDone = true;
 }
 
-std::string RawRequest::extractHost(const std::string& hostHeader) const
-{
-	size_t portPos = hostHeader.find(':');
-	return (portPos != std::string::npos) ? hostHeader.substr(0, portPos) : hostHeader;
-}
-
-void RawRequest::setTempBuffer(const std::string& buffer)
-{
-	_tempBuffer = buffer;
-}
-
-void RawRequest::appendTempBuffer(const std::string& data)
-{
-	_tempBuffer += data;
-}
-
-void RawRequest::appendToBody(const std::string& data)
-{
-	DBG("[appendToBody]: Appending " << data.size() << " bytes to _body");
-
-	_body += data;
-
-	DBG("[appendToBody]: _body now = |" << _body << "|");
-}
-
 void RawRequest::appendBodyBytes(const std::string& data)
 {
 	switch (_bodyType)
@@ -290,15 +265,16 @@ void RawRequest::markBadRequest()
 	_requestDone = true;
 }
 
+std::string RawRequest::extractHost(const std::string& hostHeader) const
+{
+	size_t portPos = hostHeader.find(':');
+	return (portPos != std::string::npos) ? hostHeader.substr(0, portPos) : hostHeader;
+}
+
 bool RawRequest::isBadRequest() const
 {
 	return _isBadRequest;
 }
-
-// bool RawRequest::conLenReached() const
-// {
-// 	return _conLenBuffer.size() >= static_cast<size_t>(getContentLengthValue());
-// }
 
 bool RawRequest::isRequestDone() const
 { 
@@ -407,11 +383,6 @@ void RawRequest::setHeadersDone()
 	_headersDone = true;
 }
 
-void RawRequest::setBodyDone()
-{
-	_bodyDone = true;
-}
-
 void RawRequest::setRequestDone()
 {
 	_requestDone = true;
@@ -438,4 +409,23 @@ void RawRequest::addHeader(const std::string& name, const std::string& value)
 	}
 	_headers[name] = value;
 
+}
+
+void RawRequest::setTempBuffer(const std::string& buffer)
+{
+	_tempBuffer = buffer;
+}
+
+void RawRequest::appendTempBuffer(const std::string& data)
+{
+	_tempBuffer += data;
+}
+
+void RawRequest::appendToBody(const std::string& data)
+{
+	DBG("[appendToBody]: Appending " << data.size() << " bytes to _body");
+
+	_body += data;
+
+	DBG("[appendToBody]: _body now = |" << _body << "|");
 }

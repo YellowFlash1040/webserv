@@ -33,8 +33,6 @@ namespace BodyParser
 		
 		if (conLenBuffer.size() == expectedLength)
 		{
-			// appendToBody(_conLenBuffer); !!
-			// setBodyDone();
 			bodyDone = true;
 			DBG("[appendBodyBytes]: Content-Length body finished, body done set");
 		}
