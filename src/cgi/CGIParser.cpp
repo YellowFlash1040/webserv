@@ -1,17 +1,18 @@
 #include "CGIParser.hpp"
 #include <stdexcept>
-#include <algorithm>
 #include <cctype>
 
-CGIParser::CGIParser(std::string_view raw) : _raw(raw) {}
+CGIParser::CGIParser(std::string_view raw)
+  : _raw(raw)
+{
+}
 
 ParsedCGI CGIParser::parse(std::string_view cgi)
 {
-    CGIParser parser(cgi);
-    return parser.run();
+    return CGIParser(cgi).parse();
 }
 
-ParsedCGI CGIParser::run()
+ParsedCGI CGIParser::parse()
 {
     ParsedCGI out;
 
@@ -42,13 +43,15 @@ ParsedCGI CGIParser::run()
 size_t CGIParser::findSeparator()
 {
     size_t pos = _raw.find("\r\n\r\n");
-    if (pos != std::string_view::npos) {
+    if (pos != std::string_view::npos)
+    {
         _delimiter_len = 4;
         return pos;
     }
 
     pos = _raw.find("\n\n");
-    if (pos != std::string_view::npos) {
+    if (pos != std::string_view::npos)
+    {
         _delimiter_len = 2;
         return pos;
     }
@@ -69,19 +72,20 @@ std::string CGIParser::trim(std::string_view sv)
     return std::string(sv.substr(start, end - start));
 }
 
-void CGIParser::parseHeaders(std::string_view header_part, ParsedCGI &out)
+void CGIParser::parseHeaders(std::string_view header_part, ParsedCGI& out)
 {
-    while (!header_part.empty()) {
+    while (!header_part.empty())
+    {
         size_t line_end = header_part.find('\n');
-        std::string_view line =
-            (line_end == std::string_view::npos)
-                ? header_part
-                : header_part.substr(0, line_end);
+        std::string_view line = (line_end == std::string_view::npos)
+                                    ? header_part
+                                    : header_part.substr(0, line_end);
 
         if (!line.empty() && line.back() == '\r')
             line.remove_suffix(1);
 
-        if (line.empty()) break;
+        if (line.empty())
+            break;
 
         if (line_end == std::string_view::npos)
             header_part = {};
@@ -95,22 +99,25 @@ void CGIParser::parseHeaders(std::string_view header_part, ParsedCGI &out)
         std::string name = std::string(line.substr(0, colon));
         std::string value = trim(line.substr(colon + 1));
 
-        if (name == "Status") {
+        if (name == "Status")
+        {
             out.status = std::stoi(value);
         }
-        else if (name == "Location") {
+        else if (name == "Location")
+        {
             out.headers["Location"] = value;
             out.is_redirect = true;
             if (out.status == 200)
                 out.status = 302;
         }
-        else {
+        else
+        {
             out.headers[name] = value;
         }
     }
 }
 
-void CGIParser::validate(ParsedCGI &out)
+void CGIParser::validate(ParsedCGI& out)
 {
     if (!out.is_redirect && !out.headers.count("Content-Type"))
         throw std::runtime_error("CGI missing required Content-Type");

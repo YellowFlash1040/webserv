@@ -18,6 +18,7 @@
 #include "../network/Client/Client.hpp"
 #include "debug.hpp"
 #include "../utils/PrintUtils.hpp"
+#include "RequestResult.hpp"
 
 class ConnectionManager
 {
@@ -44,6 +45,10 @@ class ConnectionManager
     void addClient(int clientId);
     void removeClient(int clientId);
     bool processData(Client& client, const std::string& tcpData);
+
+    CGIData* findCgiByStdoutFd(int fd);
+    CGIData* findCgiByStdinFd(int fd);
+    void onCgiExited(pid_t pid, int status);
 };
 
 #endif

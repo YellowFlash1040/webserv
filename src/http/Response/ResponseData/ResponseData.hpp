@@ -8,6 +8,8 @@
 
 struct ResponseData
 {
+	bool isReady = true;
+	
 	int statusCode{200};
 	std::string statusText{"OK"};
 	std::unordered_map<std::string, std::string> headers{};

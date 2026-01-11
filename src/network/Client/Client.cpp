@@ -3,11 +3,13 @@
 #include <iostream>
 #include <arpa/inet.h> // inet_ntoa
 
-Client::Client(int fd, const sockaddr_in& addr,
+Client::Client(int fd, int epoll_fd, const sockaddr_in& addr,
                const NetworkEndpoint& listeningEndpoint)
   : socket_fd(fd)
+  , epoll_fd(epoll_fd)
   , address(addr)
   , listeningEndpoint(listeningEndpoint)
+  , _shouldClose(false)
   , out_buffer("")
 {
     if (fd < 0)
@@ -27,6 +29,11 @@ Client::~Client()
 int Client::getSocket() const
 {
     return socket_fd;
+}
+
+int Client::getEpollFd() const
+{
+    return epoll_fd;
 }
 
 const NetworkEndpoint& Client::getListeningEndpoint() const
@@ -66,4 +73,14 @@ void Client::updateLastActivity()
 bool Client::isTimedOut(std::chrono::seconds timeout) const
 {
     return (std::chrono::steady_clock::now() - lastActivity) > timeout;
+}
+
+void Client::setShouldClose(bool shouldClose)
+{
+    _shouldClose = shouldClose;
+}
+
+bool Client::shouldClose() const
+{
+    return _shouldClose;
 }
