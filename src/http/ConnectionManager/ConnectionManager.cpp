@@ -101,6 +101,9 @@ void ConnectionManager::genResps(Client& client)
 		// Convert RawResponse to ResponseData
 		ResponseData data = rawResp.toResponseData();
 
+        if (rawReq.getMethod() == HttpMethod::HEAD)
+            data.body.clear();
+
 		// Enqueue the response in the client state
 		clientState.enqueueResponseData(data);
 	}

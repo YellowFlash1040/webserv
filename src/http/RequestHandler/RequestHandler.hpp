@@ -12,9 +12,11 @@ namespace RequestHandler
 									const Client& client,
 									const Config& config);
 									
-	void handleExternalRedirect(const RequestContext& newCtx,
-									std::string& newUri,
-									RawResponse& redirResp);
+	void handleInternalRedirect(const RawRequest& rawReq,
+								const Client& client,
+								const RequestContext& ctx,
+								const RawResponse& curRawResp,
+								RawResponse& redirResp);
 									
 }
 

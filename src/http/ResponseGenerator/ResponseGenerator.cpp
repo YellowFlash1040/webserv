@@ -35,14 +35,7 @@ namespace ResponseGenerator
 				<< static_cast<int>(req.method));
 
 			rawResp.addErrorDetails(ctx, HttpStatusCode::MethodNotAllowed);
-			// Add Allow header
-			std::string allowed;
-			for (size_t i = 0; i < ctx.allowed_methods.size(); ++i)
-			{
-				if (i > 0) allowed += ", ";
-				allowed += httpMethodToString(ctx.allowed_methods[i]);
-			}
-		rawResp.addHeader("Allow", allowed);
+			addAllowHeader(rawResp, ctx.allowed_methods);
 
 			return;
 		}
@@ -71,11 +64,10 @@ namespace ResponseGenerator
 		DBG("[isMethodAllowed] Checking if method " << httpMethodToString(method)
 			<< " is allowed");
 
-		for (std::vector<HttpMethod>::const_iterator it = allowed_methods.begin();
-			it != allowed_methods.end(); ++it)
+		for (const auto& allowedMethod : allowed_methods)
 		{
 			DBG("[isMethodAllowed] Comparing with allowed method: " << httpMethodToString(*it));
-			if (*it == method)
+			if (method == allowedMethod)
 			{
 				DBG("[isMethodAllowed] Method allowed!");
 				return true;
@@ -84,6 +76,20 @@ namespace ResponseGenerator
 
 		DBG("[isMethodAllowed] Method NOT allowed");
 		return false;
+	}
+
+	void addAllowHeader(RawResponse& rawResp,
+	                    const std::vector<HttpMethod>& allowed_methods)
+	{
+	    std::string allowed;
+
+	    allowed += httpMethodToString(allowed_methods[0]);
+	    for (size_t i = 1; i < allowed_methods.size(); ++i)
+	    {
+	        allowed += ", ";
+	        allowed += httpMethodToString(allowed_methods[i]);
+	    }
+	    rawResp.addHeader("Allow", allowed);
 	}
 
 	void processGet(RequestData& req, const Client& client, const RequestContext& ctx, RawResponse& rawResp)
