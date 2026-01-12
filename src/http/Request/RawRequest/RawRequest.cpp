@@ -91,6 +91,11 @@ const std::string& RawRequest::getUri() const
 	return _uri;
 }
 
+const std::string& RawRequest::getQuery() const
+{
+	return _query;
+}
+
 const std::string& RawRequest::getHttpVersion() const 
 {
 	return _httpVersion;
@@ -366,49 +371,56 @@ void RawRequest::finalizeHeaderPart()
 
 void RawRequest::appendBodyBytes(const std::string& data)
 {
-	switch (_bodyType)
+	try
 	{
-		case BodyType::SIZED:
+		switch (_bodyType)
 		{
-			// Call BodyParser's version with references
-			BodyParser::parseSizedBody(
-				data,            // incomingData
-				_conLenBuffer,   // conLenBuffer
-				_tempBuffer,     // tempBuffer
-				getContentLengthValue(), // expectedLength
-				_bodyDone        // bodyDone
-			);
-
-			if (_bodyDone)
+			case BodyType::SIZED:
 			{
-				appendToBody(_conLenBuffer); // only append when done
-				DBG("[appendBodyBytes]: Content-Length body finished, body appended, bodyDone set");
+				// Call BodyParser's version with references
+				BodyParser::parseSizedBody(
+					data,            // incomingData
+					_conLenBuffer,   // conLenBuffer
+					_tempBuffer,     // tempBuffer
+					getContentLengthValue(), // expectedLength
+					_bodyDone        // bodyDone
+				);
+
+				if (_bodyDone)
+				{
+					appendToBody(_conLenBuffer); // only append when done
+					DBG("[appendBodyBytes]: Content-Length body finished, body appended, bodyDone set");
+				}
+				break;
 			}
-			break;
+
+			case BodyType::CHUNKED:
+			{
+				// Call BodyParser's reference-based parseChunkedBody
+				BodyParser::parseChunkedBody(
+					_chunkedBuffer,    // chunkedBuffer
+					_tempBuffer,       // tempBuffer
+					_body,             // body
+					_terminatingZeroMet, // terminatingZeroMet
+					_bodyDone          // bodyDone
+				);
+				break;
+			}
+
+			case BodyType::NO_BODY:
+				DBG("[appendBodyBytes]: No body type, nothing to append");
+				break;
+
+			case BodyType::ERROR:
+				throw std::runtime_error("Cannot append body data: request in ERROR state");
 		}
-
-		case BodyType::CHUNKED:
-		{
-			// Call BodyParser's reference-based parseChunkedBody
-			BodyParser::parseChunkedBody(
-				_chunkedBuffer,    // chunkedBuffer
-				_tempBuffer,       // tempBuffer
-				_body,             // body
-				_terminatingZeroMet, // terminatingZeroMet
-				_bodyDone          // bodyDone
-			);
-			break;
-		}
-
-		case BodyType::NO_BODY:
-			DBG("[appendBodyBytes]: No body type, nothing to append");
-			break;
-
-		case BodyType::ERROR:
-			throw std::runtime_error("Cannot append body data: request in ERROR state");
+	}
+	catch(const std::exception& e)
+	{
+		DBG("[appendBodyBytes] Bad request: " << e.what());
+		markBadRequest(); // sets _requestDone and prepares 400 response
 	}
 
-	DBG("[appendBodyBytes]: END");
 }
 
 size_t RawRequest::getContentLengthValue() const

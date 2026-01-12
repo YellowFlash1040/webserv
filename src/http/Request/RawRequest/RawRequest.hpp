@@ -32,13 +32,16 @@ class RawRequest
 		// -----------------------------
 		bool parse();
 		RequestData buildRequestData() const;
-
+		
+		bool isHeadersDone() const;
+		bool isBodyDone() const;
 		bool isRequestDone() const;
 		bool isBadRequest() const;
 		bool shouldClose() const;
 
 		HttpMethod getMethod() const;
 		const std::string& getUri() const;
+		const std::string& getQuery() const;
 		const std::string& getHttpVersion() const;
 		const std::unordered_map<std::string, std::string>& getHeaders() const;
 		const std::string getHeader(const std::string& name) const;
@@ -57,6 +60,7 @@ class RawRequest
 		void setShouldClose(bool value);
 		void setTempBuffer(const std::string& buffer);
 		void appendTempBuffer(const std::string& data);
+		void markBadRequest();
 
 	private:
 		std::string _tempBuffer;
@@ -94,12 +98,7 @@ class RawRequest
 		void appendBodyBytes(const std::string& data);
 		size_t getContentLengthValue() const;
 		void appendToBody(const std::string& data);
-		
-		bool isHeadersDone() const;
-		bool isBodyDone() const;
 		void setRequestDone();
-		void markBadRequest();
-
 };
 
 #endif

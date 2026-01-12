@@ -185,7 +185,14 @@ namespace BodyParser
 			(semicolonPos == std::string::npos)
 			? chunkHeaderLine            // the whole string
 			: chunkHeaderLine.substr(0, semicolonPos); // substring before ';'
-
+		
+		//treat any non-hex characters before CRLF as malformed
+		for (char c : chunkSizeStr)
+		{
+			if (!isxdigit(c)) // if not a hex digit
+				throw std::runtime_error("Malformed chunk size in request");
+		}
+			
 		size_t chunkSize = 0;
 		try
 		{
