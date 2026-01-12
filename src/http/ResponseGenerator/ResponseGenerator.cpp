@@ -66,7 +66,7 @@ namespace ResponseGenerator
 
 		for (const auto& allowedMethod : allowed_methods)
 		{
-			DBG("[isMethodAllowed] Comparing with allowed method: " << httpMethodToString(*it));
+			DBG("[isMethodAllowed] Comparing with allowed method: " << httpMethodToString(allowedMethod));
 			if (method == allowedMethod)
 			{
 				DBG("[isMethodAllowed] Method allowed!");
