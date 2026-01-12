@@ -264,7 +264,7 @@ void RawRequest::parseRequestLine(const std::string& firstLine)
 
 	_method = stringToHttpMethod(methodStr);
 	if (_method == HttpMethod::NONE)
-		throw std::invalid_argument("Unsupported HTTP method: " + httpMethodToString(_method));
+		throw std::invalid_argument("Unsupported HTTP method: " + methodStr);
 
 	if (_httpVersion != "HTTP/1.0" && _httpVersion != "HTTP/1.1")
 		throw std::invalid_argument("Unsupported HTTP version: " + _httpVersion);
