@@ -156,6 +156,7 @@ void CGIManager::addRequestInfo(std::vector<std::string>& env,
     if (!contentType.empty())
         addEnv(env, "CONTENT_TYPE", contentType);
 
+    addReqHeaders(env, req);
     addRemoteAddr(env, client);
 }
 
