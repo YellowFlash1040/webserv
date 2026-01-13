@@ -59,6 +59,7 @@ class RawRequest
 		void addHeader(const std::string& name, const std::string& value);
 		void setShouldClose(bool value);
 		void setTempBuffer(const std::string& buffer);
+		void setBody(const std::string& data);
 		void appendTempBuffer(const std::string& data);
 		void markBadRequest();
 

@@ -356,6 +356,13 @@ namespace ResponseGenerator
 			rawResp.addErrorDetails(ctx, HttpStatusCode::Forbidden);
 			return;
 		}
+		
+		if (!FileUtils::existsAndIsDirectory(ctx.upload_store))
+		{
+			DBG("[processPost] Upload store file does not exist in the file system");
+			rawResp.addErrorDetails(ctx, HttpStatusCode::InternalServerError);
+			return;
+		}
 
 		UploadModule::processUpload(req, ctx, rawResp);
 		DBG("[processPost] Upload processed, body size: "

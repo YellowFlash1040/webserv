@@ -184,6 +184,11 @@ void RawRequest::setTempBuffer(const std::string& buffer)
 	_tempBuffer = buffer;
 }
 
+void RawRequest::setBody(const std::string& data)
+{
+	_body = data;
+}
+
 void RawRequest::appendTempBuffer(const std::string& data)
 {
 	_tempBuffer += data;
