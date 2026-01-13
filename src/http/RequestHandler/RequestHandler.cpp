@@ -21,6 +21,7 @@ namespace RequestHandler
 
 			ResponseGenerator::genResponse(dummyReq, client, ctx, redirResp);
 			redirResp.setStatusCode(curRawResp.getStatusCode());
+			ResponseGenerator::addAllowHeader(redirResp, ctx.allowed_methods);
 		}
 	}
 

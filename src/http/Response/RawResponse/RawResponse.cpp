@@ -191,7 +191,6 @@ void RawResponse::addErrorDetails(const RequestContext& ctx,
 		DBG("[addErrorDetails] Generating DEFAULT error page for "
 			<< static_cast<int>(code));
 		addDefaultError(code);
-		addHeader("Content-Type", "text/html");
 	}
 }
 
@@ -215,7 +214,8 @@ void RawResponse::addDefaultError(HttpStatusCode code)
 		"</html>\n";
 
 	setBody(htmlBody);
-	addHeader("Content-Type", "text/html");
+	DBG ("HERE");
+	_mimeType = "text/html";
 	addHeader("Content-Length", std::to_string(_body.size()));
 
 	DBG("[addDefaultError] Default error page generated, length = " 
