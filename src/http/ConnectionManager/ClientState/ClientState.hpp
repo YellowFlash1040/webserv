@@ -12,6 +12,7 @@
 #include "../../HttpMethod/HttpMethod.hpp"
 #include "../../Response/RawResponse/RawResponse.hpp"
 #include "../../utils/debug.hpp"
+#include "../../cgi/CGIManager.hpp"
 
 class ClientState
 {
@@ -22,6 +23,8 @@ class ClientState
 
     // Responses ready to be sent on the socket
     std::queue<ResponseData> _respDataQueue;
+
+    std::vector<CGIData> _activeCGIs;
 
   public:
     ClientState();
@@ -42,6 +45,18 @@ class ClientState
     void enqueueResponseData(const ResponseData& resp);
     RawRequest popFirstCompleteRawRequest();
     void popFrontResponseData();
+
+    ResponseData& backResponseData();
+
+    CGIData& createActiveCgi(RequestData& req, Client& client,
+                             const std::string& interpreter,
+                             const std::string& scriptPath, ResponseData* resp);
+
+    std::vector<CGIData>& getActiveCGIs() { return _activeCGIs; }
+    CGIData* findCgiByPid(pid_t pid);
+    void removeCgi(pid_t pid);
+
+    void clearActiveCGIs();
 };
 
 #endif

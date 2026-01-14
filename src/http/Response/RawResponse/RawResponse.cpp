@@ -107,7 +107,10 @@ ResponseData RawResponse::toResponseData() const
         if (!noBody)
             data.headers["Content-Length"] = std::to_string(data.body.size());
 
-        data.headers["Content-Type"] = _mimeType;
+        // data.headers["Content-Type"] = _mimeType;
+		// need to use type from CGI output if it filled
+    	if (data.headers.find("Content-Type") == data.headers.end() || data.headers["Content-Type"].empty())
+        	data.headers["Content-Type"] = _mimeType;
 
         return data;
 
@@ -220,4 +223,22 @@ void RawResponse::addDefaultError(HttpStatusCode code)
 
 	DBG("[addDefaultError] Default error page generated, length = " 
 		<< _body.size());
+}
+
+bool RawResponse::parseFromCgiOutput(const std::string& cgiOutput)
+{
+    try
+    {
+        ParsedCGI parsed = CGIParser::parse(cgiOutput);
+
+		setStatusCode(static_cast<HttpStatusCode>(parsed.status));
+        _headers = parsed.headers;
+        _body = parsed.body;
+
+        return true;
+    }
+    catch (const std::exception&)
+    {
+        return false;
+    }
 }

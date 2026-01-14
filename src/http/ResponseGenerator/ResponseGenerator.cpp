@@ -4,7 +4,7 @@
 namespace ResponseGenerator
 {
 	void genResponse(const RawRequest& rawReq, const Client& client,
-		const RequestContext& ctx, RawResponse& rawResp)
+		const RequestContext& ctx, RawResponse& rawResp, RequestResult& result)
 	{
 		DBG("[processRequest]:");
 		
@@ -44,10 +44,10 @@ namespace ResponseGenerator
 		switch (req.method)
 		{
 		case HttpMethod::GET:
-			processGet(req, client, ctx, rawResp);
+			processGet(req, client, ctx, rawResp, result);
 			break;
 		case HttpMethod::POST:
-			processPost(req, client, ctx, rawResp);
+			processPost(req, client, ctx, rawResp, result);
 			break;
 		case HttpMethod::DELETE:
 			processDelete(req, client, ctx, rawResp);
@@ -92,8 +92,10 @@ namespace ResponseGenerator
 	    rawResp.addHeader("Allow", allowed);
 	}
 
-	void processGet(RequestData& req, const Client& client, const RequestContext& ctx, RawResponse& rawResp)
+
+	void processGet(RequestData& req, const Client& client, const RequestContext& ctx, RawResponse& rawResp, RequestResult& result)
 	{
+		(void)client;
 		DBG("[processGet] Processing request for resolved path: " << ctx.resolved_path);
 
 		// 1. Check CGI first
@@ -118,10 +120,11 @@ namespace ResponseGenerator
 
 				if (!checkScriptValidity(requestedScript, rawResp, ctx))
 					return;
-					
-				(void)client;
-				//CGIHandler::processCGI(req, client, interpreter, requestedScript, rawResp);
 
+				result.spawnCgi = true;
+				result.cgiInterpreter = interpreter;
+				result.cgiScriptPath = requestedScript;
+				result.requestData = req;
 				return;
 			}
 		}
@@ -344,8 +347,9 @@ namespace ResponseGenerator
 
 	void processPost(RequestData& req,
 									const Client& client,
-									const RequestContext& ctx, RawResponse& rawResp)
+									const RequestContext& ctx, RawResponse& rawResp, RequestResult& result)
 	{
+		(void)client;
 		if (ctx.client_max_body_size != 0 && req.body.size() > ctx.client_max_body_size)
 		{
 			DBG("[processPost] Body too large: " << req.body.size()
@@ -358,7 +362,6 @@ namespace ResponseGenerator
 		
 		if (!ctx.cgi_pass.empty())
 		{
-		
 			HttpStatusCode status;
 			std::string interpreter = getCgiPathFromUri(req.uri, ctx.cgi_pass, status);
 			DBG("[processPost] CGI interpreter path: \"" << interpreter
@@ -381,8 +384,11 @@ namespace ResponseGenerator
 				DBG("Executing CGI interpreter: " << interpreter
 					<< " for script: " << requestedScript);
 
-				(void)client;
-				// CGIHandler::processCGI(req, client, interpreter, requestedScript, rawResp);
+				
+				result.spawnCgi = true;
+				result.cgiInterpreter = interpreter;
+				result.cgiScriptPath = requestedScript;
+				result.requestData = req;
 				return;
 			}
 		}
