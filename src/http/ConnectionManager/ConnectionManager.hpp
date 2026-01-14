@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <sstream>
 #include <filesystem>
+#include <sys/epoll.h>
 
 #include "../RawRequest/RawRequest.hpp"
 #include "ClientState/ClientState.hpp"
@@ -19,6 +20,8 @@
 #include "debug.hpp"
 #include "../utils/PrintUtils.hpp"
 #include "RequestResult.hpp"
+
+class Server;
 
 class ConnectionManager
 {
@@ -48,7 +51,7 @@ class ConnectionManager
 
     CGIData* findCgiByStdoutFd(int fd);
     CGIData* findCgiByStdinFd(int fd);
-    void onCgiExited(pid_t pid, int status);
+    void onCgiExited(Server& server, pid_t pid, int status);
 };
 
 #endif

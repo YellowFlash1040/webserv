@@ -48,6 +48,7 @@ class Server
     void printAllClients() const;
     int createTimerFd(int interval_sec);
     void checkClientTimeouts();
+    void cleanupCgiFds(CGIData& cgi);
 
   private:
     // Properties

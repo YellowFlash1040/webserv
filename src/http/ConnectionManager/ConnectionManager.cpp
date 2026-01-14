@@ -1,4 +1,5 @@
 #include "ConnectionManager.hpp"
+#include "Server.hpp"  
 
 ConnectionManager::ConnectionManager(const Config& config)
   : m_config(config)
@@ -153,7 +154,7 @@ CGIData* ConnectionManager::findCgiByStdinFd(int fd)
     return nullptr;
 }
 
-void ConnectionManager::onCgiExited(pid_t pid, int status)
+void ConnectionManager::onCgiExited(Server& server, pid_t pid, int status)
 {
     if (WIFEXITED(status))
     {
@@ -187,6 +188,9 @@ void ConnectionManager::onCgiExited(pid_t pid, int status)
         state.enqueueResponseData(*cgi->response);
 
         state.removeCgi(pid);
+
+        server.cleanupCgiFds(*cgi);
+        
         break;
     }
 }

@@ -364,25 +364,34 @@ void Server::checkClientTimeouts()
 }
 void Server::handleCgiTermination(CGIData& cgi)
 {
-
     char buf[BUFFER_SIZE];
     ssize_t n;
 
     while ((n = read(cgi.fd_stdout, buf, sizeof(buf))) > 0)
         cgi.output.append(buf, n);
 
-    if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdout, NULL) == -1)
-        perror("epoll_ctl DEL cgi stdout");
+    cleanupCgiFds(cgi);
+}
+
+void Server::cleanupCgiFds(CGIData& cgi)
+{
+    if (cgi.fd_stdout != -1)
+    {
+        if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdout, NULL) == -1)
+            perror("epoll_ctl DEL cgi stdout");
+
+        close(cgi.fd_stdout);
+        cgi.fd_stdout = -1;
+    }
+
     if (cgi.fd_stdin != -1)
+    {
         if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdin, NULL) == -1)
-            perror("[handleCgiTermination] epoll_ctl DEL cgi stdin");
+            perror("epoll_ctl DEL cgi stdin");
 
-    close(cgi.fd_stdout);
-    if (cgi.fd_stdin != -1)
         close(cgi.fd_stdin);
-
-    cgi.fd_stdout = -1;
-    cgi.fd_stdin = -1;
+        cgi.fd_stdin = -1;
+    }
 }
 
 void Server::handleCgiStdin(CGIData& cgi)
@@ -434,5 +443,5 @@ void Server::reapDeadCgis()
     pid_t pid;
 
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0)
-        m_connMgr.onCgiExited(pid, status);
+        m_connMgr.onCgiExited(*this, pid, status);
 }
