@@ -105,35 +105,22 @@ namespace ResponseGenerator
 			DBG("[processGet] CGI interpreter path: \"" << interpreter
 				<< "\", status: " << static_cast<int>(status));
 
-
 			if (status == HttpStatusCode::BadGateway)
 			{
 				rawResp.addErrorDetails(ctx, HttpStatusCode::BadGateway);
 				return;
 			}
-			
-			DBG("[processGet] interpreter detected, checking file " << ctx.resolved_path << " for validity...");
-
-			if (!FileUtils::existsAndIsFile(ctx.resolved_path))
-			{
-				DBG("[processGet] CGI Uri not found: " << ctx.resolved_path);
-				rawResp.addErrorDetails(ctx, HttpStatusCode::NotFound);
-				return;
-			}
-			if (access(ctx.resolved_path.c_str(), X_OK) != 0)
-			{
-				DBG("[processGet] CGI Uri exists but is not executable: " << ctx.resolved_path);
-				rawResp.addErrorDetails(ctx, HttpStatusCode::Forbidden);
-				return;
-			}
-			
 			if (status == HttpStatusCode::OK)
 			{
-				DBG("Executing CGI interpreter: " << interpreter << 
-					" for script: " << ctx.resolved_path);
+				std::string requestedScript = ctx.resolved_path;
+				
+				DBG("[processGet] interpreter detected, checking file " << requestedScript << " for validity...");
+
+				if (!checkScriptValidity(requestedScript, rawResp, ctx))
+					return;
 					
 				(void)client;
-				//CGIHandler::processCGI(req, client, interpreter, ctx.resolved_path, rawResp);
+				//CGIHandler::processCGI(req, client, interpreter, requestedScript, rawResp);
 
 				return;
 			}
@@ -202,67 +189,102 @@ namespace ResponseGenerator
 		HttpStatusCode& outStatus)
 	{
 		DBG("[getCgiPathFromUri] Called with URI: \"" << uri << "\"");
+		
+		// Default: no CGI decision has been made yet
 		outStatus = HttpStatusCode::None;
-
-		if (cgi_pass.empty())
-		{
-			DBG("[getCgiPathFromUri] cgi_pass empty → no CGI");
-			return "";
-		}
-
-		std::filesystem::path path(uri);
-		std::string ext = path.extension().string();
+		
+		// Extract the file extension from the requested URI
+		std::filesystem::path requestPath(uri);
+		std::string ext = requestPath.extension().string();
 		DBG("[getCgiPathFromUri] Extracted extension: \"" << ext << "\"");
 
 		for (const auto &entry : cgi_pass)
 		{
 			DBG("[getCgiPathFromUri] Checking pair: key=\"" << entry.first
 				<< "\", interpreter=\"" << entry.second << "\"");
-
-			if (entry.first == ext)
+			
+			// Only act when the request extension matches a CGI configuration
+			if (entry.first != ext)
 			{
-				DBG("[getCgiPathFromUri] Extension matches");
-
-				// Check if interpreter exists
-				if (!std::filesystem::exists(entry.second))
-				{
-					DBG("[getCgiPathFromUri] Interpreter path does not exist: \"" 
-						<< entry.second << "\" → BadGateway");
-					outStatus = HttpStatusCode::BadGateway;
-					return "";
-				}
-
-				// Canonicalize interpreter path
-				std::filesystem::path canonicalPath =
-					std::filesystem::canonical(entry.second);
-
-				DBG("[getCgiPathFromUri] Canonicalized interpreter path: \"" 
-					<< canonicalPath.string() << "\"");
-
-				// Verify it stays inside /usr/bin/
-				if (canonicalPath.string().compare(
-						0,
-						std::string("/usr/bin/").size(),
-						"/usr/bin/") != 0)
-				{
-					DBG("[getCgiPathFromUri] Interpreter path escapes /usr/bin/ → BadGateway");
-					outStatus = HttpStatusCode::BadGateway;
-					return "";
-				}
-
-				DBG("[getCgiPathFromUri] Interpreter path valid -> OK");
-				outStatus = HttpStatusCode::OK;
-				return entry.second;
+				DBG("[getCgiPathFromUri] Extension does not match -> continue");
+				continue;
 			}
-			else
+			
+			DBG("[getCgiPathFromUri] Extension matches");
+			
+			const std::string& interpreterPath = entry.second;
+
+			 // 1. Check if the configured interpreter exists
+			if (!std::filesystem::exists(interpreterPath))
 			{
-				DBG("[getCgiPathFromUri] Extension does not match key: \"" 
-					<< entry.first << "\" -> continue");
+				DBG("[getCgiPathFromUri] Interpreter path does not exist: \"" 
+					<< entry.second << "\" -> BadGateway");
+				outStatus = HttpStatusCode::BadGateway;
+				return "";
 			}
+			
+			std::filesystem::path canonicalPath;
+
+			// 2. Canonicalize the path to resolve symlinks and normalize it
+			try
+			{
+				canonicalPath = std::filesystem::canonical(interpreterPath);
+			}
+			catch (const std::exception& e)
+			{
+				DBG("[getCgiPathFromUri] Canonicalization failed: "
+					<< e.what() << " -> BadGateway");
+				outStatus = HttpStatusCode::BadGateway;
+				return "";
+			}
+			
+			DBG("[getCgiPathFromUri] Canonicalized interpreter path: \""
+				<< canonicalPath.string() << "\"");
+			
+			// 3. Verify that it is a regular file and executable
+			if (!FileUtils::existsAndIsFile(canonicalPath) ||
+				access(canonicalPath.c_str(), X_OK) != 0)
+			{
+				DBG("[getCgiPathFromUri] Interpreter is not a regular executable -> BadGateway");
+				outStatus = HttpStatusCode::BadGateway;
+				return "";
+			}
+			
+			// All checks passed: valid CGI interpreter
+			DBG("[getCgiPathFromUri] Interpreter path valid -> OK");
+			outStatus = HttpStatusCode::OK;
+			return canonicalPath.string();
 		}
-
+		
+		// No matching CGI extension found
 		DBG("[getCgiPathFromUri] No matching CGI extension found");
 		return "";
+	}
+	
+	// Helper function to check if a script file exists and is executable
+	bool checkScriptValidity(const std::string& scriptPath, 
+							RawResponse& rawResp, 
+							const RequestContext& ctx)
+	{
+		// Check that the file exists and is a regular file
+		if (!FileUtils::existsAndIsFile(scriptPath))
+		{
+			DBG("[checkScriptValidity] Script not found: " << scriptPath);
+			rawResp.addErrorDetails(ctx, HttpStatusCode::NotFound);
+			return false;
+		}
+
+		// Check that the file is executable
+		if (access(scriptPath.c_str(), X_OK) != 0)
+		{
+			DBG("[checkScriptValidity] Script exists but is not executable: " << scriptPath);
+			rawResp.addErrorDetails(ctx, HttpStatusCode::Forbidden);
+			return false;
+		}
+
+		// Passed checks
+		DBG("[checkScriptValidity] Script is valid: " << scriptPath);
+		return true;
 	}
 
 	void processDelete(RequestData& req, const Client& client, const RequestContext& ctx, RawResponse& rawResp)
@@ -324,11 +346,6 @@ namespace ResponseGenerator
 									const Client& client,
 									const RequestContext& ctx, RawResponse& rawResp)
 	{
-		HttpStatusCode status;
-		std::string interpreter = getCgiPathFromUri(req.uri, ctx.cgi_pass, status);
-
-		DBG("[processPost] Processing POST for path: " << ctx.resolved_path);
-
 		if (ctx.client_max_body_size != 0 && req.body.size() > ctx.client_max_body_size)
 		{
 			DBG("[processPost] Body too large: " << req.body.size()
@@ -338,15 +355,36 @@ namespace ResponseGenerator
 
 			return;
 		}
-
+		
 		if (!ctx.cgi_pass.empty())
 		{
-			DBG("[processPost] CGI configured, executing...");
-			
-			(void)client;
-			//CGIHandler::processCGI(req, client, interpreter, ctx.resolved_path, rawResp);
+		
+			HttpStatusCode status;
+			std::string interpreter = getCgiPathFromUri(req.uri, ctx.cgi_pass, status);
+			DBG("[processPost] CGI interpreter path: \"" << interpreter
+				<< "\", status: " << static_cast<int>(status));
 
-			return;
+			if (status == HttpStatusCode::BadGateway)
+			{
+				rawResp.addErrorDetails(ctx, HttpStatusCode::BadGateway);
+				return;
+			}
+			if (status == HttpStatusCode::OK)
+			{
+				std::string requestedScript = ctx.resolved_path;
+				
+				DBG("[processPost] interpreter detected, checking file " << requestedScript << " for validity...");
+
+				if (!checkScriptValidity(requestedScript, rawResp, ctx))
+					return;
+
+				DBG("Executing CGI interpreter: " << interpreter
+					<< " for script: " << requestedScript);
+
+				(void)client;
+				// CGIHandler::processCGI(req, client, interpreter, requestedScript, rawResp);
+				return;
+			}
 		}
 
 		if (ctx.upload_store.empty())
@@ -424,4 +462,3 @@ namespace ResponseGenerator
 		}
 	}
 }
-

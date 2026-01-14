@@ -63,6 +63,12 @@ namespace ResponseGenerator
 		const std::map<std::string, std::string>& cgi_pass,
 		HttpStatusCode& outStatus
 	);
+	
+	bool checkScriptValidity(
+		const std::string& scriptPath,
+		RawResponse& rawResp, 
+		const RequestContext& ctx
+	);
 
 	void handleExternalRedirect(
 		const RequestContext& ctx,
