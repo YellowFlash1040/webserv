@@ -12,7 +12,13 @@ enum class HttpMethod
 	NONE,
 	GET,
 	POST,
-	DELETE
+	DELETE,
+    HEAD,
+    PUT,
+    CONNECT,
+    OPTIONS,
+    TRACE,
+    PATCH
 };
 
 // Convert HttpMethod enum to string

@@ -383,3 +383,26 @@ TEST_F(ResponseGeneratorTest, DeleteSuccess)
     auto it = resp.getHeaders().find("Content-Length");
     ASSERT_EQ(it, resp.getHeaders().end());
 }
+
+TEST_F(ResponseGeneratorTest, PostUploadMissingDirectory)
+{
+    const std::string nonExistentDir = "./assets/www/uploads_missing/";
+
+    RawRequest rawReq;
+    rawReq.setMethod(HttpMethod::POST);
+    rawReq.setUri("upload.txt");
+    rawReq.setBody("dummy content");
+
+    ctx.resolved_path = nonExistentDir + "upload.txt";
+    ctx.upload_store = nonExistentDir;
+    ctx.allowed_methods = { HttpMethod::POST };
+
+    ResponseGenerator::genResponse(rawReq, client, ctx, resp, res);
+
+    // The server should respond with 500 Internal Server Error
+    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::InternalServerError);
+
+    // The directory should still not exist
+    EXPECT_FALSE(FileUtils::pathExists(nonExistentDir));
+
+}

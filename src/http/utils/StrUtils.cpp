@@ -3,6 +3,13 @@
 
 namespace StrUtils
 {
+    /**
+    * @brief Compares two strings for equality, ignoring character case.
+    *
+    * @param a First string to compare.
+    * @param b Second string to compare.
+    * @return True if the strings are equal ignoring case; false otherwise.
+    */
 	bool equalsIgnoreCase(const std::string& a, const std::string& b)
 	{
 		if (a.size() != b.size()) return false;

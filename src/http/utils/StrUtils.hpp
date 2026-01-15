@@ -5,6 +5,7 @@
 #define TEAL    "\033[36m" 
 
 #include <iostream>
+#include <algorithm>
 
 #include "../RawRequest/RawRequest.hpp"
 #include "../Response/RawResponse/RawResponse.hpp"

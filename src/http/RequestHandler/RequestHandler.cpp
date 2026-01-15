@@ -2,7 +2,7 @@
 
 namespace RequestHandler
 {
-	void handleExternalRedirect(const RawRequest& rawReq,
+	void handleInternalRedirect(const RawRequest& rawReq,
 								const Client& client,
 								const RequestContext& ctx,
 								const RawResponse& curRawResp,
@@ -22,6 +22,7 @@ namespace RequestHandler
 
 			ResponseGenerator::genResponse(dummyReq, client, ctx, redirResp, result);
 			redirResp.setStatusCode(curRawResp.getStatusCode());
+			ResponseGenerator::addAllowHeader(redirResp, ctx.allowed_methods);
 		}
 	}
 
@@ -31,7 +32,7 @@ namespace RequestHandler
 									RequestResult& result)
 	{
 		RequestContext ctx = config.createRequestContext(client.getListeningEndpoint(), rawReq.getHost(), rawReq.getUri());
-	RawResponse curRawResp;
+		RawResponse curRawResp;
 
 		if (rawReq.shouldClose())
 			curRawResp.addHeader("Connection", "close");
@@ -44,7 +45,8 @@ namespace RequestHandler
 			RequestContext newCtx = config.createRequestContext(client.getListeningEndpoint(), rawReq.getHost(), newUri);
 			RawResponse redirResp;
 
-			handleExternalRedirect(rawReq, client, newCtx, curRawResp, redirResp, result);
+			handleInternalRedirect(rawReq, client, newCtx, curRawResp, redirResp, result);
+
 			return redirResp;
 		}
 
