@@ -188,7 +188,6 @@ void ConnectionManager::onCgiExited(Server& server, pid_t pid, int status)
         *cgi->response = raw.toResponseData();
         // for ab test connection should be closed after CGI
         cgi->response->shouldClose = true;
-        state.enqueueResponseData(*cgi->response);
 
         state.removeCgi(pid);
 
