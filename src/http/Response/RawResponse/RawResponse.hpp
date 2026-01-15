@@ -13,6 +13,7 @@
 #include "../FileUtils/FileUtils.hpp"
 #include "../HttpMethod/HttpMethod.hpp"
 #include "../HttpStatusCode/HttpStatusCode.hpp"
+#include "CGIParser.hpp"
 
 class RawResponse
 {
@@ -66,6 +67,8 @@ class RawResponse
                                 HttpStatusCode status) const;
 	void addErrorDetails(const RequestContext& ctx, HttpStatusCode code);
 	void addDefaultError(HttpStatusCode code);
+
+	bool parseFromCgiOutput(const std::string& cgiOutput);
 	};
 
 #endif

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <sstream>
 #include <filesystem>
+#include <sys/epoll.h>
 
 #include "../RawRequest/RawRequest.hpp"
 #include "ClientState/ClientState.hpp"
@@ -18,6 +19,9 @@
 #include "../network/Client/Client.hpp"
 #include "debug.hpp"
 #include "../utils/PrintUtils.hpp"
+#include "RequestResult.hpp"
+
+class Server;
 
 class ConnectionManager
 {
@@ -44,6 +48,10 @@ class ConnectionManager
     void addClient(int clientId);
     void removeClient(int clientId);
     bool processData(Client& client, const std::string& tcpData);
+
+    CGIData* findCgiByStdoutFd(int fd);
+    CGIData* findCgiByStdinFd(int fd);
+    void onCgiExited(Server& server, pid_t pid, int status);
 };
 
 #endif

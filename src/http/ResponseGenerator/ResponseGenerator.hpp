@@ -10,22 +10,23 @@
 #include "../HttpStatusCode/HttpStatusCode.hpp"
 #include "../HttpMethod/HttpMethod.hpp"
 #include "../FileUtils/FileUtils.hpp"
-#include "../../cgi/CGI.hpp"
-#include "../../cgi/CGIHandler.hpp"
-#include "../utils/debug.hpp"
+#include "debug.hpp"
 #include "../utils/StrUtils.hpp"
 #include "UploadModule.hpp"
 #include "../network/Client/Client.hpp"
+#include "RequestResult.hpp"
 
 
 namespace ResponseGenerator
 {
-	void genResponse(
-		const RawRequest& rawReq,
-		const Client& client,
-		const RequestContext& ctx,
-		RawResponse& rawResp
-	);
+    // Main entry point
+    void genResponse(
+        const RawRequest& rawReq,
+        const Client& client,
+        const RequestContext& ctx,
+        RawResponse& rawResp,
+        RequestResult& result
+    );
 
 	bool isMethodAllowed(
 		HttpMethod method,
@@ -37,19 +38,21 @@ namespace ResponseGenerator
         const std::vector<HttpMethod>& allowed_methods
     );
 
-	void processGet(
-		RequestData& req,
-		const Client& client,
-		const RequestContext& ctx,
-		RawResponse& resp
-	);
+    void processGet(
+        RequestData& req,
+        const Client& client,
+        const RequestContext& ctx,
+        RawResponse& resp,
+        RequestResult& result
+    );
 
-	void processPost(
-		RequestData& req,
-		const Client& client,
-		const RequestContext& ctx,
-		RawResponse& resp
-	);
+    void processPost(
+        RequestData& req,
+        const Client& client,
+        const RequestContext& ctx,
+        RawResponse& resp,
+        RequestResult& result
+    );
 
 	void processDelete(
 		RequestData& req,
