@@ -4,7 +4,7 @@
 namespace ResponseGenerator
 {
 	void genResponse(const RawRequest& rawReq, const Client& client,
-		const RequestContext& ctx, RawResponse& rawResp, RequestResult& result)
+		const RequestContext& ctx, RawResponse& rawResp, CgiRequestResult& cgiResult)
 	{
 		DBG("[processRequest]:");
 		
@@ -44,10 +44,10 @@ namespace ResponseGenerator
 		switch (req.method)
 		{
 		case HttpMethod::GET:
-			processGet(req, client, ctx, rawResp, result);
+			processGet(req, client, ctx, rawResp, cgiResult);
 			break;
 		case HttpMethod::POST:
-			processPost(req, client, ctx, rawResp, result);
+			processPost(req, client, ctx, rawResp, cgiResult);
 			break;
 		case HttpMethod::DELETE:
 			processDelete(req, client, ctx, rawResp);
@@ -93,7 +93,7 @@ namespace ResponseGenerator
 	}
 
 
-	void processGet(RequestData& req, const Client& client, const RequestContext& ctx, RawResponse& rawResp, RequestResult& result)
+	void processGet(RequestData& req, const Client& client, const RequestContext& ctx, RawResponse& rawResp, CgiRequestResult& cgiResult)
 	{
 		(void)client;
 		DBG("[processGet] Processing request for resolved path: " << ctx.resolved_path);
@@ -121,10 +121,10 @@ namespace ResponseGenerator
 				if (!checkScriptValidity(requestedScript, rawResp, ctx))
 					return;
 
-				result.spawnCgi = true;
-				result.cgiInterpreter = interpreter;
-				result.cgiScriptPath = requestedScript;
-				result.requestData = req;
+				cgiResult.spawnCgi = true;
+				cgiResult.cgiInterpreter = interpreter;
+				cgiResult.cgiScriptPath = requestedScript;
+				cgiResult.requestData = req;
 				return;
 			}
 		}
@@ -276,6 +276,14 @@ namespace ResponseGenerator
 			rawResp.addErrorDetails(ctx, HttpStatusCode::NotFound);
 			return false;
 		}
+		
+		// Check that the path is not a directory
+		if (FileUtils::existsAndIsDirectory(scriptPath))
+		{
+			DBG("[checkScriptValidity] Script path is a directory: " << scriptPath);
+			rawResp.addErrorDetails(ctx, HttpStatusCode::Forbidden);
+			return false;
+		}
 
 		// Check that the file is executable
 		if (access(scriptPath.c_str(), X_OK) != 0)
@@ -347,7 +355,7 @@ namespace ResponseGenerator
 
 	void processPost(RequestData& req,
 									const Client& client,
-									const RequestContext& ctx, RawResponse& rawResp, RequestResult& result)
+									const RequestContext& ctx, RawResponse& rawResp, CgiRequestResult& cgiResult)
 	{
 		(void)client;
 		if (ctx.client_max_body_size != 0 && req.body.size() > ctx.client_max_body_size)
@@ -385,10 +393,10 @@ namespace ResponseGenerator
 					<< " for script: " << requestedScript);
 
 				
-				result.spawnCgi = true;
-				result.cgiInterpreter = interpreter;
-				result.cgiScriptPath = requestedScript;
-				result.requestData = req;
+				cgiResult.spawnCgi = true;
+				cgiResult.cgiInterpreter = interpreter;
+				cgiResult.cgiScriptPath = requestedScript;
+				cgiResult.requestData = req;
 				return;
 			}
 		}

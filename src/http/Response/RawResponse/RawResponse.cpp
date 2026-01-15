@@ -86,33 +86,30 @@ bool RawResponse::shouldClose() const
 
 ResponseData RawResponse::toResponseData() const
 {
-    ResponseData data;
+	ResponseData data;
 
-    // Basic status info
-    data.statusCode = static_cast<int>(_statusCode);
-    data.statusText = codeToText(_statusCode);
-    data.headers = _headers;
+	// Basic status info
+	data.statusCode = static_cast<int>(_statusCode);
+	data.statusText = codeToText(_statusCode);
+	data.headers = _headers;
 	data.shouldClose = shouldClose();
 
-    // Determine if we should include a body
-    bool noBody = (_statusCode == HttpStatusCode::NoContent) || 
-                  (_statusCode == HttpStatusCode::NotModified) || 
-                  (static_cast<int>(_statusCode) >= 100 && static_cast<int>(_statusCode) < 200);
+	// Determine if we should include a body
+	bool noBody = (_statusCode == HttpStatusCode::NoContent) || 
+				  (_statusCode == HttpStatusCode::NotModified) || 
+				  (static_cast<int>(_statusCode) >= 100 && static_cast<int>(_statusCode) < 200);
 
-        if (!noBody)
-            data.body = _body;
-        else
-            data.body.clear();
+		if (!noBody)
+			data.body = _body;
+		else
+			data.body.clear();
 
-        if (!noBody)
-            data.headers["Content-Length"] = std::to_string(data.body.size());
+		if (!noBody)
+			data.headers["Content-Length"] = std::to_string(data.body.size());
 
-        // data.headers["Content-Type"] = _mimeType;
-		// need to use type from CGI output if it filled
-    	if (data.headers.find("Content-Type") == data.headers.end() || data.headers["Content-Type"].empty())
-        	data.headers["Content-Type"] = _mimeType;
+		data.headers["Content-Type"] = _mimeType;
 
-        return data;
+		return data;
 
 }
 
@@ -227,18 +224,18 @@ void RawResponse::addDefaultError(HttpStatusCode code)
 
 bool RawResponse::parseFromCgiOutput(const std::string& cgiOutput)
 {
-    try
-    {
-        ParsedCGI parsed = CGIParser::parse(cgiOutput);
+	try
+	{
+		ParsedCGI parsed = CGIParser::parse(cgiOutput);
 
 		setStatusCode(static_cast<HttpStatusCode>(parsed.status));
-        _headers = parsed.headers;
-        _body = parsed.body;
+		_headers = parsed.headers;
+		_body = parsed.body;
 
-        return true;
-    }
-    catch (const std::exception&)
-    {
-        return false;
-    }
+		return true;
+	}
+	catch (const std::exception&)
+	{
+		return false;
+	}
 }

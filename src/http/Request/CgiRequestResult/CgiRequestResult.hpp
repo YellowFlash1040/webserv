@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-struct RequestResult
+struct CgiRequestResult
 {
     bool spawnCgi = false;
     std::string cgiInterpreter;
