@@ -58,16 +58,28 @@ class Server
     std::unordered_map<int, std::unique_ptr<Client>> m_clients;
     ConnectionManager m_connMgr;
     // Methods
-    void addSocketToEPoll(int socket, uint32_t events);
+    void createEpoll();
+    void createTimer();
+    void addFdToEPoll(int socket, uint32_t events);
+    void monitorEvents();
+    void processEvent(const t_event& event);
+    void processTimer();
+    void processCgiInput(uint32_t ev, CGIData& cgiData);
+    void processCgiOutput(uint32_t ev, CGIData& cgiData);
+    void processClient(int fd, uint32_t ev);
     void acceptNewClient(int listeningSocket, int epoll_fd);
-    void processClient(Client& client);
-    void flushClientOutBuffer(Client& client);
+    void readFromClient(Client& client);
+    void writeToClient(Client& client);
 
     void handleCgiTermination(CGIData& cgi);
     void handleCgiStdin(CGIData& cgi);
     void handleCgiStdout(CGIData& cgi);
     void reapDeadCgis();
     void fillBuffer(Client& client);
+
+    void modifyFdInEpoll(int fd, uint32_t events);
+    void enableEpollOut(int clientFd);
+    void disableEpollOut(int clientFd);
 };
 
 #endif

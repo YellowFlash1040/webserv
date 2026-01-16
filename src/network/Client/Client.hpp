@@ -19,11 +19,11 @@ class Client
     ~Client();
 
     // Accessors
-    int getSocket() const;
+    int socket() const;
     int getEpollFd() const;
     const sockaddr_in& getAddress() const;
     const NetworkEndpoint& getListeningEndpoint() const;
-    std::string& getOutBuffer();
+    std::string& outBuffer();
 
     // Methods
     void appendToOutBuffer(const std::string& data);

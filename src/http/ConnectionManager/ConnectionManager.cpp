@@ -1,5 +1,5 @@
 #include "ConnectionManager.hpp"
-#include "Server.hpp"  
+#include "Server.hpp"
 
 ConnectionManager::ConnectionManager(const Config& config)
   : m_config(config)
@@ -38,7 +38,7 @@ bool ConnectionManager::processData(Client& client, const std::string& tcpData)
 size_t ConnectionManager::processReqs(Client& client, const std::string& data)
 {
     DBG("DEBUG: processReqs: ");
-    auto it = m_clients.find(client.getSocket());
+    auto it = m_clients.find(client.socket());
     if (it == m_clients.end())
         return 0;
 
@@ -85,7 +85,7 @@ size_t ConnectionManager::processReqs(Client& client, const std::string& data)
 
 void ConnectionManager::genResps(Client& client)
 {
-    auto it = m_clients.find(client.getSocket());
+    auto it = m_clients.find(client.socket());
     if (it == m_clients.end())
         return; // client not found
 
@@ -103,7 +103,7 @@ void ConnectionManager::genResps(Client& client)
         // Call the separated processing function
         RawResponse rawResp = RequestHandler::handleSingleRequest(
             rawReq, client, m_config, result);
-            
+
         // Convert RawResponse to ResponseData
         ResponseData data = rawResp.toResponseData();
 
@@ -193,7 +193,7 @@ void ConnectionManager::onCgiExited(Server& server, pid_t pid, int status)
         state.removeCgi(pid);
 
         server.cleanupCgiFds(*cgi);
-        
+
         break;
     }
 }

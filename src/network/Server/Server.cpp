@@ -13,31 +13,24 @@ Server::Server(const Config& config)
 }
 
 // Destructor
-
 Server::~Server()
 {
     for (auto& it : m_clients)
-    {
         if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, it.first, nullptr) == -1)
             perror("epoll_ctl DEL client");
-    }
-    m_clients.clear();
 
     for (auto& it : m_listeners)
-    {
         if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, it.first, nullptr) == -1)
             perror("epoll_ctl DEL listener");
-        close(it.first);
-    }
-    m_listeners.clear();
 
-    if (m_epfd != -1)
-        close(m_epfd);
-    m_epfd = -1;
+    if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, m_timerfd, nullptr) == -1)
+        perror("epoll_ctl DEL listener");
 
     if (m_timerfd != -1)
         close(m_timerfd);
-    m_timerfd = -1;
+
+    if (m_epfd != -1)
+        close(m_epfd);
 
     std::cout << "Server stopped." << std::endl;
 }
@@ -46,30 +39,20 @@ Server::~Server()
 
 void Server::run(void)
 {
-    m_epfd = epoll_create(1);
-    if (m_epfd == -1)
-        throw std::runtime_error("epoll_create");
-
-    m_timerfd = createTimerFd(5);
-    addSocketToEPoll(m_timerfd, EPOLLIN);
+    createEpoll();
+    createTimer();
 
     for (auto& it : m_listeners)
-        addSocketToEPoll(it.first, EPOLLIN);
+        addFdToEPoll(it.first, EPOLLIN);
 
+    monitorEvents();
+}
+
+void Server::monitorEvents()
+{
     t_event events[MAX_EVENTS];
     while (g_running)
     {
-        reapDeadCgis();
-
-        for (auto& it : m_clients)
-        {
-            Client& client = *it.second;
-            ClientState& state = m_connMgr.getClientState(client.getSocket());
-
-            if (state.hasPendingResponseData() && client.getOutBuffer().empty())
-                fillBuffer(client);
-        }
-
         int readyFDs = epoll_wait(m_epfd, events, MAX_EVENTS, -1);
         if (readyFDs == -1)
         {
@@ -78,113 +61,130 @@ void Server::run(void)
             throw std::runtime_error("epoll_wait");
         }
 
+        reapDeadCgis();
+
+        for (auto& it : m_clients)
+            fillBuffer(*it.second);
+
         for (int i = 0; i < readyFDs; ++i)
-        {
-            int fd = events[i].data.fd;
-            uint32_t ev = events[i].events;
-
-            if (fd == m_timerfd)
-            {
-                uint64_t expirations;
-                ssize_t n = read(m_timerfd, &expirations, sizeof(expirations));
-                if (n != sizeof(expirations))
-                    std::cerr
-                        << "Warning: timerfd read returned unexpected size: "
-                        << n << "\n";
-                checkClientTimeouts();
-                continue;
-            }
-
-            if (m_listeners.count(fd))
-            {
-                acceptNewClient(fd, m_epfd);
-                continue;
-            }
-
-            if (auto* cgiByIn = m_connMgr.findCgiByStdinFd(fd))
-            {
-                if (ev & (EPOLLHUP | EPOLLERR))
-                    handleCgiTermination(*cgiByIn);
-                else if (ev & EPOLLOUT)
-                    handleCgiStdin(*cgiByIn);
-                continue;
-            }
-
-            if (auto* cgiByOut = m_connMgr.findCgiByStdoutFd(fd))
-            {
-                if (ev & (EPOLLHUP | EPOLLERR))
-                    handleCgiTermination(*cgiByOut);
-                else if (ev & EPOLLIN)
-                    handleCgiStdout(*cgiByOut);
-                continue;
-            }
-
-            auto itClient = m_clients.find(fd);
-            if (itClient == m_clients.end())
-                continue;
-
-            Client& client = *itClient->second;
-
-            if (ev & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
-            {
-                removeClient(client);
-                continue;
-            }
-
-            if (ev & EPOLLIN)
-                processClient(client);
-
-            if ((ev & EPOLLOUT) && !client.getOutBuffer().empty())
-                flushClientOutBuffer(client);
-        }
+            processEvent(events[i]);
     }
 }
 
-void Server::flushClientOutBuffer(Client& client)
+void Server::createEpoll()
 {
-    int fd = client.getSocket();
-    std::string& out = client.getOutBuffer();
+    m_epfd = epoll_create(1);
+    if (m_epfd == -1)
+        throw std::runtime_error("epoll_create");
+}
+
+void Server::createTimer()
+{
+    m_timerfd = createTimerFd(5);
+    addFdToEPoll(m_timerfd, EPOLLIN);
+}
+
+void Server::processEvent(const t_event& event)
+{
+    int fd = event.data.fd;
+    uint32_t ev = event.events;
+
+    if (fd == m_timerfd)
+        return processTimer();
+
+    if (m_listeners.count(fd))
+        return acceptNewClient(fd, m_epfd);
+
+    if (auto* cgiByIn = m_connMgr.findCgiByStdinFd(fd))
+        return processCgiInput(ev, *cgiByIn);
+
+    if (auto* cgiByOut = m_connMgr.findCgiByStdoutFd(fd))
+        return processCgiOutput(ev, *cgiByOut);
+
+    processClient(fd, ev);
+}
+
+void Server::processTimer()
+{
+    uint64_t expirations;
+    ssize_t n = read(m_timerfd, &expirations, sizeof(expirations));
+    if (n != sizeof(expirations))
+        std::cerr << "Warning: timerfd read returned unexpected size: " << n
+                  << "\n";
+    checkClientTimeouts();
+}
+
+void Server::processCgiInput(uint32_t ev, CGIData& cgiData)
+{
+    if (ev & (EPOLLHUP | EPOLLERR))
+        handleCgiTermination(cgiData);
+    else if (ev & EPOLLOUT)
+        handleCgiStdin(cgiData);
+    return;
+}
+
+void Server::processCgiOutput(uint32_t ev, CGIData& cgiData)
+{
+    if (ev & (EPOLLHUP | EPOLLERR))
+        handleCgiTermination(cgiData);
+    else if (ev & EPOLLIN)
+        handleCgiStdout(cgiData);
+    return;
+}
+
+void Server::processClient(int fd, uint32_t ev)
+{
+    auto itClient = m_clients.find(fd);
+    if (itClient == m_clients.end())
+        return;
+
+    Client& client = *itClient->second;
+
+    if (ev & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
+        return removeClient(client);
+
+    if (ev & EPOLLIN)
+        return readFromClient(client);
+
+    if (ev & EPOLLOUT)
+        return writeToClient(client);
+}
+
+void Server::writeToClient(Client& client)
+{
+    int fd = client.socket();
+    std::string& out = client.outBuffer();
 
     while (!out.empty())
     {
-        ssize_t sent = send(fd, out.c_str(), out.size(), 0);
+        ssize_t sent = write(fd, out.c_str(), out.size());
         if (sent > 0)
         {
             out.erase(0, sent);
         }
         else if (sent == -1)
         {
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                break;
             perror("send");
             removeClient(client);
             return;
         }
     }
 
-    if (out.empty())
+    disableEpollOut(fd);
+    if (client.shouldClose())
     {
-        struct epoll_event mod;
-        mod.data.fd = fd;
-        mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP;
-        if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, fd, &mod) == -1)
-            perror("epoll_ctl mod");
-        if (client.shouldClose())
-        {
-            DBG("[Server]: shouldClose");
-            removeClient(client);
-        }
+        DBG("[Server]: shouldClose");
+        removeClient(client);
     }
 }
 
 void Server::addEndpoint(const NetworkEndpoint& endpoint)
 {
     ServerSocket s(endpoint, QUEUE_SIZE);
-    int fd = s.fd();
-    m_listeners.emplace(fd, std::move(s));
+    m_listeners.emplace(s.fd(), std::move(s));
 }
 
-void Server::addSocketToEPoll(int socket, uint32_t events)
+void Server::addFdToEPoll(int socket, uint32_t events)
 {
     t_event e;
     e.data.fd = socket;
@@ -221,14 +221,14 @@ void Server::acceptNewClient(int listeningSocket, int epoll_fd)
 
     m_connMgr.addClient(clientSocket);
 
-    addSocketToEPoll(clientSocket, EPOLLIN);
+    addFdToEPoll(clientSocket, EPOLLIN);
 
     clientFd.release();
 }
 
 void Server::removeClient(Client& client)
 {
-    int clientSocket = client.getSocket();
+    int clientSocket = client.socket();
     ClientState& state = m_connMgr.getClientState(clientSocket);
 
     for (auto& cgi : state.getActiveCGIs())
@@ -270,9 +270,9 @@ void Server::removeClient(Client& client)
     DBG("Client removed: " << clientSocket);
 }
 
-void Server::processClient(Client& client)
+void Server::readFromClient(Client& client)
 {
-    int clientFd = client.getSocket();
+    int clientFd = client.socket();
     char buf[BUFFER_SIZE];
     int n = read(clientFd, buf, sizeof(buf) - 1);
 
@@ -292,9 +292,10 @@ void Server::processClient(Client& client)
 
 void Server::fillBuffer(Client& client)
 {
-    int clientFd = client.getSocket();
+    if (!client.outBuffer().empty())
+        return;
 
-    ClientState& clientState = m_connMgr.getClientState(clientFd);
+    ClientState& clientState = m_connMgr.getClientState(client.socket());
 
     while (clientState.hasPendingResponseData())
     {
@@ -304,19 +305,35 @@ void Server::fillBuffer(Client& client)
             break;
 
         std::string respStr = respData.serialize();
-
-        client.setShouldClose(respData.shouldClose);
         client.appendToOutBuffer(respStr);
         client.updateLastActivity();
-
-        struct epoll_event mod;
-        mod.data.fd = clientFd;
-        mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP | EPOLLOUT;
-        if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, clientFd, &mod) == -1)
-            perror("epoll_ctl EPOLLOUT");
+        client.setShouldClose(respData.shouldClose);
 
         clientState.popFrontResponseData();
+
+        enableEpollOut(client.socket());
     }
+}
+
+void Server::modifyFdInEpoll(int fd, uint32_t events)
+{
+    t_event conf;
+    conf.data.fd = fd;
+    conf.events = events;
+    if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, fd, &conf) == -1)
+        std::cerr << "epoll_ctl: EPOLL_CTL_MOD" << "\n";
+}
+
+void Server::enableEpollOut(int clientFd)
+{
+    uint32_t events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP | EPOLLOUT;
+    modifyFdInEpoll(clientFd, events);
+}
+
+void Server::disableEpollOut(int clientFd)
+{
+    uint32_t events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP;
+    modifyFdInEpoll(clientFd, events);
 }
 
 void Server::printAllClients() const
@@ -347,10 +364,8 @@ void Server::checkClientTimeouts()
     std::vector<int> timedOutClients;
 
     for (const auto& pair : m_clients)
-    {
         if (pair.second->isTimedOut(std::chrono::seconds(TIMEOUT)))
             timedOutClients.push_back(pair.first);
-    }
 
     for (int fd : timedOutClients)
     {
@@ -362,6 +377,7 @@ void Server::checkClientTimeouts()
         }
     }
 }
+
 void Server::handleCgiTermination(CGIData& cgi)
 {
     char buf[BUFFER_SIZE];

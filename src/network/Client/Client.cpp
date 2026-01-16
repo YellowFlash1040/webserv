@@ -26,7 +26,7 @@ Client::~Client()
     }
 }
 
-int Client::getSocket() const
+int Client::socket() const
 {
     return socket_fd;
 }
@@ -46,7 +46,7 @@ const sockaddr_in& Client::getAddress() const
     return address;
 }
 
-std::string& Client::getOutBuffer()
+std::string& Client::outBuffer()
 {
     return out_buffer;
 }
