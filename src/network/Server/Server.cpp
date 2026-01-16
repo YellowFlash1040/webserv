@@ -1,6 +1,4 @@
 #include "Server.hpp"
-#include "debug.hpp"
-#include <iostream>
 
 // --------------CONSTRUCTION AND DESTRUCTION--------------
 
