@@ -7,22 +7,6 @@
 #include <arpa/inet.h>
 #include <sys/epoll.h>
 
-std::string validateScriptPath(const std::string& scriptPath)
-{
-    struct stat st;
-    if (stat(scriptPath.c_str(), &st) == -1)
-        throw std::runtime_error("CGI script not found: " + scriptPath);
-
-    if (S_ISDIR(st.st_mode))
-        throw std::runtime_error("CGI script is a directory: " + scriptPath);
-
-    if (!(st.st_mode & S_IXUSR))
-        throw std::runtime_error("CGI script is not executable by this user: "
-                                 + scriptPath);
-
-    return scriptPath;
-}
-
 CGIData CGIManager::startCGI(const RequestData& req, Client& client,
                              const std::string& interpreter,
                              const std::string& scriptPath)
@@ -30,8 +14,6 @@ CGIData CGIManager::startCGI(const RequestData& req, Client& client,
 
     DBG("[CGIManager] scriptPath = " << scriptPath
                                      << ", interpreter = " << interpreter);
-
-    std::string execPath = validateScriptPath(scriptPath);
 
     int pipe_in[2], pipe_out[2];
 

@@ -45,7 +45,6 @@ class Server
     void run(void);
     void addEndpoint(const NetworkEndpoint& endpoint);
     void removeClient(Client& client);
-    void printAllClients() const;
     int createTimerFd(int interval_sec);
     void checkClientTimeouts();
     void cleanupCgiFds(CGIData& cgi);
