@@ -1,11 +1,4 @@
 #include "CGIManager.hpp"
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <cstring>
-#include <stdexcept>
-#include <arpa/inet.h>
-#include <sys/epoll.h>
 
 CGIData CGIManager::startCGI(const RequestData& req, Client& client,
                              const std::string& interpreter,
