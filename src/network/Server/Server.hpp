@@ -40,7 +40,7 @@ class Server
     static constexpr int QUEUE_SIZE = 100;
     static constexpr int MAX_EVENTS = 50;
     static constexpr size_t BUFFER_SIZE = 8192;
-    static constexpr size_t TIMEOUT = 60;
+    static constexpr size_t TIMEOUT = 5;
     // Methods
     void run(void);
     void addEndpoint(const NetworkEndpoint& endpoint);
@@ -53,7 +53,6 @@ class Server
   private:
     // Properties
     int m_epfd = -1; // event poll fd
-    int m_timerfd = -1;
     std::unordered_map<int, ServerSocket> m_listeners;
     std::unordered_map<int, std::unique_ptr<Client>> m_clients;
     ConnectionManager m_connMgr;

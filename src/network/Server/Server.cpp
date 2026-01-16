@@ -35,10 +35,6 @@ Server::~Server()
         close(m_epfd);
     m_epfd = -1;
 
-    if (m_timerfd != -1)
-        close(m_timerfd);
-    m_timerfd = -1;
-
     std::cout << "Server stopped." << std::endl;
 }
 
@@ -49,9 +45,6 @@ void Server::run(void)
     m_epfd = epoll_create(1);
     if (m_epfd == -1)
         throw std::runtime_error("epoll_create");
-
-    m_timerfd = createTimerFd(5);
-    addSocketToEPoll(m_timerfd, EPOLLIN);
 
     for (auto& it : m_listeners)
         addSocketToEPoll(it.first, EPOLLIN);
@@ -78,22 +71,12 @@ void Server::run(void)
             throw std::runtime_error("epoll_wait");
         }
 
+        checkClientTimeouts();
+
         for (int i = 0; i < readyFDs; ++i)
         {
             int fd = events[i].data.fd;
             uint32_t ev = events[i].events;
-
-            if (fd == m_timerfd)
-            {
-                uint64_t expirations;
-                ssize_t n = read(m_timerfd, &expirations, sizeof(expirations));
-                if (n != sizeof(expirations))
-                    std::cerr
-                        << "Warning: timerfd read returned unexpected size: "
-                        << n << "\n";
-                checkClientTimeouts();
-                continue;
-            }
 
             if (m_listeners.count(fd))
             {
@@ -151,6 +134,7 @@ void Server::flushClientOutBuffer(Client& client)
         if (sent > 0)
         {
             out.erase(0, sent);
+            client.updateLastActivity();
         }
         else if (sent == -1)
         {
@@ -282,6 +266,7 @@ void Server::processClient(Client& client)
         std::string data(buf, n);
 
         m_connMgr.processData(client, data);
+        client.updateLastActivity();
     }
     else
     {
@@ -326,22 +311,6 @@ void Server::printAllClients() const
         it.second->printInfo();
 }
 
-int Server::createTimerFd(int interval_sec)
-{
-    int tfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
-    if (tfd == -1)
-        throw std::runtime_error("timerfd_create failed");
-
-    itimerspec spec{};
-    spec.it_interval.tv_sec = interval_sec;
-    spec.it_value.tv_sec = interval_sec;
-
-    if (timerfd_settime(tfd, 0, &spec, NULL) == -1)
-        throw std::runtime_error("timerfd_settime failed");
-
-    return tfd;
-}
-
 void Server::checkClientTimeouts()
 {
     std::vector<int> timedOutClients;
@@ -362,6 +331,7 @@ void Server::checkClientTimeouts()
         }
     }
 }
+
 void Server::handleCgiTermination(CGIData& cgi)
 {
     char buf[BUFFER_SIZE];
