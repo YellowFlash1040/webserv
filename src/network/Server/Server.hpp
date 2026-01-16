@@ -37,6 +37,7 @@ class Server
     // Class specific features
   public:
     // Constants
+    static constexpr int MAX_CLIENTS = 100;
     static constexpr int QUEUE_SIZE = 100;
     static constexpr int MAX_EVENTS = 50;
     static constexpr size_t BUFFER_SIZE = 8192;

@@ -209,6 +209,13 @@ void Server::acceptNewClient(int listeningSocket, int epoll_fd)
         throw std::runtime_error("accept");
     }
 
+    if (m_clients.size() >= MAX_CLIENTS)
+    {
+        std::cerr << "[Server] Connection rejected: too many clients\n";
+        close(clientSocket);
+        return;
+    }
+
     FdGuard clientFd(clientSocket);
 
     Socket::setNonBlockingAndCloexec(clientSocket);
