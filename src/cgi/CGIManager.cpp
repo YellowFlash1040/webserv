@@ -129,6 +129,7 @@ std::vector<std::string> CGIManager::buildEnvFromRequest(
     std::vector<std::string> env;
 
     addEnv(env, "GATEWAY_INTERFACE", "CGI/1.1");
+    addEnv(env, "SERVER_PROTOCOL", req.httpVersion);
     addRequestInfo(env, client, req, scriptPath);
     addServerInfo(env, req, client);
 

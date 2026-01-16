@@ -214,7 +214,6 @@ void RawResponse::addDefaultError(HttpStatusCode code)
 		"</html>\n";
 
 	setBody(htmlBody);
-	DBG ("HERE");
 	_mimeType = "text/html";
 	addHeader("Content-Length", std::to_string(_body.size()));
 
