@@ -98,11 +98,11 @@ void ConnectionManager::genResps(Client& client)
         RawRequest rawReq = clientState.popFirstCompleteRawRequest();
         PrintUtils::printRawRequest(rawReq);
 
-        RequestResult result;
+        CgiRequestResult cgiResult;
 
         // Call the separated processing function
         RawResponse rawResp = RequestHandler::handleSingleRequest(
-            rawReq, client, m_config, result);
+            rawReq, client, m_config, cgiResult);
             
         // Convert RawResponse to ResponseData
         ResponseData data = rawResp.toResponseData();
@@ -110,16 +110,16 @@ void ConnectionManager::genResps(Client& client)
         if (rawReq.getMethod() == HttpMethod::HEAD)
             data.body.clear();
 
-        if (result.spawnCgi)
+        if (cgiResult.spawnCgi)
         {
             data.isReady = false;
             clientState.enqueueResponseData(data);
 
             ResponseData& stored = clientState.backResponseData();
 
-            clientState.createActiveCgi(result.requestData, client,
-                                        result.cgiInterpreter,
-                                        result.cgiScriptPath, &stored);
+            clientState.createActiveCgi(cgiResult.requestData, client,
+                                        cgiResult.cgiInterpreter,
+                                        cgiResult.cgiScriptPath, &stored);
             continue;
         }
         else
@@ -185,10 +185,11 @@ void ConnectionManager::onCgiExited(Server& server, pid_t pid, int status)
         if (!raw.parseFromCgiOutput(cgi->output))
             raw.addDefaultError(HttpStatusCode::InternalServerError);
 
+        raw.setMimeType(raw.getHeader("Content-Type"));
+
         *cgi->response = raw.toResponseData();
         // for ab test connection should be closed after CGI
         cgi->response->shouldClose = true;
-        state.enqueueResponseData(*cgi->response);
 
         state.removeCgi(pid);
 
