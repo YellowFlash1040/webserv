@@ -51,7 +51,7 @@ CGIData CGIManager::startCGI(const RequestData& req, Client& client,
             || dup2(pipe_out[1], STDOUT_FILENO) == -1
             || dup2(pipe_out[1], STDERR_FILENO) == -1)
         {
-            perror("dup2 failed");
+            std::cerr << "dup2 failed" << std::endl;
             _exit(1);
         }
 
@@ -73,7 +73,7 @@ CGIData CGIManager::startCGI(const RequestData& req, Client& client,
         c_env.push_back(nullptr);
 
         execve(interpreter.c_str(), c_args.data(), c_env.data());
-        perror("execve failed");
+        std::cerr << "execve failed" << std::endl;
         _exit(1);
     }
     else
@@ -93,7 +93,7 @@ CGIData CGIManager::startCGI(const RequestData& req, Client& client,
 
         if (epoll_ctl(client.getEpollFd(), EPOLL_CTL_ADD, pipe_out[0], &ev_out)
             == -1)
-            perror("epoll_ctl ADD pipe_out");
+            std::cerr << "epoll_ctl ADD pipe_out failed" << std::endl;
 
         if (req.method == HttpMethod::POST)
         {
@@ -103,7 +103,7 @@ CGIData CGIManager::startCGI(const RequestData& req, Client& client,
             if (epoll_ctl(client.getEpollFd(), EPOLL_CTL_ADD, pipe_in[1],
                           &ev_in)
                 == -1)
-                perror("epoll_ctl ADD pipe_in");
+                std::cerr << "epoll_ctl ADD pipe_in failed" << std::endl;
         }
         else
         {
