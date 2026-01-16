@@ -102,7 +102,7 @@ void ConnectionManager::genResps(Client& client)
 
         // Call the separated processing function
         RawResponse rawResp = RequestHandler::handleSingleRequest(
-            rawReq, client, m_config, result);
+            rawReq, client, m_config, cgiResult);
 
         // Convert RawResponse to ResponseData
         ResponseData data = rawResp.toResponseData();
