@@ -19,7 +19,7 @@
 #include "../network/Client/Client.hpp"
 #include "debug.hpp"
 #include "../utils/PrintUtils.hpp"
-#include "RequestResult.hpp"
+#include "CgiRequestResult.hpp"
 
 class Server;
 

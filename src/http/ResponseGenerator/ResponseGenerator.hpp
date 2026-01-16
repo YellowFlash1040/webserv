@@ -14,7 +14,7 @@
 #include "../utils/StrUtils.hpp"
 #include "UploadModule.hpp"
 #include "../network/Client/Client.hpp"
-#include "RequestResult.hpp"
+#include "CgiRequestResult.hpp"
 
 
 namespace ResponseGenerator
@@ -25,7 +25,7 @@ namespace ResponseGenerator
         const Client& client,
         const RequestContext& ctx,
         RawResponse& rawResp,
-        RequestResult& result
+        CgiRequestResult& cgiResult
     );
 
 	bool isMethodAllowed(
@@ -43,7 +43,7 @@ namespace ResponseGenerator
         const Client& client,
         const RequestContext& ctx,
         RawResponse& resp,
-        RequestResult& result
+        CgiRequestResult& cgiResult
     );
 
     void processPost(
@@ -51,7 +51,7 @@ namespace ResponseGenerator
         const Client& client,
         const RequestContext& ctx,
         RawResponse& resp,
-        RequestResult& result
+        CgiRequestResult& cgiResult
     );
 
 	void processDelete(

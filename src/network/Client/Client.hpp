@@ -29,7 +29,6 @@ class Client
     void appendToOutBuffer(const std::string& data);
     void updateLastActivity();
     bool isTimedOut(std::chrono::seconds timeout) const;
-    void printInfo() const;
 
     void setShouldClose(bool shouldClose);
     bool shouldClose() const;

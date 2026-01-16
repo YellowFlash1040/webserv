@@ -56,15 +56,6 @@ void Client::appendToOutBuffer(const std::string& data)
     out_buffer += data;
 }
 
-void Client::printInfo() const
-{
-    std::cout << "Client Socket FD: " << socket_fd << "\n"
-              << "IP Address: " << inet_ntoa(address.sin_addr) << "\n"
-              << "Port: " << ntohs(address.sin_port) << "\n"
-              << "Out Buffer: " << out_buffer << "\n"
-              << "-----------------------------" << std::endl;
-}
-
 void Client::updateLastActivity()
 {
     lastActivity = std::chrono::steady_clock::now();

@@ -3,6 +3,14 @@
 #ifndef CGIMANAGER_HPP
 # define CGIMANAGER_HPP
 
+# include <sys/wait.h>
+# include <sys/stat.h>
+# include <fcntl.h>
+# include <cstring>
+# include <stdexcept>
+# include <arpa/inet.h>
+# include <sys/epoll.h>
+
 # include "Client.hpp"
 # include "RequestData.hpp"
 # include "CGIData.hpp"
