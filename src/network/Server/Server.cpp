@@ -1,5 +1,4 @@
 #include "Server.hpp"
-#include "debug.hpp"
 
 // --------------CONSTRUCTION AND DESTRUCTION--------------
 
@@ -19,14 +18,14 @@ Server::~Server()
     for (auto& it : m_clients)
     {
         if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, it.first, nullptr) == -1)
-            perror("epoll_ctl DEL client");
+            std::cerr << "epoll_ctl DEL client failed" << std::endl;
     }
     m_clients.clear();
 
     for (auto& it : m_listeners)
     {
         if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, it.first, nullptr) == -1)
-            perror("epoll_ctl DEL listener");
+            std::cerr << "epoll_ctl DEL listener failed" << std::endl;
         close(it.first);
     }
     m_listeners.clear();
@@ -152,11 +151,9 @@ void Server::flushClientOutBuffer(Client& client)
         {
             out.erase(0, sent);
         }
-        else if (sent == -1)
+        else
         {
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                break;
-            perror("send");
+            std::cerr << "send failed" << std::endl;
             removeClient(client);
             return;
         }
@@ -168,7 +165,7 @@ void Server::flushClientOutBuffer(Client& client)
         mod.data.fd = fd;
         mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP;
         if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, fd, &mod) == -1)
-            perror("epoll_ctl mod");
+            std::cerr << "epoll_ctl mod failed" << std::endl;
         if (client.shouldClose())
         {
             DBG("[Server]: shouldClose");
@@ -236,7 +233,7 @@ void Server::removeClient(Client& client)
         if (cgi.fd_stdin != -1)
         {
             if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdin, nullptr) == -1)
-                perror("[removeClient] epoll_ctl DEL cgi stdin");
+                std::cerr << "epoll_ctl DEL cgi stdin failed" << std::endl;
             close(cgi.fd_stdin);
             cgi.fd_stdin = -1;
         }
@@ -244,7 +241,7 @@ void Server::removeClient(Client& client)
         if (cgi.fd_stdout != -1)
         {
             if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdout, nullptr) == -1)
-                perror("epoll_ctl DEL cgi stdout");
+                std::cerr << "epoll_ctl DEL cgi stdout failed" << std::endl;
             close(cgi.fd_stdout);
             cgi.fd_stdout = -1;
         }
@@ -261,7 +258,7 @@ void Server::removeClient(Client& client)
 
     if (m_epfd != -1
         && epoll_ctl(m_epfd, EPOLL_CTL_DEL, clientSocket, nullptr) == -1)
-        perror("epoll_ctl DEL");
+        std::cerr << "epoll_ctl DEL client failed" << std::endl;
 
     if (m_clients.erase(clientSocket) == 0)
         std::cerr << "Warning: tried to remove non-existent client "
@@ -313,17 +310,10 @@ void Server::fillBuffer(Client& client)
         mod.data.fd = clientFd;
         mod.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP | EPOLLOUT;
         if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, clientFd, &mod) == -1)
-            perror("epoll_ctl EPOLLOUT");
+            std::cerr << "epoll_ctl EPOLLOUT failed" << std::endl;
 
         clientState.popFrontResponseData();
     }
-}
-
-void Server::printAllClients() const
-{
-    std::cout << "=== Active Clients ===" << std::endl;
-    for (const auto& it : m_clients)
-        it.second->printInfo();
 }
 
 int Server::createTimerFd(int interval_sec)
@@ -378,7 +368,7 @@ void Server::cleanupCgiFds(CGIData& cgi)
     if (cgi.fd_stdout != -1)
     {
         if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdout, NULL) == -1)
-            perror("epoll_ctl DEL cgi stdout");
+            std::cerr << "epoll_ctl DEL cgi stdout failed" << std::endl;
 
         close(cgi.fd_stdout);
         cgi.fd_stdout = -1;
@@ -387,7 +377,7 @@ void Server::cleanupCgiFds(CGIData& cgi)
     if (cgi.fd_stdin != -1)
     {
         if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdin, NULL) == -1)
-            perror("epoll_ctl DEL cgi stdin");
+            std::cerr << "epoll_ctl DEL cgi stdin failed" << std::endl;
 
         close(cgi.fd_stdin);
         cgi.fd_stdin = -1;
@@ -403,7 +393,7 @@ void Server::handleCgiStdin(CGIData& cgi)
     if (left == 0)
     {
         if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdin, nullptr) == -1)
-            perror("[handleCgiStdin] epoll_ctl DEL cgi stdin");
+            std::cerr << "epoll_ctl DEL cgi stdin failed" << std::endl;
         close(cgi.fd_stdin);
         cgi.fd_stdin = -1;
         return;
@@ -432,7 +422,7 @@ void Server::handleCgiStdout(CGIData& cgi)
     }
 
     if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, cgi.fd_stdout, nullptr) == -1)
-        perror("epoll_ctl DEL cgi stdout");
+        std::cerr << "epoll_ctl DEL cgi stdout failed" << std::endl;
     close(cgi.fd_stdout);
     cgi.fd_stdout = -1;
 }

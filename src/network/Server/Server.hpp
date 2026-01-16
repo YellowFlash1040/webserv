@@ -21,7 +21,8 @@
 # include "ServerSocket.hpp"
 # include "ConnectionManager.hpp"
 # include "ClientState.hpp"
-# include "../../utils/FdGuard/FdGuard.hpp"
+# include "FdGuard.hpp"
+# include "debug.hpp"
 
 typedef struct epoll_event t_event;
 
@@ -45,7 +46,6 @@ class Server
     void run(void);
     void addEndpoint(const NetworkEndpoint& endpoint);
     void removeClient(Client& client);
-    void printAllClients() const;
     int createTimerFd(int interval_sec);
     void checkClientTimeouts();
     void cleanupCgiFds(CGIData& cgi);

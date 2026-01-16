@@ -1,27 +1,4 @@
 #include "CGIManager.hpp"
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <cstring>
-#include <stdexcept>
-#include <arpa/inet.h>
-#include <sys/epoll.h>
-
-std::string validateScriptPath(const std::string& scriptPath)
-{
-    struct stat st;
-    if (stat(scriptPath.c_str(), &st) == -1)
-        throw std::runtime_error("CGI script not found: " + scriptPath);
-
-    if (S_ISDIR(st.st_mode))
-        throw std::runtime_error("CGI script is a directory: " + scriptPath);
-
-    if (!(st.st_mode & S_IXUSR))
-        throw std::runtime_error("CGI script is not executable by this user: "
-                                 + scriptPath);
-
-    return scriptPath;
-}
 
 CGIData CGIManager::startCGI(const RequestData& req, Client& client,
                              const std::string& interpreter,
@@ -30,8 +7,6 @@ CGIData CGIManager::startCGI(const RequestData& req, Client& client,
 
     DBG("[CGIManager] scriptPath = " << scriptPath
                                      << ", interpreter = " << interpreter);
-
-    std::string execPath = validateScriptPath(scriptPath);
 
     int pipe_in[2], pipe_out[2];
 
@@ -51,7 +26,7 @@ CGIData CGIManager::startCGI(const RequestData& req, Client& client,
             || dup2(pipe_out[1], STDOUT_FILENO) == -1
             || dup2(pipe_out[1], STDERR_FILENO) == -1)
         {
-            perror("dup2 failed");
+            std::cerr << "dup2 failed" << std::endl;
             _exit(1);
         }
 
@@ -73,7 +48,7 @@ CGIData CGIManager::startCGI(const RequestData& req, Client& client,
         c_env.push_back(nullptr);
 
         execve(interpreter.c_str(), c_args.data(), c_env.data());
-        perror("execve failed");
+        std::cerr << "execve failed" << std::endl;
         _exit(1);
     }
     else
@@ -93,7 +68,7 @@ CGIData CGIManager::startCGI(const RequestData& req, Client& client,
 
         if (epoll_ctl(client.getEpollFd(), EPOLL_CTL_ADD, pipe_out[0], &ev_out)
             == -1)
-            perror("epoll_ctl ADD pipe_out");
+            std::cerr << "epoll_ctl ADD pipe_out failed" << std::endl;
 
         if (req.method == HttpMethod::POST)
         {
@@ -103,7 +78,7 @@ CGIData CGIManager::startCGI(const RequestData& req, Client& client,
             if (epoll_ctl(client.getEpollFd(), EPOLL_CTL_ADD, pipe_in[1],
                           &ev_in)
                 == -1)
-                perror("epoll_ctl ADD pipe_in");
+                std::cerr << "epoll_ctl ADD pipe_in failed" << std::endl;
         }
         else
         {
@@ -181,6 +156,7 @@ void CGIManager::addReqHeaders(std::vector<std::string>& env,
 void CGIManager::addServerInfo(std::vector<std::string>& env,
                                const RequestData& req, const Client& client)
 {
+    addEnv(env, "SERVER_PROTOCOL", req.httpVersion);
     addServerName(env, req, client);
     addServerAddr(env, client);
 }
