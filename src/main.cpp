@@ -26,22 +26,26 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
 
     setupSignalHandlers();
-    try
+    while (true)
     {
-        Server s(config);
-        s.run();
-    }
-    catch (const std::runtime_error& e)
-    {
-        std::cerr << "Error: " << e.what() << ": " << strerror(errno) << "\n";
-        return EXIT_FAILURE;
-    }
-    catch (const std::exception& e)
-    {
-        std::cerr << "Error: " << e.what() << "\n";
-        return EXIT_FAILURE;
-    }
+        try
+        {
+            Server s(config);
+            s.run();
+        }
+        catch (const std::runtime_error& e)
+        {
+            std::cerr << "Error: " << e.what() << ": " << strerror(errno)
+                      << "\n";
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "Error: " << e.what() << "\n";
+        }
 
+        if (!g_running)
+            break;
+    }
     return EXIT_SUCCESS;
 }
 
