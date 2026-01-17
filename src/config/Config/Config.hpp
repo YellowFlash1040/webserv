@@ -27,6 +27,7 @@ class Config
 {
     // Construction and destruction
   public:
+    Config() = default;
     explicit Config(std::unique_ptr<Directive> rootNode);
     Config(const Config& other) = delete;
     Config& operator=(const Config& other) = delete;
