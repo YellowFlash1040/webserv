@@ -77,4 +77,5 @@ void setupSignalHandlers()
 {
     std::signal(SIGINT, stopServer);
     std::signal(SIGTERM, stopServer);
+    std::signal(SIGPIPE, SIG_IGN);
 }
