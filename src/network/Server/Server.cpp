@@ -220,7 +220,7 @@ void Server::acceptNewClient(int listeningSocket, int epoll_fd)
 
     Socket::setNonBlockingAndCloexec(clientSocket);
 
-    const NetworkEndpoint& ep = m_listeners.at(listeningSocket).getEndpoint();
+    const NetworkEndpoint& ep = m_listeners.at(listeningSocket).endpoint();
 
     m_clients.emplace(
         clientSocket,

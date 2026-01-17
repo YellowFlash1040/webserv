@@ -45,12 +45,12 @@ ServerSocket::~ServerSocket() {}
 
 // ---------------------------METHODS-----------------------------
 
-NetworkEndpoint& ServerSocket::getEndpoint()
+NetworkEndpoint& ServerSocket::endpoint()
 {
     return m_endpoint;
 }
 
-const NetworkEndpoint& ServerSocket::getEndpoint() const
+const NetworkEndpoint& ServerSocket::endpoint() const
 {
     return m_endpoint;
 }
