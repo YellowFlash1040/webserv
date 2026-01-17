@@ -406,3 +406,44 @@ TEST_F(ResponseGeneratorTest, PostUploadMissingDirectory)
     EXPECT_FALSE(FileUtils::pathExists(nonExistentDir));
 
 }
+
+TEST_F(ResponseGeneratorTest, PipelinedRequestsConnectionKeepAliveAndClose)
+{
+    // // First request (keep-alive)
+    RawRequest req1;
+    req1.setMethod(HttpMethod::GET);
+    req1.setUri("/index.html");
+    req1.addHeader("Connection", "keep-alive");
+    req1.setShouldClose(false);
+
+    ctx.resolved_path = "./assets/www/site1/index.html";
+    ctx.allowed_methods = {HttpMethod::GET};
+    ctx.index_files = {"index.html"};
+    ctx.autoindex_enabled = false;
+
+    ResponseGenerator::genResponse(req1, client, ctx, resp, cgiRes);
+
+    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
+    EXPECT_TRUE(resp.hasHeader("Connection"));
+    EXPECT_EQ(resp.getHeader("Connection"), "keep-alive");
+
+    // // Second request (close)
+    RawRequest req2;
+    req2.setMethod(HttpMethod::GET);
+    req2.setUri("/index.html");
+    req2.addHeader("Connection", "close");
+    req2.setShouldClose(true);
+    
+    ctx.resolved_path = "./assets/www/site1/index.html";
+    ctx.allowed_methods = {HttpMethod::GET};
+    ctx.index_files = {"index.html"};
+    ctx.autoindex_enabled = false;
+    
+    RawResponse resp2;
+    ResponseGenerator::genResponse(req2, client, ctx, resp2, cgiRes);
+
+    EXPECT_EQ(resp2.getStatusCode(), HttpStatusCode::OK);
+    EXPECT_TRUE(resp2.hasHeader("Connection"));
+    EXPECT_EQ(resp2.getHeader("Connection"), "close");
+}
+

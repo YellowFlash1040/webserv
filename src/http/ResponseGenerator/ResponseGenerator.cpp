@@ -11,6 +11,8 @@ namespace ResponseGenerator
 		bool shouldClose = rawReq.shouldClose();
 			if (shouldClose)
 				rawResp.addHeader("Connection", "close");
+			else
+				rawResp.addHeader("Connection", "keep-alive");
 		
 		// 0. Bad request
 		if (rawReq.isBadRequest())

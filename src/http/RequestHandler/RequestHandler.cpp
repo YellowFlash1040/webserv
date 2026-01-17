@@ -34,9 +34,6 @@ namespace RequestHandler
 		RequestContext ctx = config.createRequestContext(client.getListeningEndpoint(), rawReq.getHost(), rawReq.getUri());
 		RawResponse curRawResp;
 
-		if (rawReq.shouldClose())
-			curRawResp.addHeader("Connection", "close");
-
 		ResponseGenerator::genResponse(rawReq, client, ctx, curRawResp, cgiResult);
 
 		if (curRawResp.isInternalRedirect())
