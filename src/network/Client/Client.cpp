@@ -17,13 +17,39 @@ Client::Client(int fd, int epoll_fd, const sockaddr_in& addr,
     updateLastActivity();
 }
 
+Client::Client(Client&& other) noexcept
+  : socket_fd(other.socket_fd)
+  , epoll_fd(other.epoll_fd)
+  , address(other.address)
+  , listeningEndpoint(std::move(other.listeningEndpoint))
+  , _shouldClose(other._shouldClose)
+  , out_buffer(std::move(other.out_buffer))
+  , lastActivity(other.lastActivity)
+{
+    other.socket_fd = -1;
+}
+
+Client& Client::operator=(Client&& other) noexcept
+{
+    if (this != &other)
+    {
+        socket_fd = other.socket_fd;
+        epoll_fd = other.epoll_fd;
+        address = other.address;
+        listeningEndpoint = std::move(other.listeningEndpoint);
+        _shouldClose = other._shouldClose;
+        out_buffer = std::move(other.out_buffer);
+        lastActivity = other.lastActivity;
+
+        other.socket_fd = -1;
+    }
+    return *this;
+}
+
 Client::~Client()
 {
-    if (socket_fd >= 0)
-    {
+    if (socket_fd != -1)
         close(socket_fd);
-        socket_fd = -1;
-    }
 }
 
 int Client::socket() const
