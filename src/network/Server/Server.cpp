@@ -63,7 +63,7 @@ void Server::monitorEvents()
         reapDeadCgis();
 
         for (auto& it : m_clients)
-            fillBuffer(*it.second);
+            fillBuffer(it.second);
 
         for (int i = 0; i < readyFDs; ++i)
             processEvent(events[i]);
@@ -137,7 +137,7 @@ void Server::processClient(int fd, uint32_t ev)
     if (itClient == m_clients.end())
         return;
 
-    Client& client = *itClient->second;
+    Client& client = itClient->second;
 
     if (ev & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
         return removeClient(client);
@@ -222,9 +222,8 @@ void Server::acceptNewClient(int listeningSocket, int epoll_fd)
 
     const NetworkEndpoint& ep = m_listeners.at(listeningSocket).endpoint();
 
-    m_clients.emplace(
-        clientSocket,
-        std::make_unique<Client>(clientSocket, epoll_fd, clientAddr, ep));
+    m_clients.emplace(clientSocket,
+                      Client(clientSocket, epoll_fd, clientAddr, ep));
 
     m_connMgr.addClient(clientSocket);
 
@@ -364,7 +363,7 @@ void Server::checkClientTimeouts()
     std::vector<int> timedOutClients;
 
     for (const auto& pair : m_clients)
-        if (pair.second->isTimedOut(std::chrono::seconds(TIMEOUT)))
+        if (pair.second.isTimedOut(std::chrono::seconds(TIMEOUT)))
             timedOutClients.push_back(pair.first);
 
     for (int fd : timedOutClients)
@@ -373,7 +372,7 @@ void Server::checkClientTimeouts()
         if (it != m_clients.end())
         {
             DBG("Client " << fd << " timed out");
-            removeClient(*it->second);
+            removeClient(it->second);
         }
     }
 }

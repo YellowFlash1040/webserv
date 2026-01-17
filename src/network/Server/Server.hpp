@@ -56,7 +56,7 @@ class Server
     int m_epfd = -1; // event poll fd
     int m_timerfd = -1;
     std::unordered_map<int, ServerSocket> m_listeners;
-    std::unordered_map<int, std::unique_ptr<Client>> m_clients;
+    std::unordered_map<int, Client> m_clients;
     ConnectionManager m_connMgr;
     // Methods
     void createEpoll();
