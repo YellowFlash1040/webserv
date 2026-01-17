@@ -3,40 +3,74 @@
 #include "Server.hpp"
 #include "Config.hpp"
 
+bool validateArgumentsCount(int argc, char** argv);
+bool initializeConfig(Config& config, const char* filepath);
+void setupSignalHandlers();
+
 volatile std::sig_atomic_t g_running = true;
 
-void handle_signal(int)
+void stopServer(int)
 {
     g_running = false;
 }
 
 int main(int argc, char** argv)
 {
-    std::signal(SIGINT, handle_signal);
-    std::signal(SIGTERM, handle_signal);
+    if (!validateArgumentsCount(argc, argv))
+        return EXIT_FAILURE;
 
-    const char* filepath = (argc > 1) ? argv[1] : "webserv.conf";
+    const char* filepath = (argc == 2) ? argv[1] : "webserv.conf";
 
+    Config config;
+    if (!initializeConfig(config, filepath))
+        return EXIT_FAILURE;
+
+    setupSignalHandlers();
     try
     {
-        Config config = Config::fromFile(filepath);
         Server s(config);
         s.run();
-    }
-    catch (const ConfigException& e)
-    {
-        std::cerr << "\033[1m" << filepath << ":\033[0m" << e.what() << '\n';
-        return 1;
     }
     catch (const std::runtime_error& e)
     {
         std::cerr << "Error: " << e.what() << ": " << strerror(errno) << "\n";
-        return 1;
+        return EXIT_FAILURE;
     }
     catch (const std::exception& e)
     {
         std::cerr << "Error: " << e.what() << "\n";
-        return 1;
+        return EXIT_FAILURE;
     }
-    return 0;
+
+    return EXIT_SUCCESS;
+}
+
+bool validateArgumentsCount(int argc, char** argv)
+{
+    if (argc != 1 && argc != 2)
+    {
+        std::cerr << "Usage: " << argv[0] << " [configuration file]\n";
+        return false;
+    }
+    return true;
+}
+
+bool initializeConfig(Config& config, const char* filepath)
+{
+    try
+    {
+        config = Config::fromFile(filepath);
+    }
+    catch (const ConfigException& e)
+    {
+        std::cerr << "\033[1m" << filepath << ":\033[0m" << e.what() << '\n';
+        return false;
+    }
+    return true;
+}
+
+void setupSignalHandlers()
+{
+    std::signal(SIGINT, stopServer);
+    std::signal(SIGTERM, stopServer);
 }
