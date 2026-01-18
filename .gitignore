@@ -11,3 +11,4 @@
 !**/tests/googletest/**/*.h
 !.clang-format
 !**/assets/**
+!**/docs/**
