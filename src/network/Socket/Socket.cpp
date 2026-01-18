@@ -11,6 +11,11 @@ Socket::Socket()
         throw std::runtime_error("socket");
 }
 
+Socket::Socket(int fd)
+  : m_fd(fd)
+{
+}
+
 // Move constructor
 Socket::Socket(Socket&& other) noexcept
   : m_fd(other.m_fd)

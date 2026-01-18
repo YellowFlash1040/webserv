@@ -17,13 +17,19 @@ class Client
     Client(int fd, int epoll_fd, const sockaddr_in& addr,
            const NetworkEndpoint& listeningEndpoint);
     ~Client();
+    // Move semantics
+    Client(Client&& other) noexcept;
+    Client& operator=(Client&& other) noexcept;
+    // Disable copying
+    Client(const Client&) = delete;
+    Client& operator=(const Client&) = delete;
 
     // Accessors
-    int getSocket() const;
+    int socket() const;
     int getEpollFd() const;
     const sockaddr_in& getAddress() const;
     const NetworkEndpoint& getListeningEndpoint() const;
-    std::string& getOutBuffer();
+    std::string& outBuffer();
 
     // Methods
     void appendToOutBuffer(const std::string& data);
@@ -35,8 +41,8 @@ class Client
 
   private:
     // Properties
-    int socket_fd;
-    int epoll_fd;
+    int socket_fd = -1;
+    int epoll_fd = -1;
     sockaddr_in address;
     NetworkEndpoint listeningEndpoint;
     bool _shouldClose;

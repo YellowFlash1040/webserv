@@ -14,6 +14,7 @@ class Socket
     // Construction and destruction
   public:
     Socket();
+    explicit Socket(int fd);
     Socket(const Socket& other) = delete;
     Socket& operator=(const Socket& other) = delete;
     Socket(Socket&& other) noexcept;
