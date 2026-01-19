@@ -193,6 +193,8 @@ std::string UploadModule::saveFile(const FileField& file,
         throw std::runtime_error("Failed to open file '" + file.fileName
                                  + "' for writing");
     os.write(file.contents.c_str(), file.contents.size());
+    if (!os)
+        throw std::runtime_error("Failed to write file '" + file.fileName + "'");
 
     return filePath;
 }

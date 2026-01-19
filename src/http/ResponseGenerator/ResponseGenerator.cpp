@@ -423,11 +423,18 @@ namespace ResponseGenerator
 			return;
 		}
 
-		UploadModule::processUpload(req, ctx, rawResp);
-		DBG("[processPost] Upload processed, body size: "
-				<< rawResp.getBody().size());
-
-		return;
+		try
+		{
+			UploadModule::processUpload(req, ctx, rawResp);
+			DBG("[processPost] Upload processed, body size: " << rawResp.getBody().size());
+			return;
+		}
+		catch (const std::exception& e)
+		{
+			DBG("[processPost] Upload failed: " << e.what());
+			rawResp.addErrorDetails(ctx, HttpStatusCode::InternalServerError);
+			return;
+		}
 	}
 
 	void fillSuccessfulResponse(RawResponse& resp, const std::string& filePath)
