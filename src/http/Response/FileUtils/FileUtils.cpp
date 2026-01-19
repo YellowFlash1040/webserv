@@ -35,17 +35,7 @@ namespace FileUtils
 		return std::remove(path.c_str()) == 0;
 	}
 
-	std::string readFileToString(const std::string &path)
-	{
-		std::ifstream file(path, std::ios::binary);
-		if (!file)
-			throw std::runtime_error("Failed to open file: " + path);
-		std::ostringstream ss;
-		ss << file.rdbuf();
-		return ss.str();
-	}
-	
-	 // Returns the first existing index file path in the directory, or empty string if none exist
+	// Returns the first existing index file path in the directory, or empty string if none exist
 	std::string getFirstValidIndexFile(const std::string& dirPath, const std::vector<std::string>& indexFiles)
 	{
 		DBG("[getFirstValidIndexFile] Checking directory: " << dirPath);

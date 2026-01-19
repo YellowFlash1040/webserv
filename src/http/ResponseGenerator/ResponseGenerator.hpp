@@ -15,6 +15,7 @@
 #include "UploadModule.hpp"
 #include "../network/Client/Client.hpp"
 #include "CgiRequestResult.hpp"
+#include "FileReader.hpp"
 
 
 namespace ResponseGenerator

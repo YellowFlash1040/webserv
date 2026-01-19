@@ -24,7 +24,6 @@ namespace FileUtils
 	bool hasWritePermission(const std::string& path);
 	bool deleteFile(const std::string& path);
 
-	std::string readFileToString(const std::string& path);
 	std::string getFirstValidIndexFile(const std::string& dirPath, const std::vector<std::string>& indexFiles);
 	std::string generateAutoindex(const std::string& dirPath);
 	std::string detectMimeType(const std::string& path);
