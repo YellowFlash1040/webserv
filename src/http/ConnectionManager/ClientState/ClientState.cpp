@@ -12,6 +12,18 @@ ClientState::ClientState()
     _rawRequests.emplace_back();
 }
 
+ClientState::~ClientState()
+{
+    for (auto& cgi : _activeCGIs)
+    {
+        if (cgi.fd_stdin != -1)
+            close(cgi.fd_stdin);
+        if (cgi.fd_stdout != -1)
+            close(cgi.fd_stdout);
+        kill(cgi.pid, SIGTERM);
+    }
+}
+
 // ---------------------------ACCESSORS-----------------------------
 
 bool ClientState::hasPendingResponseData() const

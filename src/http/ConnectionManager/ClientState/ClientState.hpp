@@ -28,7 +28,7 @@ class ClientState
 
   public:
     ClientState();
-    ~ClientState() = default;
+    ~ClientState();
     ClientState(const ClientState& other) = default;
     ClientState& operator=(const ClientState& other) = default;
     ClientState(ClientState&& other) noexcept = default;
