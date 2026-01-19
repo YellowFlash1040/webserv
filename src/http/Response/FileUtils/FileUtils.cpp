@@ -30,22 +30,13 @@ namespace FileUtils
 		return access(path.c_str(), W_OK) == 0;
 	}
 
-	bool deleteFile(const std::string &path)
+	void deleteFile(const std::string &path)
 	{
-		return std::remove(path.c_str()) == 0;
+		if (std::remove(path.c_str()) != 0)
+		throw std::runtime_error("Failed to delete file: " + path);
 	}
 
-	std::string readFileToString(const std::string &path)
-	{
-		std::ifstream file(path, std::ios::binary);
-		if (!file)
-			throw std::runtime_error("Failed to open file: " + path);
-		std::ostringstream ss;
-		ss << file.rdbuf();
-		return ss.str();
-	}
-	
-	 // Returns the first existing index file path in the directory, or empty string if none exist
+	// Returns the first existing index file path in the directory, or empty string if none exist
 	std::string getFirstValidIndexFile(const std::string& dirPath, const std::vector<std::string>& indexFiles)
 	{
 		DBG("[getFirstValidIndexFile] Checking directory: " << dirPath);
@@ -98,7 +89,8 @@ namespace FileUtils
 			html << "<li><a href=\"" << name << "\">" << name << "</a></li>\n";
 		}
 
-		closedir(dir);
+		if (closedir(dir) != 0)
+			throw std::runtime_error("Failed to close directory: " + dirPath);
 		html << "</ul></body></html>";
 		return html.str();
 	}

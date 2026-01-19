@@ -134,55 +134,72 @@ namespace ResponseGenerator
 		//no CGI mapping -> continue to static file handling
 
 		// 2. Static file handling
-		if (FileUtils::existsAndIsFile(ctx.resolved_path))
+		try
 		{
-			DBG("[processGet] Detected: file: " << ctx.resolved_path);
-
-			if (access(ctx.resolved_path.c_str(), R_OK) != 0)
+			if (FileUtils::existsAndIsFile(ctx.resolved_path))
 			{
-				DBG("[processGet] File exists but not readable");
-				rawResp.addErrorDetails(ctx, HttpStatusCode::Forbidden);
+				DBG("[processGet] Detected: file: " << ctx.resolved_path);
+
+				if (!FileUtils::hasReadPermission(ctx.resolved_path))
+				{
+					DBG("[processGet] File exists but not readable");
+					rawResp.addErrorDetails(ctx, HttpStatusCode::Forbidden);
+					return;
+				}
+
+				fillSuccessfulResponse(rawResp, ctx.resolved_path);
+
+				DBG("[processGet] Served static file with status: " << static_cast<int>(rawResp.getStatusCode())
+				<< " (might change later if it is an internal redirection");
+				
 				return;
 			}
-
-			fillSuccessfulResponse(rawResp, ctx.resolved_path);
-
-			DBG("[processGet] Served static file with status: " << static_cast<int>(rawResp.getStatusCode())
-			<< " (might change later if it is an internal redirection");
-			
+		}
+		catch (const std::exception &e)
+		{
+			DBG("[processGet] Exception serving static file: " << e.what());
+			rawResp.addErrorDetails(ctx, HttpStatusCode::InternalServerError);
 			return;
-
 		}
 
 		// 3. Directory handling
-		if (FileUtils::existsAndIsDirectory(ctx.resolved_path))
+		try
 		{
-			DBG("[processGet] Detected: directory: " << ctx.resolved_path);
-
-			// Try to find index file
-			std::string indexPath = FileUtils::getFirstValidIndexFile(ctx.resolved_path, ctx.index_files);
-			if (!indexPath.empty())
+			if (FileUtils::existsAndIsDirectory(ctx.resolved_path))
 			{
-				// Serve index file as static file
-				fillSuccessfulResponse(rawResp, indexPath);
+				DBG("[processGet] Detected: directory: " << ctx.resolved_path);
+
+				// Try to find index file
+				std::string indexPath = FileUtils::getFirstValidIndexFile(ctx.resolved_path, ctx.index_files);
+				if (!indexPath.empty())
+				{
+					// Serve index file as static file
+					fillSuccessfulResponse(rawResp, indexPath);
+					return;
+				}
+
+				// Generate autoindex
+				if (ctx.autoindex_enabled)
+				{
+					DBG("[processGet] No index file found, generating autoindex...");
+			
+					fillAutoindexResponse(rawResp, ctx.resolved_path);
+					return;
+				}
+				// No index, autoindex disabled: 403 Forbidden
+				DBG("[processGet] No index file, autoindex disabled -> Forbidden");
+				rawResp.addErrorDetails(ctx, HttpStatusCode::Forbidden);
 				return;
 			}
-
-			// Generate autoindex
-			if (ctx.autoindex_enabled)
-			{
-				DBG("[processGet] No index file found, generating autoindex...");
-		
-				fillAutoindexResponse(rawResp, ctx.resolved_path);
-				return;
-			}
-			// No index, autoindex disabled: 403 Forbidden
-			DBG("[processGet] No index file, autoindex disabled -> Forbidden");
-			rawResp.addErrorDetails(ctx, HttpStatusCode::Forbidden);
+		}
+		catch (const std::exception &e)
+		{
+			DBG("[processGet] Exception serving directory or generating autoindex: " << e.what());
+			rawResp.addErrorDetails(ctx, HttpStatusCode::InternalServerError);
 			return;
 		}
 
-		// 5. Path does not exist at all
+		// 4. Path does not exist at all
 		DBG("[processGet] Path not found: " << ctx.resolved_path);
 		rawResp.addErrorDetails(ctx, HttpStatusCode::NotFound);
 		return;
@@ -305,56 +322,44 @@ namespace ResponseGenerator
 		(void)req;
 		(void)client;
 
-		DBG("[processDelete] Processing DELETE for path: "
-				<< ctx.resolved_path);
+		DBG("[processDelete] Processing DELETE for path: " << ctx.resolved_path);
 
-		if (!FileUtils::pathExists(ctx.resolved_path))
+		try
 		{
-			DBG("[processDelete] Path does not exist: "
-					<< ctx.resolved_path);
-					
-			rawResp.addErrorDetails(ctx, HttpStatusCode::NotFound);
-			return;
-		}
+			if (!FileUtils::pathExists(ctx.resolved_path))
+			{
+				DBG("[processDelete] Path does not exist: " << ctx.resolved_path);
+				rawResp.addErrorDetails(ctx, HttpStatusCode::NotFound);
+				return;
+			}
 
-		if (FileUtils::existsAndIsDirectory(ctx.resolved_path))
-		{
-			DBG("[processDelete] Path is a directory, forbidden to delete: "
-				<< ctx.resolved_path);
-				
-			rawResp.addErrorDetails(ctx, HttpStatusCode::Forbidden);
-		
-			return;
-		}
+			if (FileUtils::existsAndIsDirectory(ctx.resolved_path))
+			{
+				DBG("[processDelete] Path is a directory, forbidden to delete: " << ctx.resolved_path);
+				rawResp.addErrorDetails(ctx, HttpStatusCode::Forbidden);
+				return;
+			}
 
-		if (!FileUtils::hasWritePermission(ctx.resolved_path))
-		{
-			DBG("[processDelete] No write permission for path: "
-					<< ctx.resolved_path);
-					
-			rawResp.addErrorDetails(ctx, HttpStatusCode::Forbidden);
+			if (!FileUtils::hasWritePermission(ctx.resolved_path))
+			{
+				DBG("[processDelete] No write permission for path: " << ctx.resolved_path);
+				rawResp.addErrorDetails(ctx, HttpStatusCode::Forbidden);
+				return;
+			}
 
-			return;
-		}
+			// Attempt to delete the file
+			FileUtils::deleteFile(ctx.resolved_path);
 
-		if (FileUtils::deleteFile(ctx.resolved_path))
-		{
-			DBG("[processDelete] File deleted successfully: "
-					<< ctx.resolved_path);
+			DBG("[processDelete] File deleted successfully: " << ctx.resolved_path);
 			rawResp.setStatusCode(HttpStatusCode::NoContent);
-			//should not have the Content-Length header!
 		}
-		else
+	
+		catch (const std::exception& e)
 		{
-			DBG("[processDelete] Failed to delete file: "
-					<< ctx.resolved_path);
-			
+			DBG("[processDelete] Exception caught while deleting file: " << e.what());
 			rawResp.addErrorDetails(ctx, HttpStatusCode::InternalServerError);
 		}
-
-		return;
 	}
-
 	void processPost(RequestData& req,
 									const Client& client,
 									const RequestContext& ctx, RawResponse& rawResp, CgiRequestResult& cgiResult)
@@ -418,11 +423,18 @@ namespace ResponseGenerator
 			return;
 		}
 
-		UploadModule::processUpload(req, ctx, rawResp);
-		DBG("[processPost] Upload processed, body size: "
-				<< rawResp.getBody().size());
-
-		return;
+		try
+		{
+			UploadModule::processUpload(req, ctx, rawResp);
+			DBG("[processPost] Upload processed, body size: " << rawResp.getBody().size());
+			return;
+		}
+		catch (const std::exception& e)
+		{
+			DBG("[processPost] Upload failed: " << e.what());
+			rawResp.addErrorDetails(ctx, HttpStatusCode::InternalServerError);
+			return;
+		}
 	}
 
 	void fillSuccessfulResponse(RawResponse& resp, const std::string& filePath)
@@ -443,7 +455,7 @@ namespace ResponseGenerator
 
 		size_t fileSize = static_cast<size_t>(s.st_size);
 		resp.setFileSize(fileSize);
-		resp.setBody(FileUtils::readFileToString(filePath));
+		resp.setBody(FileReader::readFile(filePath));
 		resp.addHeader("Content-Length", std::to_string(fileSize));
 	}
 
@@ -453,7 +465,7 @@ namespace ResponseGenerator
 		resp.setMimeType("text/html");
 
 		std::string body = FileUtils::generateAutoindex(dirPath);
-		//add catch?
+
 		resp.setBody(body);
 		resp.addHeader("Content-Length", std::to_string(resp.getBody().size()));
 	}
