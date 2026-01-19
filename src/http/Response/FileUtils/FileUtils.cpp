@@ -30,9 +30,10 @@ namespace FileUtils
 		return access(path.c_str(), W_OK) == 0;
 	}
 
-	bool deleteFile(const std::string &path)
+	void deleteFile(const std::string &path)
 	{
-		return std::remove(path.c_str()) == 0;
+		if (std::remove(path.c_str()) != 0)
+		throw std::runtime_error("Failed to delete file: " + path);
 	}
 
 	// Returns the first existing index file path in the directory, or empty string if none exist
@@ -88,7 +89,8 @@ namespace FileUtils
 			html << "<li><a href=\"" << name << "\">" << name << "</a></li>\n";
 		}
 
-		closedir(dir);
+		if (closedir(dir) != 0)
+			throw std::runtime_error("Failed to close directory: " + dirPath);
 		html << "</ul></body></html>";
 		return html.str();
 	}
