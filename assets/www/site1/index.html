@@ -2,21 +2,35 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Home - Site1</title>
-    <link rel="stylesheet" href="/style.css">
-    <script src="/script.js" defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Cat Gallery</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <img src="/images/logo.jpg" alt="Logo" class="logo">
-        <h1>Welcome to Site1</h1>
-        <nav>
-            <a href="/">Home</a>
-            <a href="/about.html">About</a>
-        </nav>
-    </header>
-    <main>
-        <p>This is the homepage served from custom HTTP server</p>
-    </main>
+    <h1>Welcome to the Cat Gallery 🐱</h1>
+    <h3>Here you can upload your favourite cat photos</h3>
+
+    <div class="container">
+        <!-- Upload Form -->
+        <div class="upload-form">
+            <h2>Upload a Cat</h2>
+
+            <!-- Message container -->
+            <div id="uploadMessage" class="upload-message"></div>
+
+            <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+                <input type="file" name="files[]" multiple>
+                <button type="submit">Upload</button>
+            </form>
+        </div>
+
+        <!-- Gallery of Cats -->
+        <div class="gallery">
+            <h2>Uploaded Cats</h2>
+            <div id="catContainer"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
