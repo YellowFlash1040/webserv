@@ -32,6 +32,16 @@ void UploadModule::processUpload(const RequestData& req, const RequestContext& c
     {
         std::vector<std::string> savedFiles
             = processMultipartFormData(req, ctx.upload_store);
+        
+        if (savedFiles.empty())
+        {
+            DBG("[processUpload] No files selected");
+            resp.setStatusCode(HttpStatusCode::BadRequest);
+            resp.addHeader("Content-Type", "text/plain");
+            resp.setBody("{\"message\": \"No files were selected for upload.\"}");
+            return;
+        }
+            
         return create201Response(resp, savedFiles);
     }
 

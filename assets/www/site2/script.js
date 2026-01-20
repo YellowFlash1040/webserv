@@ -1,3 +1,16 @@
+/**
+ * Note:
+ * Requests made via fetch()/AJAX do NOT trigger browser navigation.
+ * Even if the server returns a 4xx/5xx status with an HTML error page,
+ * the browser will not render it.
+ *
+ * Instead, JavaScript receives a Response object and decides how to
+ * handle errors (e.g. checking res.ok / res.status and showing a UI message).
+ *
+ * HTML error pages are only rendered during full page navigations,
+ * not for fetch()-based requests.
+ */
+
 const catContainer = document.getElementById('catContainer');
 const uploadForm = document.getElementById('uploadForm');
 const uploadMessage = document.getElementById('uploadMessage');
