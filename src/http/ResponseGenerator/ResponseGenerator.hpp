@@ -102,7 +102,7 @@ namespace ResponseGenerator
     // CGI
     void handleCGI(const RequestData& req, const RequestContext& ctx,
                RawResponse& rawResp, CgiRequestResult& cgiResult, const std::string& ext);
-    std::string getFileExtension(const std::string& uri);
+
     HttpStatusCode checkScriptValidity(const std::string& scriptPath);
     void handleScriptInvalidity(HttpStatusCode status, const RequestContext& ctx,
                             RawResponse& rawResp);
