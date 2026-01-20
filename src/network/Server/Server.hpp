@@ -43,12 +43,14 @@ class Server
     static constexpr int MAX_EVENTS = 50;
     static constexpr size_t BUFFER_SIZE = 8192;
     static constexpr size_t TIMEOUT = 60;
+    static constexpr int CGI_TIMEOUT = 20;
     // Methods
     void run(void);
     void addEndpoint(const NetworkEndpoint& endpoint);
     void removeClient(Client& client);
     int createTimerFd(int interval_sec);
     void checkClientTimeouts();
+    void checkCGITimeouts();
     void cleanupCgiFds(CGIData& cgi);
 
   private:

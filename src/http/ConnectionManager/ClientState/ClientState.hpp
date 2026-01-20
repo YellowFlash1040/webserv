@@ -53,6 +53,7 @@ class ClientState
                              const std::string& scriptPath, ResponseData* resp);
 
     std::vector<CGIData>& getActiveCGIs() { return _activeCGIs; }
+    std::vector<CGIData*> getTimedOutCGIs(time_t now, time_t timeout);
     CGIData* findCgiByPid(pid_t pid);
     void removeCgi(pid_t pid);
 
