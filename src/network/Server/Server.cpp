@@ -60,13 +60,13 @@ void Server::monitorEvents()
             throw std::runtime_error("epoll_wait");
         }
 
+        for (int i = 0; i < readyFDs; ++i)
+            processEvent(events[i]);
+
         reapDeadCgis();
 
         for (auto& it : m_clients)
             fillBuffer(it.second);
-
-        for (int i = 0; i < readyFDs; ++i)
-            processEvent(events[i]);
     }
 }
 
