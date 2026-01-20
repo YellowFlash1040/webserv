@@ -3,13 +3,13 @@
 // -----------------------CONSTRUCTION AND DESTRUCTION-------------------------
 
 ClientState::ClientState()
-  : m_rawRequests()
-  , m_respDataQueue()
+  : m_requests()
+  ,  m_responses()
 {
 	// The first empty request so getLatestRawReq() is always valid
 	DBG("[ClientState Constructor] Creating first empty RawRequest so "
 		"getLatestRawReq() is always valid");
-	m_rawRequests.emplace_back();
+	m_requests.emplace_back();
 }
 
 ClientState::~ClientState()
@@ -28,12 +28,12 @@ ClientState::~ClientState()
 
 bool ClientState::hasPendingResponseData() const
 {
-	return !m_respDataQueue.empty();
+	return ! m_responses.empty();
 }
 
 bool ClientState::hasCompleteRawRequest() const
 {
-	for (const auto& rawRequest : m_rawRequests)
+	for (const auto& rawRequest : m_requests)
 		if (rawRequest.isRequestDone())
 			return true;
 	return false;
@@ -43,24 +43,24 @@ bool ClientState::hasCompleteRawRequest() const
 // Will always return a request
 RawRequest& ClientState::getLatestRawReq()
 {
-	if (m_rawRequests.empty())
+	if (m_requests.empty())
 	{
 		DBG("[getLatestRawReq] _rawRequests empty, creating a new RawRequest");
-		m_rawRequests.emplace_back(); // default-construct a new request
+		m_requests.emplace_back(); // default-construct a new request
 	}
-	return m_rawRequests.back();
+	return m_requests.back();
 }
 
-ResponseData& ClientState::frontResponseData()
+const ResponseData& ClientState::frontResponseData() const
 {
-	if (m_respDataQueue.empty())
+	if ( m_responses.empty())
 		throw std::runtime_error("No pending responses");
-	return m_respDataQueue.front();
+	return  m_responses.front();
 }
 
 const std::queue<ResponseData>& ClientState::getResponseQueue() const
 {
-	return m_respDataQueue;
+	return  m_responses;
 }
 
 // ---------------------------METHODS-----------------------------
@@ -68,38 +68,38 @@ const std::queue<ResponseData>& ClientState::getResponseQueue() const
 void ClientState::enqueueResponseData(const ResponseData& resp)
 {
 	DBG("ResponseData queued");
-	m_respDataQueue.push(resp);
+	m_responses.push(resp);
 }
 
 RawRequest& ClientState::addRawRequest()
 {
 	DBG("[addRawRequest]: made a new request");
-	m_rawRequests.emplace_back();
-	return m_rawRequests.back();
+	m_requests.emplace_back();
+	return m_requests.back();
 }
 
 RawRequest ClientState::popFrontRawRequest()
 {
-	if (m_rawRequests.empty() || !m_rawRequests.front().isRequestDone())
+	if (m_requests.empty() || !m_requests.front().isRequestDone())
 		throw std::runtime_error("No complete RawRequest available");
 
-	RawRequest completed = std::move(m_rawRequests.front());
-	m_rawRequests.pop_front();
+	RawRequest completed = std::move(m_requests.front());
+	m_requests.pop_front();
 	return completed;
 }
 
 void ClientState::popFrontResponseData()
 {
-	if (m_respDataQueue.empty())
+	if ( m_responses.empty())
 		throw std::runtime_error("No pending responses");
-	m_respDataQueue.pop();
+	 m_responses.pop();
 }
 
 ResponseData& ClientState::backResponseData()
 {
-	if (m_respDataQueue.empty())
+	if ( m_responses.empty())
 		throw std::runtime_error("No response data in queue to peek.");
-	return m_respDataQueue.back();
+	return  m_responses.back();
 }
 
 //CGI

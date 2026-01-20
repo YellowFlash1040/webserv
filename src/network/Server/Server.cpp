@@ -305,7 +305,7 @@ void Server::fillBuffer(Client& client)
 
     while (clientState.hasPendingResponseData())
     {
-        ResponseData& respData = clientState.frontResponseData();
+        const ResponseData& respData = clientState.frontResponseData();
 
         if (!respData.isReady)
             break;

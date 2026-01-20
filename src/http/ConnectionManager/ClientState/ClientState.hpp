@@ -18,12 +18,9 @@ class ClientState
 {
 	private:
 		// Properties
-		
-		// Raw requests from the client (byte level)
-		std::deque<RawRequest> m_rawRequests;
+		std::deque<RawRequest> m_requests;
 
-		// Responses ready to be sent on the socket
-		std::queue<ResponseData> m_respDataQueue;
+		std::queue<ResponseData>  m_responses;
 
 		std::vector<CGIData> m_activeCGIs;
 
@@ -40,7 +37,7 @@ class ClientState
 		RawRequest& getLatestRawReq();
 		bool hasPendingResponseData() const;
 		bool hasCompleteRawRequest() const;
-		ResponseData& frontResponseData();
+		const ResponseData& frontResponseData() const;
 		const std::queue<ResponseData>& getResponseQueue() const;
 		
 		// Methods

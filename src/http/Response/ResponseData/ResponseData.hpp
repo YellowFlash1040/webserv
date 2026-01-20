@@ -34,7 +34,7 @@ struct ResponseData
 		return it != headers.end() ? it->second : "";
 	}
 
-	std::string serialize()
+	std::string serialize() const
 	{
 		std::string str = "HTTP/1.1 " + std::to_string(statusCode) + " "
 						  + statusText + "\r\n";
