@@ -20,7 +20,8 @@ ClientState::~ClientState()
             close(cgi.fd_stdin);
         if (cgi.fd_stdout != -1)
             close(cgi.fd_stdout);
-        kill(cgi.pid, SIGTERM);
+        kill(cgi.pid, SIGKILL);
+        waitpid(cgi.pid, nullptr, WNOHANG);
     }
 }
 
