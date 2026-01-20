@@ -16,47 +16,48 @@
 
 class ClientState
 {
-  private:
-    // Properties
-    // Raw requests from the client (byte level)
-    std::deque<RawRequest> _rawRequests;
+	private:
+		// Properties
+		
+		// Raw requests from the client (byte level)
+		std::deque<RawRequest> m_rawRequests;
 
-    // Responses ready to be sent on the socket
-    std::queue<ResponseData> _respDataQueue;
+		// Responses ready to be sent on the socket
+		std::queue<ResponseData> m_respDataQueue;
 
-    std::vector<CGIData> _activeCGIs;
+		std::vector<CGIData> m_activeCGIs;
 
-  public:
-    ClientState();
-    ~ClientState();
-    ClientState(const ClientState& other) = default;
-    ClientState& operator=(const ClientState& other) = default;
-    ClientState(ClientState&& other) noexcept = default;
-    ClientState& operator=(ClientState&& other) noexcept = default;
+	public:
+		ClientState();
+		~ClientState();
+		ClientState(const ClientState& other) = default;
+		ClientState& operator=(const ClientState& other) = default;
+		ClientState(ClientState&& other) noexcept = default;
+		ClientState& operator=(ClientState&& other) noexcept = default;
 
-    // Accessors
-    RawRequest& getLatestRawReq();
-    bool hasPendingResponseData() const;
-    bool hasCompleteRawRequest() const;
-    ResponseData& frontResponseData();
-    const std::queue<ResponseData>& getResponseQueue() const;
-    
-    // Methods
-    RawRequest& addRawRequest();
-    void enqueueResponseData(const ResponseData& resp);
-    RawRequest popFirstCompleteRawRequest();
-    void popFrontResponseData();
+		// Accessors
+		RawRequest& getLatestRawReq();
+		bool hasPendingResponseData() const;
+		bool hasCompleteRawRequest() const;
+		ResponseData& frontResponseData();
+		const std::queue<ResponseData>& getResponseQueue() const;
+		
+		// Methods
+		RawRequest& addRawRequest();
+		void enqueueResponseData(const ResponseData& resp);
+		RawRequest popFirstCompleteRawRequest();
+		void popFrontResponseData();
 
-    ResponseData& backResponseData();
+		ResponseData& backResponseData();
 
-    CGIData& createActiveCgi(RequestData& req, Client& client,
-                             const std::string& interpreter,
-                             const std::string& scriptPath, ResponseData* resp);
+		CGIData& createActiveCgi(RequestData& req, Client& client,
+														 const std::string& interpreter,
+														 const std::string& scriptPath, ResponseData* resp);
 
-    std::vector<CGIData>& getActiveCGIs();
-    CGIData* findCgiByPid(pid_t pid);
-    void removeCgi(pid_t pid);
-    void clearActiveCGIs();
+		std::vector<CGIData>& getActiveCGIs();
+		CGIData* findCgiByPid(pid_t pid);
+		void removeCgi(pid_t pid);
+		void clearActiveCGIs();
 };
 
 #endif
