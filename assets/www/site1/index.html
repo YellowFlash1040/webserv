@@ -1,36 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Cat Gallery</title>
-    <link rel="stylesheet" href="style.css">
+	<meta charset="UTF-8">
+	<title>Home - Site1</title>
+	<link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+	<link rel="stylesheet" href="/style.css">
 </head>
+
 <body>
-    <h1>Welcome to the Cat Gallery 🐱</h1>
-    <h3>Here you can upload your favourite cat photos</h3>
-
-    <div class="container">
-        <!-- Upload Form -->
-        <div class="upload-form">
-            <h2>Upload a Cat</h2>
-
-            <!-- Message container -->
-            <div id="uploadMessage" class="upload-message"></div>
-
-            <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
-                <input type="file" name="files[]" multiple>
-                <button type="submit">Upload</button>
-            </form>
-        </div>
-
-        <!-- Gallery of Cats -->
-        <div class="gallery">
-            <h2>Uploaded Cats</h2>
-            <div id="catContainer"></div>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
+	<header>
+		<img src="/images/logo.jpg" alt="Site1 Logo" class="logo">
+		<h1 style="font-family: Verdana, sans-serif; color: #ffcc00;">Welcome to Site1</h1>
+		<nav>
+			<a href="/">Home</a>
+			<a href="/cgi/cat_fact.py">Random Cat Fact (Python)</a>
+			<a href="/cgi/cat_emoji.sh">Random Cat Emoji (Bash)</a>
+		</nav>
+	</header>
+	<main>
+		<section style="background-color: #e0f7fa; padding: 1rem; border-radius: 8px;">
+			<h2>Welcome!</h2>
+			<p>Explore our interactive cat-themed CGI demos:</p>
+			<p><strong>Random Cat Fact:</strong> Learn something new about cats every time you click.</p>
+			<p><strong>Cat Mood Generator:</strong>  Enjoy a different cat emoji with every click.</p>
+		</section>
+		<section style="margin-top: 2rem;">
+			<p>For more cat content, visit our other server at <a href="http://localhost:9091">port 9091</a> for the Cat Gallery.</p>
+					9091</a> for the Cat Gallery.</p>
+		</section>
+	</main>
+	<footer style="background-color: #004080; color: white; text-align: center; padding: 1rem; margin-top: 2rem;">
+		<p>&copy; 2026 Site1</p>
+	</footer>
 </body>
+
 </html>
