@@ -17,6 +17,21 @@ ClientState& ConnectionManager::clientState(int clientId)
 
 // ---------------------------METHODS-----------------------------
 
+/**
+ * @brief Add a new client to the connection manager.
+ * 
+ * This function is called when a new client connects to the server.
+ * 
+ * @param clientId The socket descriptor identifying the client.
+ * 
+ * The function inserts a new entry into the `m_clients` map with `clientId` as the key.
+ * A fresh `ClientState` object is constructed in place for this client, 
+ * initializing its request queue, response queue, and active CGI list.
+ * After this call, the map contains an entry equivalent to:
+ * @code
+ * m_clients[clientId] = ClientState();
+ * @endcode
+ */
 void ConnectionManager::addClient(int clientId)
 {
 	m_clients.emplace(clientId, ClientState());
@@ -38,6 +53,48 @@ void ConnectionManager::processData(Client& client, const std::string& tcpData)
 		genResps(client);
 }
 
+/**
+ * @brief Process incoming data for a client, parsing as many complete requests as possible.
+ * 
+ * The function handles two main cases:
+ * 1. Partial (incomplete) requests that arrive over multiple TCP packets
+ * 2. Pipelined requests, where multiple complete requests arrive in a single TCP chunk
+ * 
+ * Incomplete requests are kept in the client's temp buffer until more data arrives,
+ * ensuring no bytes are lost. Leftover data after parsing a complete request
+ * is moved to a new RawRequest, allowing multiple requests to be processed in one call.
+ *
+ * Example 1: Incomplete request
+ * Client sends: "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n"
+ *
+ * - First read returns: "GET / HTTP."
+ *   - appendTempBuffer stores it in the current RawRequest
+ *   - parse() sees headers are incomplete → returns false
+ *   - processReqs breaks the loop and returns 0 (no complete requests yet)
+ *
+ * - Control returns to ConnectionManager::processData()
+ *   - genResps() is skipped because no complete requests were parsed
+ *
+ * - Control continues up to Server::processClient(), processEvent(), and monitorEvents()
+ *   - The server continues monitoring other clients
+ *   - The partially received request remains in the client state
+ *
+ * - Next TCP chunk arrives: "1\r\nHost: example.com\r\n\r\n"
+ *   - appendTempBuffer adds these bytes to the existing RawRequest
+ *   - parse() now sees headers are complete → returns true
+ *   - parsedCount increments to 1
+ *   - Responses can now be generated via genResps()
+ *
+ * Example 2: Pipelined requests
+ * Client sends two requests in one chunk:
+ * "GET /first HTTP/1.1\r\nHost: example.com\r\n\r\nGET /second HTTP/1.1\r\nHost: example.com\r\n\r\n"
+ *
+ * - appendTempBuffer stores the entire chunk in the current RawRequest
+ * - parse() completes the first request → returns true
+ * - Leftovers ("GET /second ...") are moved to a new RawRequest
+ * - parse() now completes the second request → returns true
+ * - parsedCount = 2, responses for both requests can be generated in one call to genResps()
+ */
 size_t ConnectionManager::processReqs(Client& client, const std::string& data)
 {
 	DBG("DEBUG: processReqs: ");

@@ -14,6 +14,28 @@
 #include "../../utils/debug.hpp"
 #include "../../cgi/CGIManager.hpp"
 
+/**
+ * @brief ClientState holds the state of a single connected client.
+ *
+ * Container choices:
+ *
+ * - Requests (`m_requests`): std::deque<RawRequest>
+ *   - Reason: We need efficient access to both the front and back of the container.
+ *     - `back()` is used to append incoming bytes to the current (possibly partial) request.
+ *     - `front()` is used to process the oldest request first when generating responses.
+ *     - New requests (e.g., leftovers from parsing) are added at the back.
+ *   - We could not use `std::queue` here because it does not provide `back()` access,
+ *     which is required to append to the current incomplete request.
+ *   - No random access is required. The deque naturally supports both partial requests
+ *     and multiple pipelined requests in FIFO order.
+ *
+ * - Responses (`m_responses`): std::queue<ResponseData>
+ *   - Reason: We only need strict FIFO behavior.
+ *     - Push new responses to the back as they are generated.
+ *     - Pop responses from the front when sending to the client.
+ *   - Random access and iteration are not needed, so `queue` expresses intent clearly
+ *     and provides a safe, minimal interface.
+ */
 class ClientState
 {
 	private:
