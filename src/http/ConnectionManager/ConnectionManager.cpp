@@ -1,10 +1,21 @@
 #include "ConnectionManager.hpp"
 #include "Server.hpp"
 
+// -----------------------CONSTRUCTION AND DESTRUCTION-------------------------
+
 ConnectionManager::ConnectionManager(const Config& config)
   : m_config(config)
 {
 }
+
+// ---------------------------ACCESSORS-----------------------------
+
+ClientState& ConnectionManager::clientState(int clientId)
+{
+	return m_clients.at(clientId);
+}
+
+// ---------------------------METHODS-----------------------------
 
 void ConnectionManager::addClient(int clientId)
 {
@@ -17,22 +28,14 @@ void ConnectionManager::removeClient(int clientId)
 	m_clients.erase(clientId);
 }
 
-ClientState& ConnectionManager::getClientState(int clientId)
+void ConnectionManager::processData(Client& client, const std::string& tcpData)
 {
-	return m_clients.at(clientId);
-}
-
-bool ConnectionManager::processData(Client& client, const std::string& tcpData)
-{
-
 	// 1. Parse incoming TCP data
 	size_t reqsNum = processReqs(client, tcpData);
 
 	// 2. Generate responses for all ready requests
 	if (reqsNum > 0)
 		genResps(client);
-
-	return reqsNum > 0;
 }
 
 size_t ConnectionManager::processReqs(Client& client, const std::string& data)

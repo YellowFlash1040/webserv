@@ -45,12 +45,12 @@ class ConnectionManager
 		ConnectionManager& operator=(ConnectionManager&&) noexcept = delete;
 
 		// Accessors
-		ClientState& getClientState(int clientId);
+		ClientState& clientState(int clientId);
+		
 		// Methods
 		void addClient(int clientId);
 		void removeClient(int clientId);
-		bool processData(Client& client, const std::string& tcpData);
-
+		void processData(Client& client, const std::string& tcpData);
 		CGIData* findCgiByStdoutFd(int fd);
 		CGIData* findCgiByStdinFd(int fd);
 		void onCgiExited(Server& server, pid_t pid, int status);

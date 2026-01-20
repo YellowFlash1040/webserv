@@ -235,7 +235,7 @@ void Server::acceptNewClient(int listeningSocket, int epoll_fd)
 void Server::removeClient(Client& client)
 {
     int clientSocket = client.socket();
-    ClientState& state = m_connMgr.getClientState(clientSocket);
+    ClientState& state = m_connMgr.clientState(clientSocket);
 
     for (auto& cgi : state.activeCGIs())
     {
@@ -301,7 +301,7 @@ void Server::fillBuffer(Client& client)
     if (!client.outBuffer().empty())
         return;
 
-    ClientState& clientState = m_connMgr.getClientState(client.socket());
+    ClientState& clientState = m_connMgr.clientState(client.socket());
 
     while (clientState.hasPendingResponse())
     {
