@@ -26,12 +26,7 @@ ClientState::~ClientState()
 
 // ---------------------------ACCESSORS-----------------------------
 
-bool ClientState::hasPendingResponseData() const
-{
-	return ! m_responses.empty();
-}
-
-bool ClientState::hasCompleteRawRequest() const
+bool ClientState::hasCompleteRequest() const
 {
 	for (const auto& rawRequest : m_requests)
 		if (rawRequest.isRequestDone())
@@ -39,9 +34,14 @@ bool ClientState::hasCompleteRawRequest() const
 	return false;
 }
 
+bool ClientState::hasPendingResponse() const
+{
+	return ! m_responses.empty();
+}
+
 // In processReqs we always append bytes to the currently active reques.
 // Will always return a request
-RawRequest& ClientState::getLatestRawReq()
+RawRequest& ClientState::backRequest()
 {
 	if (m_requests.empty())
 	{
@@ -51,34 +51,46 @@ RawRequest& ClientState::getLatestRawReq()
 	return m_requests.back();
 }
 
-const ResponseData& ClientState::frontResponseData() const
+ResponseData& ClientState::backResponse()
+{
+	if ( m_responses.empty())
+		throw std::runtime_error("No response data in queue to peek.");
+	return  m_responses.back();
+}
+
+const ResponseData& ClientState::frontResponse() const
 {
 	if ( m_responses.empty())
 		throw std::runtime_error("No pending responses");
 	return  m_responses.front();
 }
 
-const std::queue<ResponseData>& ClientState::getResponseQueue() const
+const std::queue<ResponseData>& ClientState::responses() const
 {
 	return  m_responses;
 }
 
-// ---------------------------METHODS-----------------------------
-
-void ClientState::enqueueResponseData(const ResponseData& resp)
+std::vector<CGIData>& ClientState::activeCGIs()
 {
-	DBG("ResponseData queued");
-	m_responses.push(resp);
+	return m_activeCGIs;
 }
 
-RawRequest& ClientState::addRawRequest()
+// ---------------------------METHODS-----------------------------
+
+RawRequest& ClientState::addRequest()
 {
 	DBG("[addRawRequest]: made a new request");
 	m_requests.emplace_back();
 	return m_requests.back();
 }
 
-RawRequest ClientState::popFrontRawRequest()
+void ClientState::enqueueResponse(const ResponseData& resp)
+{
+	DBG("ResponseData queued");
+	m_responses.push(resp);
+}
+
+RawRequest ClientState::popFrontRequest()
 {
 	if (m_requests.empty() || !m_requests.front().isRequestDone())
 		throw std::runtime_error("No complete RawRequest available");
@@ -88,25 +100,11 @@ RawRequest ClientState::popFrontRawRequest()
 	return completed;
 }
 
-void ClientState::popFrontResponseData()
+void ClientState::popFrontResponse()
 {
 	if ( m_responses.empty())
 		throw std::runtime_error("No pending responses");
 	 m_responses.pop();
-}
-
-ResponseData& ClientState::backResponseData()
-{
-	if ( m_responses.empty())
-		throw std::runtime_error("No response data in queue to peek.");
-	return  m_responses.back();
-}
-
-//CGI
-
-std::vector<CGIData>& ClientState::getActiveCGIs()
-{
-	return m_activeCGIs;
 }
 
 CGIData& ClientState::createActiveCgi(RequestData& req, Client& client,

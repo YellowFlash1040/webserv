@@ -69,7 +69,7 @@ namespace PrintUtils
 	{
 		DBG("=== Response Queue (" << clientState.getResponseQueue().size() << " items) ===");
 
-		std::queue<ResponseData> tempQueue = clientState.getResponseQueue();
+		std::queue<ResponseData> tempQueue = clientState.responses();
 		size_t index = 0;
 
 		while (!tempQueue.empty())

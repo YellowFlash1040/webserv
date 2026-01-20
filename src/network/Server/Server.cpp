@@ -237,7 +237,7 @@ void Server::removeClient(Client& client)
     int clientSocket = client.socket();
     ClientState& state = m_connMgr.getClientState(clientSocket);
 
-    for (auto& cgi : state.getActiveCGIs())
+    for (auto& cgi : state.activeCGIs())
     {
         if (cgi.fd_stdin != -1)
         {
@@ -303,9 +303,9 @@ void Server::fillBuffer(Client& client)
 
     ClientState& clientState = m_connMgr.getClientState(client.socket());
 
-    while (clientState.hasPendingResponseData())
+    while (clientState.hasPendingResponse())
     {
-        const ResponseData& respData = clientState.frontResponseData();
+        const ResponseData& respData = clientState.frontResponse();
 
         if (!respData.isReady)
             break;
@@ -315,7 +315,7 @@ void Server::fillBuffer(Client& client)
         client.updateLastActivity();
         client.setShouldClose(respData.shouldClose);
 
-        clientState.popFrontResponseData();
+        clientState.popFrontResponse();
 
         enableEpollOut(client.socket());
     }
