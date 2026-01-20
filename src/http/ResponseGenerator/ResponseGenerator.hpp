@@ -17,13 +17,11 @@
 #include "CgiRequestResult.hpp"
 #include "FileReader.hpp"
 
-
 namespace ResponseGenerator
 {
     // Main entry point
     void genResponse(
         const RawRequest& rawReq,
-        const Client& client,
         const RequestContext& ctx,
         RawResponse& rawResp,
         CgiRequestResult& cgiResult
@@ -40,24 +38,20 @@ namespace ResponseGenerator
     );
 
     void processGet(
-        RequestData& req,
-        const Client& client,
+        const RequestData& req,
         const RequestContext& ctx,
         RawResponse& resp,
         CgiRequestResult& cgiResult
     );
 
     void processPost(
-        RequestData& req,
-        const Client& client,
+        const RequestData& req,
         const RequestContext& ctx,
         RawResponse& resp,
         CgiRequestResult& cgiResult
     );
 
 	void processDelete(
-		RequestData& req,
-		const Client& client,
 		const RequestContext& ctx,
 		RawResponse& resp
 	);
@@ -67,16 +61,10 @@ namespace ResponseGenerator
 		const std::map<std::string, std::string>& cgi_pass,
 		HttpStatusCode& outStatus
 	);
-	
-	bool checkScriptValidity(
-		const std::string& scriptPath,
-		RawResponse& rawResp, 
-		const RequestContext& ctx
-	);
 
 	void handleExternalRedirect(
 		const RequestContext& ctx,
-		std::string& reqUri,
+		const std::string& reqUri,
 		RawResponse& rawResp
 	);
 
@@ -95,6 +83,35 @@ namespace ResponseGenerator
 		RawResponse& resp,
 		const std::string& dirPath
 	);
+
+    void setConnectionHeader(const RawRequest& rawReq, RawResponse& rawResp);
+
+    // Status codes
+    void handleNotFound(const RequestContext& ctx, RawResponse& rawResp);
+    void handleNoPermission(const RequestContext& ctx, RawResponse& rawResp);
+    void handleServerError(const RequestContext& ctx, RawResponse& rawResp);
+    void handlePayloadTooLarge(const RequestContext& ctx, RawResponse& rawResp);
+    void handleBadGateway(const RequestContext& ctx, RawResponse& rawResp);
+    void handleBadRequest(const RequestContext& ctx, RawResponse& rawResp);
+    void handleMethodNotAllowed(const RequestContext& ctx, RawResponse& rawResp);
+
+    // Static file
+    void handleStaticFile(const RequestContext& ctx, RawResponse& rawResp, const FileInfo& file);
+    void serveStaticFile(const RequestContext& ctx, RawResponse& rawResp);
+    
+    // Directory
+    void handleDirectory(const RequestContext& ctx, RawResponse& rawResp);
+    void serveIndexFile(const std::string& indexPath, const RequestContext& ctx,
+                        RawResponse& rawResp);
+    void generateAutoIndex(const RequestContext& ctx, RawResponse& rawResp);
+
+    // CGI
+    void handleCGI(const RequestData& req, const RequestContext& ctx,
+               RawResponse& rawResp, CgiRequestResult& cgiResult, const std::string& ext);
+    std::string getFileExtension(const std::string& uri);
+    HttpStatusCode checkScriptValidity(const std::string& scriptPath);
+    void handleScriptInvalidity(HttpStatusCode status, const RequestContext& ctx,
+                            RawResponse& rawResp);
 }
 
 #endif

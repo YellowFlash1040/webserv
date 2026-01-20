@@ -2,33 +2,24 @@
 
 namespace FileUtils
 {
-	bool pathExists(const std::string &path)
-	{
-		struct stat s;
-		return stat(path.c_str(), &s) == 0;
-	}
-
-	bool existsAndIsFile(const std::string &path)
-	{
-		struct stat s;
-		return stat(path.c_str(), &s) == 0 && S_ISREG(s.st_mode);
-	}
-
-	bool existsAndIsDirectory(const std::string &path)
-	{
-		struct stat s;
-		return stat(path.c_str(), &s) == 0 && S_ISDIR(s.st_mode);
-	}
-
-	bool hasReadPermission(const std::string &path)
-	{
-		return access(path.c_str(), R_OK) == 0;
-	}
-
-	bool hasWritePermission(const std::string &path)
-	{
-		return access(path.c_str(), W_OK) == 0;
-	}
+	FileInfo getFileInfo(const std::string& path)
+    {
+        struct stat s;
+        FileInfo info{};
+    
+        if (stat(path.c_str(), &s) != 0)
+            return info;
+    
+        info.exists = true;
+        info.isFile = S_ISREG(s.st_mode);
+        info.isDir  = S_ISDIR(s.st_mode);
+    
+        info.readable   = (s.st_mode & S_IRUSR);
+        info.writable   = (s.st_mode & S_IWUSR);
+        info.executable = (s.st_mode & S_IXUSR);
+    
+        return info;
+    }
 
 	void deleteFile(const std::string &path)
 	{
@@ -36,33 +27,20 @@ namespace FileUtils
 		throw std::runtime_error("Failed to delete file: " + path);
 	}
 
-	// Returns the first existing index file path in the directory, or empty string if none exist
 	std::string getFirstValidIndexFile(const std::string& dirPath, const std::vector<std::string>& indexFiles)
 	{
-		DBG("[getFirstValidIndexFile] Checking directory: " << dirPath);
+        std::string dir = dirPath;
+        if (dir.back() != '/')
+            dir += '/';
 
-		if (!existsAndIsDirectory(dirPath)) 
+		for (const auto& file : indexFiles)
 		{
-			DBG("[getFirstValidIndexFile] Directory does not exist or is not a directory: " << dirPath);
-			return "";
+			std::string path = dir + file;
+            const FileInfo info = getFileInfo(path);
+            if (info.exists && info.isFile)
+                return path;
 		}
 
-		for (const auto& idx : indexFiles)
-		{
-			std::string path = dirPath;
-			if (!path.empty() && path.back() != '/') path += '/';
-			path += idx;
-
-			DBG("[getFirstValidIndexFile] Checking index file: " << path);
-
-			if (existsAndIsFile(path)) 
-			{
-				DBG("[getFirstValidIndexFile] Found valid index file: " << path);
-				return path;
-			}
-		}
-
-		DBG("[getFirstValidIndexFile] No valid index file found in directory: " << dirPath);
 		return ""; // no valid index file found
 	}
 

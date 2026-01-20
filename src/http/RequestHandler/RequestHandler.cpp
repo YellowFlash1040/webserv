@@ -3,13 +3,13 @@
 namespace RequestHandler
 {
 	void handleInternalRedirect(const RawRequest& rawReq,
-								const Client& client,
 								const RequestContext& ctx,
 								const RawResponse& curRawResp,
 								RawResponse& redirResp,
 								CgiRequestResult& cgiResult)
 	{
-		if (!FileUtils::existsAndIsFile(ctx.resolved_path) || access(ctx.resolved_path.c_str(), R_OK) != 0)
+        FileInfo path = FileUtils::getFileInfo(ctx.resolved_path);
+		if (!(path.exists && path.isFile && path.readable))
 		{
 			redirResp.addDefaultError(curRawResp.getStatusCode());
 		}
@@ -20,7 +20,7 @@ namespace RequestHandler
 			dummyReq.setUri(ctx.resolved_path);
 			dummyReq.setShouldClose(rawReq.shouldClose());
 
-			ResponseGenerator::genResponse(dummyReq, client, ctx, redirResp, cgiResult);
+			ResponseGenerator::genResponse(dummyReq, ctx, redirResp, cgiResult);
 			redirResp.setStatusCode(curRawResp.getStatusCode());
 			ResponseGenerator::addAllowHeader(redirResp, ctx.allowed_methods);
 		}
@@ -34,7 +34,7 @@ namespace RequestHandler
 		RequestContext ctx = config.createRequestContext(client.getListeningEndpoint(), rawReq.getHost(), rawReq.getUri());
 		RawResponse curRawResp;
 
-		ResponseGenerator::genResponse(rawReq, client, ctx, curRawResp, cgiResult);
+		ResponseGenerator::genResponse(rawReq, ctx, curRawResp, cgiResult);
 
 		if (curRawResp.isInternalRedirect())
 		{
@@ -42,7 +42,7 @@ namespace RequestHandler
 			RequestContext newCtx = config.createRequestContext(client.getListeningEndpoint(), rawReq.getHost(), newUri);
 			RawResponse redirResp;
 
-			handleInternalRedirect(rawReq, client, newCtx, curRawResp, redirResp, cgiResult);
+			handleInternalRedirect(rawReq, newCtx, curRawResp, redirResp, cgiResult);
 
 			return redirResp;
 		}
