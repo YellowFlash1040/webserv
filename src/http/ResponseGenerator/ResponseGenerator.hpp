@@ -68,12 +68,6 @@ namespace ResponseGenerator
 		RawResponse& rawResp
 	);
 
-	void processUpload(
-		RequestData &req,
-		const RequestContext &ctx,
-		RawResponse &resp
-	);
-
 	void fillSuccessfulResponse(
 		RawResponse& resp,
 		const std::string& filePath
