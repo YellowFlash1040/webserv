@@ -36,7 +36,7 @@ TEST_F(ResponseGeneratorTest, BadRequest)
 
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::BadRequest);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::BadRequest);
     EXPECT_EQ(resp.isInternalRedirect(), false);
 }
 
@@ -58,8 +58,8 @@ TEST_F(ResponseGeneratorTest, ExternalRedirection)
 
     EXPECT_EQ(resp.isInternalRedirect(), false);
     EXPECT_TRUE(resp.hasHeader("Location"));
-    EXPECT_EQ(resp.getHeader("Location"), "/newpage");
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::MovedPermanently);
+    EXPECT_EQ(resp.header("Location"), "/newpage");
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::MovedPermanently);
 }
 
 TEST_F(ResponseGeneratorTest, MethodNotAllowed)
@@ -77,10 +77,10 @@ TEST_F(ResponseGeneratorTest, MethodNotAllowed)
 
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::MethodNotAllowed);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::MethodNotAllowed);
     EXPECT_EQ(resp.isInternalRedirect(), true);
     EXPECT_TRUE(resp.hasHeader("Allow"));
-    EXPECT_EQ(resp.getHeader("Allow"), "POST");
+    EXPECT_EQ(resp.header("Allow"), "POST");
 }
 
 // File
@@ -109,7 +109,7 @@ TEST_F(ResponseGeneratorTest, FileNoReadPermission)
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
     // Expect Forbidden because the file exists but is not readable
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::Forbidden);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::Forbidden);
     EXPECT_EQ(resp.isInternalRedirect(), false);
 
     // 3. Clean up: restore permissions and delete the file
@@ -131,7 +131,7 @@ TEST_F(ResponseGeneratorTest, FileMissing)
 
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::NotFound);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::NotFound);
     EXPECT_EQ(resp.isInternalRedirect(), false);
 }
 
@@ -151,7 +151,7 @@ TEST_F(ResponseGeneratorTest, DirectoryMissing)
 
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::NotFound);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::NotFound);
     EXPECT_EQ(resp.isInternalRedirect(), false);
 }
 
@@ -169,7 +169,7 @@ TEST_F(ResponseGeneratorTest, SecondIndexOk)
 
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::OK);
     EXPECT_EQ(resp.isInternalRedirect(), false);
 }
 
@@ -188,7 +188,7 @@ TEST_F(ResponseGeneratorTest, BadIndexAutoindexOff)
 
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::Forbidden);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::Forbidden);
     EXPECT_EQ(resp.isInternalRedirect(), false); // we need 403, not 403
 }
 
@@ -206,7 +206,7 @@ TEST_F(ResponseGeneratorTest, NoIndexAutoIndexOn)
 
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::OK);
     EXPECT_EQ(resp.isInternalRedirect(), false);
 }
 
@@ -226,7 +226,7 @@ TEST_F(ResponseGeneratorTest, BadIndexAutoindexOn) // directory listing
 
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::OK);
     EXPECT_EQ(resp.isInternalRedirect(), false);
 }
 
@@ -247,13 +247,13 @@ TEST_F(ResponseGeneratorTest, GetWithConnectionCloseHeader)
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
     // The server should produce a normal 200 OK
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::OK);
 
     // Must contain "Connection" header
     EXPECT_TRUE(resp.hasHeader("Connection"));
 
     // Must be exactly "close"
-    EXPECT_EQ(resp.getHeader("Connection"), "close");
+    EXPECT_EQ(resp.header("Connection"), "close");
 }
 
 TEST_F(ResponseGeneratorTest, MethodNotAllowedWithConnectionClose)
@@ -275,12 +275,12 @@ TEST_F(ResponseGeneratorTest, MethodNotAllowedWithConnectionClose)
 
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::MethodNotAllowed);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::MethodNotAllowed);
     EXPECT_EQ(resp.isInternalRedirect(), true);
 
     // Optionally check that the response has Connection: close
-    auto it = resp.getHeaders().find("Connection");
-    ASSERT_NE(it, resp.getHeaders().end());
+    auto it = resp.headers().find("Connection");
+    ASSERT_NE(it, resp.headers().end());
     EXPECT_EQ(it->second, "close");
 }
 
@@ -298,7 +298,7 @@ TEST_F(ResponseGeneratorTest, GoodRequest)
 
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::OK);
     EXPECT_EQ(resp.isInternalRedirect(), false);
 }
 
@@ -313,7 +313,7 @@ TEST_F(ResponseGeneratorTest, DeleteNotFound)
 
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::NotFound);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::NotFound);
     EXPECT_EQ(resp.isInternalRedirect(), false);
 }
 
@@ -328,7 +328,7 @@ TEST_F(ResponseGeneratorTest, DeleteDirectoryForbidden)
 
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::Forbidden);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::Forbidden);
     EXPECT_EQ(resp.isInternalRedirect(), false);
 }
 
@@ -351,7 +351,7 @@ TEST_F(ResponseGeneratorTest, DeleteNoWritePermission)
 
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::Forbidden);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::Forbidden);
 
     // Cleanup
     chmod(tmpFile.c_str(), 0644);
@@ -375,10 +375,10 @@ TEST_F(ResponseGeneratorTest, DeleteSuccess)
 
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::NoContent);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::NoContent);
     EXPECT_FALSE(FileUtils::getFileInfo(tmpFile).exists); // File should be gone
-    auto it = resp.getHeaders().find("Content-Length");
-    ASSERT_EQ(it, resp.getHeaders().end());
+    auto it = resp.headers().find("Content-Length");
+    ASSERT_EQ(it, resp.headers().end());
 }
 
 TEST_F(ResponseGeneratorTest, PostUploadMissingDirectory)
@@ -397,7 +397,7 @@ TEST_F(ResponseGeneratorTest, PostUploadMissingDirectory)
     ResponseGenerator::genResponse(rawReq, ctx, resp, cgiRes);
 
     // The server should respond with 500 Internal Server Error
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::InternalServerError);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::InternalServerError);
 
     // The directory should still not exist
     EXPECT_FALSE(FileUtils::getFileInfo(nonExistentDir).exists);
@@ -419,9 +419,9 @@ TEST_F(ResponseGeneratorTest, PipelinedRequestsConnectionKeepAliveAndClose)
 
     ResponseGenerator::genResponse(req1, ctx, resp, cgiRes);
 
-    EXPECT_EQ(resp.getStatusCode(), HttpStatusCode::OK);
+    EXPECT_EQ(resp.statusCode(), HttpStatusCode::OK);
     EXPECT_TRUE(resp.hasHeader("Connection"));
-    EXPECT_EQ(resp.getHeader("Connection"), "keep-alive");
+    EXPECT_EQ(resp.header("Connection"), "keep-alive");
 
     // // Second request (close)
     RawRequest req2;
@@ -438,7 +438,7 @@ TEST_F(ResponseGeneratorTest, PipelinedRequestsConnectionKeepAliveAndClose)
     RawResponse resp2;
     ResponseGenerator::genResponse(req2, ctx, resp2, cgiRes);
 
-    EXPECT_EQ(resp2.getStatusCode(), HttpStatusCode::OK);
+    EXPECT_EQ(resp2.statusCode(), HttpStatusCode::OK);
     EXPECT_TRUE(resp2.hasHeader("Connection"));
-    EXPECT_EQ(resp2.getHeader("Connection"), "close");
+    EXPECT_EQ(resp2.header("Connection"), "close");
 }

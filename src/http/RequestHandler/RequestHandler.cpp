@@ -11,7 +11,7 @@ namespace RequestHandler
         FileInfo path = FileUtils::getFileInfo(ctx.resolved_path);
 		if (!(path.exists && path.isFile && path.readable))
 		{
-			redirResp.addDefaultError(curRawResp.getStatusCode());
+			redirResp.addDefaultError(curRawResp.statusCode());
 		}
 		else
 		{
@@ -21,7 +21,7 @@ namespace RequestHandler
 			dummyReq.setShouldClose(rawReq.shouldClose());
 
 			ResponseGenerator::genResponse(dummyReq, ctx, redirResp, cgiResult);
-			redirResp.setStatusCode(curRawResp.getStatusCode());
+			redirResp.setStatusCode(curRawResp.statusCode());
 			ResponseGenerator::addAllowHeader(redirResp, ctx.allowed_methods);
 		}
 	}
@@ -38,7 +38,7 @@ namespace RequestHandler
 
 		if (curRawResp.isInternalRedirect())
 		{
-			std::string newUri = curRawResp.getErrorPageUri(ctx.error_pages, curRawResp.getStatusCode());
+			std::string newUri = curRawResp.lookupErrorPageUri(ctx.error_pages, curRawResp.statusCode());
 			RequestContext newCtx = config.createRequestContext(client.getListeningEndpoint(), rawReq.host(), newUri);
 			RawResponse redirResp;
 

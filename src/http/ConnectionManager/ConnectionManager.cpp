@@ -188,7 +188,7 @@ void ConnectionManager::onCgiExited(Server& server, pid_t pid, int status)
 		if (!raw.parseFromCgiOutput(cgi->output))
 			raw.addDefaultError(HttpStatusCode::InternalServerError);
 
-		raw.setMimeType(raw.getHeader("Content-Type"));
+		raw.setMimeType(raw.header("Content-Type"));
 
 		*cgi->response = raw.toResponseData();
 		// for ab test connection should be closed after CGI
