@@ -117,7 +117,7 @@ std::string RawRequest::getHost() const
 	return m_host;
 }
 
-BodyType::Type RawRequest::getBodyType() const
+BodyType RawRequest::getBodyType() const
 {
 	return m_bodyType;
 }
