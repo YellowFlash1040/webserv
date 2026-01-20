@@ -11,7 +11,7 @@ namespace RequestHandler
         FileInfo path = FileUtils::getFileInfo(ctx.resolved_path);
 		if (!(path.exists && path.isFile && path.readable))
 		{
-			redirResp.addDefaultError(curRawResp.getStatusCode());
+			redirResp.addDefaultError(curRawResp.statusCode());
 		}
 		else
 		{
@@ -21,7 +21,7 @@ namespace RequestHandler
 			dummyReq.setShouldClose(rawReq.shouldClose());
 
 			ResponseGenerator::genResponse(dummyReq, ctx, redirResp, cgiResult);
-			redirResp.setStatusCode(curRawResp.getStatusCode());
+			redirResp.setStatusCode(curRawResp.statusCode());
 			ResponseGenerator::addAllowHeader(redirResp, ctx.allowed_methods);
 		}
 	}
@@ -31,15 +31,15 @@ namespace RequestHandler
 									 const Config& config,
 									CgiRequestResult& cgiResult)
 	{
-		RequestContext ctx = config.createRequestContext(client.getListeningEndpoint(), rawReq.getHost(), rawReq.getUri());
+		RequestContext ctx = config.createRequestContext(client.getListeningEndpoint(), rawReq.host(), rawReq.uri());
 		RawResponse curRawResp;
 
 		ResponseGenerator::genResponse(rawReq, ctx, curRawResp, cgiResult);
 
 		if (curRawResp.isInternalRedirect())
 		{
-			std::string newUri = curRawResp.getErrorPageUri(ctx.error_pages, curRawResp.getStatusCode());
-			RequestContext newCtx = config.createRequestContext(client.getListeningEndpoint(), rawReq.getHost(), newUri);
+			std::string newUri = curRawResp.lookupErrorPageUri(ctx.error_pages, curRawResp.statusCode());
+			RequestContext newCtx = config.createRequestContext(client.getListeningEndpoint(), rawReq.host(), newUri);
 			RawResponse redirResp;
 
 			handleInternalRedirect(rawReq, newCtx, curRawResp, redirResp, cgiResult);

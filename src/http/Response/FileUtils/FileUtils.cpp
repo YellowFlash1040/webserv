@@ -94,4 +94,13 @@ namespace FileUtils
 			return it->second;
 		return "application/octet-stream";
 	}
+	
+	std::string getFileExtension(const std::string& uri)
+	{
+		size_t pos = uri.find_last_of('.');
+		if (pos == std::string::npos)
+			return {};
+		return uri.substr(pos);
+	}
 }
+

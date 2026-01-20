@@ -58,7 +58,7 @@ namespace PrintUtils
 		<< "\nRequest Done: " << (req.isRequestDone() ? "true" : "false")
 		);
 
-		for (const auto& kv : req.getHeaders())
+		for (const auto& kv : req.headers())
 		{
 			DBG("  " << kv.first << ": " << kv.second);
 			(void)kv;
@@ -69,7 +69,7 @@ namespace PrintUtils
 	{
 		DBG("=== Response Queue (" << clientState.getResponseQueue().size() << " items) ===");
 
-		std::queue<ResponseData> tempQueue = clientState.getResponseQueue();
+		std::queue<ResponseData> tempQueue = clientState.responses();
 		size_t index = 0;
 
 		while (!tempQueue.empty())

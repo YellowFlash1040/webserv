@@ -1,13 +1,183 @@
 #include "RawRequest.hpp"
 
-RawRequest::RawRequest()
-	: _tempBuffer(), _body(), _chunkedBuffer(), _conLenBuffer(), _method(), _uri(), _host(), _httpVersion(),
-	_headers(), _bodyType(BodyType::NO_BODY), _headersDone(false), _terminatingZeroMet(false), _bodyDone(false),
-	_requestDone(false), _isBadRequest(false), _shouldClose(false) {}
+// -----------------------CONSTRUCTION AND DESTRUCTION-------------------------
 
-// -----------------------------
-// Public Parsing / Data Methods
-// -----------------------------
+RawRequest::RawRequest()
+	: m_tempBuffer(), m_body(), m_chunkedBuffer(), m_conLenBuffer(), m_method(), m_uri(), m_host(), m_httpVersion(),
+	m_headers(), m_bodyType(BodyType::NO_BODY), m_headersDone(false), m_terminatingZeroMet(false), m_bodyDone(false),
+	m_requestDone(false), m_isBadRequest(false), m_shouldClose(false) {}
+
+// ---------------------------ACCESSORS-----------------------------
+
+bool RawRequest::isHeadersDone() const
+{ 
+	return m_headersDone;
+}
+
+bool RawRequest::isBodyDone() const
+{ 
+	return m_bodyDone;
+}
+
+bool RawRequest::isRequestDone() const
+{ 
+	return m_requestDone;
+}
+
+bool RawRequest::isBadRequest() const
+{
+	return m_isBadRequest;
+}
+
+bool RawRequest::shouldClose() const
+{ 
+	return m_shouldClose;
+}
+
+HttpMethod RawRequest::method() const
+{
+	return m_method;
+}
+
+const std::string& RawRequest::uri() const
+{
+	return m_uri;
+}
+
+const std::string& RawRequest::query() const
+{
+	return m_query;
+}
+
+const std::string& RawRequest::httpVersion() const 
+{
+	return m_httpVersion;
+}
+
+const std::unordered_map<std::string, std::string>& RawRequest::headers() const
+{
+	return m_headers;
+}
+
+const std::string RawRequest::header(const std::string& name) const
+{
+	auto it = m_headers.find(name);
+	return (it != m_headers.end()) ? it->second : "";
+}
+
+const std::string& RawRequest::host() const
+{
+	return m_host;
+}
+
+BodyType RawRequest::bodyType() const
+{
+	return m_bodyType;
+}
+
+size_t RawRequest::contentLength() const
+{
+	auto clIt = m_headers.find("Content-Length");
+	if (clIt == m_headers.end())
+		return 0;
+
+	try
+	{
+		long value = std::stol(clIt->second);
+		if (value < 0)
+			throw std::invalid_argument("Negative Content-Length not allowed");
+
+		return static_cast<size_t>(value);
+	}
+	catch (const std::exception& e)
+	{
+		throw std::invalid_argument("Invalid Content-Length header: " + clIt->second);
+	}
+}
+
+const std::string& RawRequest::tempBuffer() const
+{
+	return m_tempBuffer;
+}
+
+const std::string& RawRequest::body() const
+{
+	return m_body;
+}
+
+void RawRequest::setMethod(HttpMethod method)
+{
+	m_method = method;
+}
+
+void RawRequest::setUri(const std::string& uri)
+{
+	m_uri = uri;
+}
+
+void RawRequest::setHeadersDone()
+{ 
+	m_headersDone = true;
+}
+
+void RawRequest::addHeader(const std::string& name, const std::string& value)
+{
+	auto it = m_headers.find(name);
+	if (it != m_headers.end())
+	{
+		// Header already exists
+		if (!StrUtils::equalsIgnoreCase(it->second, value))
+		{
+			// Conflict: same header with different values
+			m_bodyType = BodyType::ERROR;
+			throw std::runtime_error("Header conflict: " + name +
+									 " has values [" + it->second + "] and [" + value + "]");
+		}
+		else
+		{
+			// Duplicate with same value: harmless
+			return;
+		}
+	}
+	m_headers[name] = value;
+
+}
+
+void RawRequest::setShouldClose(bool value)
+{
+	m_shouldClose = value;
+}
+
+void RawRequest::setTempBuffer(const std::string& buffer)
+{
+	m_tempBuffer = buffer;
+}
+
+void RawRequest::setBody(const std::string& data)
+{
+	m_body = data;
+}
+
+void RawRequest::appendTempBuffer(const std::string& data)
+{
+	m_tempBuffer += data;
+}
+
+
+void RawRequest::setRequestDone()
+{
+	m_requestDone = true;
+}
+
+void RawRequest::markBadRequest()
+{
+	m_isBadRequest = true;
+	m_headersDone = true;
+	m_bodyDone = true;
+	m_requestDone = true;
+}
+
+// ---------------------------METHODS-----------------------------
 
 bool RawRequest::parse()
 {
@@ -33,7 +203,7 @@ bool RawRequest::parse()
 	// Parse body if needed
 	if (!isBadRequest() && isHeadersDone() && !isBodyDone())
 	{
-		appendBodyBytes(getTempBuffer());
+		appendBodyBytes(tempBuffer());
 
 		if (!isBodyDone())
 		{
@@ -57,146 +227,14 @@ RequestData RawRequest::buildRequestData() const
 {
 	RequestData data;
 
-	data.method = _method;
-	data.uri = _uri;
-	data.query = _query;
-	data.httpVersion = _httpVersion;
-	data.headers = _headers;
-	data.body = _body;
+	data.method = m_method;
+	data.uri = m_uri;
+	data.query = m_query;
+	data.httpVersion = m_httpVersion;
+	data.headers = m_headers;
+	data.body = m_body;
 	return data;
 }
-
-bool RawRequest::isRequestDone() const
-{ 
-	return _requestDone;
-}
-
-bool RawRequest::isBadRequest() const
-{
-	return _isBadRequest;
-}
-
-bool RawRequest::shouldClose() const
-{ 
-	return _shouldClose;
-}
-
-HttpMethod RawRequest::getMethod() const
-{
-	return _method;
-}
-
-const std::string& RawRequest::getUri() const
-{
-	return _uri;
-}
-
-const std::string& RawRequest::getQuery() const
-{
-	return _query;
-}
-
-const std::string& RawRequest::getHttpVersion() const 
-{
-	return _httpVersion;
-}
-
-const std::unordered_map<std::string, std::string>& RawRequest::getHeaders() const
-{
-	return _headers;
-}
-
-const std::string RawRequest::getHeader(const std::string& name) const
-{
-	auto it = _headers.find(name);
-	return (it != _headers.end()) ? it->second : "";
-}
-
-std::string RawRequest::getHost() const
-{
-	return _host;
-}
-
-BodyType::Type RawRequest::getBodyType() const
-{
-	return _bodyType;
-}
-
-const std::string& RawRequest::getTempBuffer() const
-{
-	return _tempBuffer;
-}
-
-const std::string& RawRequest::getBody() const
-{
-	return _body;
-}
-
-// -----------------------------
-// Public Setters / Modifiers
-// -----------------------------
-
-void RawRequest::setMethod(HttpMethod method)
-{
-	_method = method;
-}
-
-void RawRequest::setUri(const std::string& uri)
-{
-	_uri = uri;
-}
-
-void RawRequest::setHeadersDone()
-{ 
-	_headersDone = true;
-}
-
-void RawRequest::addHeader(const std::string& name, const std::string& value)
-{
-	auto it = _headers.find(name);
-	if (it != _headers.end())
-	{
-		// Header already exists
-		if (!StrUtils::equalsIgnoreCase(it->second, value))
-		{
-			// Conflict: same header with different values
-			_bodyType = BodyType::ERROR;
-			throw std::runtime_error("Header conflict: " + name +
-									 " has values [" + it->second + "] and [" + value + "]");
-		}
-		else
-		{
-			// Duplicate with same value: harmless
-			return;
-		}
-	}
-	_headers[name] = value;
-
-}
-
-void RawRequest::setShouldClose(bool value)
-{
-	_shouldClose = value;
-}
-
-void RawRequest::setTempBuffer(const std::string& buffer)
-{
-	_tempBuffer = buffer;
-}
-
-void RawRequest::setBody(const std::string& data)
-{
-	_body = data;
-}
-
-void RawRequest::appendTempBuffer(const std::string& data)
-{
-	_tempBuffer += data;
-}
-
-// -----------------------------
-// Private Parsing Helpers
-// -----------------------------
 
 void RawRequest::handleHeaderPart()
 {
@@ -214,11 +252,11 @@ void RawRequest::handleHeaderPart()
 
 	parseRequestLineAndHeaders(headerPart);
 
-	if (_bodyType == BodyType::NO_BODY)
+	if (m_bodyType == BodyType::NO_BODY)
 	{
 		DBG("No body, marking body done and request done");
-		_bodyDone = true;
-		_requestDone = true;
+		m_bodyDone = true;
+		m_requestDone = true;
 	}
 
 	finalizeHeaderPart();
@@ -226,14 +264,14 @@ void RawRequest::handleHeaderPart()
 
 bool RawRequest::extractHeaderPart(std::string& headerPart)
 {
-	size_t headerEnd = _tempBuffer.find("\r\n\r\n");
+	size_t headerEnd = m_tempBuffer.find("\r\n\r\n");
 	if (headerEnd == std::string::npos)
 		return false;
 
-	headerPart = _tempBuffer.substr(0, headerEnd + 4);
+	headerPart = m_tempBuffer.substr(0, headerEnd + 4);
 	
 	// Keep leftover (after headers) in tempBuffer
-	_tempBuffer = _tempBuffer.substr(headerEnd + 4);
+	m_tempBuffer = m_tempBuffer.substr(headerEnd + 4);
 	DBG("Temp buffer length after header removal = " << _tempBuffer.size());
 
 	return true;
@@ -267,22 +305,21 @@ void RawRequest::parseRequestLine(const std::string& firstLine)
 	std::istringstream reqLine(firstLine);
 	std::string methodStr;
 	
-	reqLine >> methodStr >> _rawUri >> _httpVersion;
+	reqLine >> methodStr >> m_rawUri >> m_httpVersion;
 
-	if (methodStr.empty() || _rawUri.empty() || _httpVersion.empty())
+	if (methodStr.empty() || m_rawUri.empty() || m_httpVersion.empty())
 		throw std::runtime_error("Invalid request line");
 
-	_method = stringToHttpMethod(methodStr);
-	if (_method == HttpMethod::NONE)
+	m_method = stringToHttpMethod(methodStr);
+	if (m_method == HttpMethod::NONE)
 		throw std::invalid_argument("Unsupported HTTP method: " + methodStr);
 
-	if (_httpVersion != "HTTP/1.0" && _httpVersion != "HTTP/1.1")
-		throw std::invalid_argument("Unsupported HTTP version: " + _httpVersion);
+	if (m_httpVersion != "HTTP/1.0" && m_httpVersion != "HTTP/1.1")
+		throw std::invalid_argument("Unsupported HTTP version: " + m_httpVersion);
 
-	if (_rawUri[0] != '/')
+	if (m_rawUri[0] != '/')
 	{
-		throw std::invalid_argument("Invalid request URI: " + _rawUri);
-		// 400 Bad Request
+		throw std::invalid_argument("Invalid request URI: " + m_rawUri);
 	}
 
 	splitUriAndQuery();
@@ -290,16 +327,16 @@ void RawRequest::parseRequestLine(const std::string& firstLine)
 
 void RawRequest::splitUriAndQuery()
 {
-	size_t qpos = _rawUri.find('?');
+	size_t qpos = m_rawUri.find('?');
 	if (qpos != std::string::npos)
 	{
-		_uri = _rawUri.substr(0, qpos);
-		_query = _rawUri.substr(qpos + 1);
+		m_uri = m_rawUri.substr(0, qpos);
+		m_query = m_rawUri.substr(qpos + 1);
 	}
 	else
 	{
-		_uri = _rawUri;
-		_query.clear();
+		m_uri = m_rawUri;
+		m_query.clear();
 	}
 
 	DBG("[splitUriAndQuery]: _uri = " << _uri << ", _query = " << _query);
@@ -338,35 +375,28 @@ void RawRequest::parseAndStoreHeaderLine(const std::string& line)
 	if (StrUtils::equalsIgnoreCase(key, "Host"))
 	{
 		size_t portPos = value.find(':');
-		_host = (portPos != std::string::npos) ? value.substr(0, portPos) : value;
+		m_host = (portPos != std::string::npos) ? value.substr(0, portPos) : value;
 	}
 }
 
 void RawRequest::finalizeHeaders()
 {
-	if (StrUtils::equalsIgnoreCase(getHeader("Transfer-Encoding"), "chunked"))
-		_bodyType = BodyType::CHUNKED;
-	else if (!getHeader("Content-Length").empty())
-		_bodyType = BodyType::SIZED;
+	if (StrUtils::equalsIgnoreCase(header("Transfer-Encoding"), "chunked"))
+		m_bodyType = BodyType::CHUNKED;
+	else if (!header("Content-Length").empty())
+		m_bodyType = BodyType::SIZED;
 
-	if (StrUtils::equalsIgnoreCase(getHeader("Connection"), "close"))
-		_shouldClose = true;
+	if (StrUtils::equalsIgnoreCase(header("Connection"), "close"))
+		m_shouldClose = true;
 
-	_headersDone = true;
+	m_headersDone = true;
 }
 
 void RawRequest::finalizeHeaderPart()
 {
-	if (_bodyType == BodyType::NO_BODY)
-	{
-		DBG("No body, marking body done and request done");
-		_bodyDone = true;
-		_requestDone = true;
-	}
-
 	try
 	{
-		_uri = UriUtils::normalizePath(_uri);
+		m_uri = UriUtils::normalizePath(m_uri);
 	}
 	catch (const std::exception&)
 	{
@@ -378,22 +408,21 @@ void RawRequest::appendBodyBytes(const std::string& data)
 {
 	try
 	{
-		switch (_bodyType)
+		switch (m_bodyType)
 		{
 			case BodyType::SIZED:
 			{
-				// Call BodyParser's version with references
 				BodyParser::parseSizedBody(
-					data,            // incomingData
-					_conLenBuffer,   // conLenBuffer
-					_tempBuffer,     // tempBuffer
-					getContentLengthValue(), // expectedLength
-					_bodyDone        // bodyDone
+					data,
+					m_conLenBuffer,
+					m_tempBuffer,
+					contentLength(),
+					m_bodyDone
 				);
 
-				if (_bodyDone)
+				if (m_bodyDone)
 				{
-					appendToBody(_conLenBuffer); // only append when done
+					appendToBody(m_conLenBuffer); // only append when done
 					DBG("[appendBodyBytes]: Content-Length body finished, body appended, bodyDone set");
 				}
 				break;
@@ -401,13 +430,12 @@ void RawRequest::appendBodyBytes(const std::string& data)
 
 			case BodyType::CHUNKED:
 			{
-				// Call BodyParser's reference-based parseChunkedBody
 				BodyParser::parseChunkedBody(
-					_chunkedBuffer,    // chunkedBuffer
-					_tempBuffer,       // tempBuffer
-					_body,             // body
-					_terminatingZeroMet, // terminatingZeroMet
-					_bodyDone          // bodyDone
+					m_chunkedBuffer,
+					m_tempBuffer,
+					m_body,
+					m_terminatingZeroMet,
+					m_bodyDone
 				);
 				break;
 			}
@@ -428,55 +456,12 @@ void RawRequest::appendBodyBytes(const std::string& data)
 
 }
 
-size_t RawRequest::getContentLengthValue() const
-{
-	// Look for Content-Length
-	auto clIt = _headers.find("Content-Length");
-	if (clIt == _headers.end())
-		return 0; // no header: assume empty body
-
-	try
-	{
-		long value = std::stol(clIt->second);
-		if (value < 0)
-			throw std::invalid_argument("Negative Content-Length not allowed");
-
-		return static_cast<size_t>(value);
-	}
-	catch (const std::exception& e)
-	{
-		throw std::invalid_argument("Invalid Content-Length header: " + clIt->second);
-	}
-}
-
 void RawRequest::appendToBody(const std::string& data)
 {
 	DBG("[appendToBody]: Appending " << data.size() << " bytes to _body");
 
-	_body += data;
+	m_body += data;
 
 	DBG("[appendToBody]: _body now = |" << _body << "|");
 }
 
-bool RawRequest::isHeadersDone() const
-{ 
-	return _headersDone;
-}
-
-bool RawRequest::isBodyDone() const
-{ 
-	return _bodyDone;
-}
-
-void RawRequest::setRequestDone()
-{
-	_requestDone = true;
-}
-
-void RawRequest::markBadRequest()
-{
-	_isBadRequest = true;
-	_headersDone = true;
-	_bodyDone = true;
-	_requestDone = true;
-}

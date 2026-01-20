@@ -3,18 +3,18 @@
 // -----------------------CONSTRUCTION AND DESTRUCTION-------------------------
 
 ClientState::ClientState()
-  : _rawRequests()
-  , _respDataQueue()
+  : m_requests()
+  ,  m_responses()
 {
-    // The first empty request so getLatestRawReq() is always valid
-    DBG("[ClientState Constructor] Creating first empty RawRequest so "
-        "getLatestRawReq() is always valid");
-    _rawRequests.emplace_back();
+	// The first empty request so getLatestRawReq() is always valid
+	DBG("[ClientState Constructor] Creating first empty RawRequest so "
+		"getLatestRawReq() is always valid");
+	m_requests.emplace_back();
 }
 
 ClientState::~ClientState()
 {
-    for (auto& cgi : _activeCGIs)
+    for (auto& cgi : m_activeCGIs)
     {
         if (cgi.fd_stdin != -1)
             close(cgi.fd_stdin);
@@ -27,125 +27,130 @@ ClientState::~ClientState()
 
 // ---------------------------ACCESSORS-----------------------------
 
-bool ClientState::hasPendingResponseData() const
+bool ClientState::hasCompleteRequest() const
 {
-    return !_respDataQueue.empty();
+	for (const auto& rawRequest : m_requests)
+		if (rawRequest.isRequestDone())
+			return true;
+	return false;
 }
 
-bool ClientState::hasCompleteRawRequest() const
+bool ClientState::hasPendingResponse() const
 {
-    for (const auto& rawRequest : _rawRequests)
-        if (rawRequest.isRequestDone())
-            return true;
-    return false;
+	return ! m_responses.empty();
 }
 
 // In processReqs we always append bytes to the currently active reques.
 // Will always return a request
-RawRequest& ClientState::getLatestRawReq()
+RawRequest& ClientState::backRequest()
 {
-    if (_rawRequests.empty())
-    {
-        DBG("[getLatestRawReq] _rawRequests empty, creating a new RawRequest");
-        _rawRequests.emplace_back(); // default-construct a new request
-    }
-    return _rawRequests.back();
+	if (m_requests.empty())
+	{
+		DBG("[getLatestRawReq] _rawRequests empty, creating a new RawRequest");
+		m_requests.emplace_back(); // default-construct a new request
+	}
+	return m_requests.back();
 }
 
-ResponseData& ClientState::frontResponseData()
+ResponseData& ClientState::backResponse()
 {
-    if (_respDataQueue.empty())
-        throw std::runtime_error("No pending responses");
-    return _respDataQueue.front();
+	if ( m_responses.empty())
+		throw std::runtime_error("No response data in queue to peek.");
+	return  m_responses.back();
 }
 
-const std::queue<ResponseData>& ClientState::getResponseQueue() const
+const ResponseData& ClientState::frontResponse() const
 {
-    return _respDataQueue;
+	if ( m_responses.empty())
+		throw std::runtime_error("No pending responses");
+	return  m_responses.front();
+}
+
+const std::queue<ResponseData>& ClientState::responses() const
+{
+	return  m_responses;
+}
+
+std::vector<CGIData>& ClientState::activeCGIs()
+{
+	return m_activeCGIs;
 }
 
 // ---------------------------METHODS-----------------------------
 
-void ClientState::enqueueResponseData(const ResponseData& resp)
+RawRequest& ClientState::addRequest()
 {
-    DBG("ResponseData queued");
-    _respDataQueue.push(resp);
+	DBG("[addRawRequest]: made a new request");
+	m_requests.emplace_back();
+	return m_requests.back();
 }
 
-RawRequest& ClientState::addRawRequest()
+void ClientState::enqueueResponse(const ResponseData& resp)
 {
-    DBG("[addRawRequest]: made a new request");
-    _rawRequests.emplace_back();
-    return _rawRequests.back();
+	DBG("ResponseData queued");
+	m_responses.push(resp);
 }
 
-RawRequest ClientState::popFirstCompleteRawRequest()
+RawRequest ClientState::popFrontRequest()
 {
-    if (_rawRequests.empty() || !_rawRequests.front().isRequestDone())
-        throw std::runtime_error("No complete RawRequest available");
+	if (m_requests.empty() || !m_requests.front().isRequestDone())
+		throw std::runtime_error("No complete RawRequest available");
 
-    RawRequest completed = std::move(_rawRequests.front());
-    _rawRequests.pop_front();
-    return completed;
+	RawRequest completed = std::move(m_requests.front());
+	m_requests.pop_front();
+	return completed;
 }
 
-void ClientState::popFrontResponseData()
+void ClientState::popFrontResponse()
 {
-    if (_respDataQueue.empty())
-        throw std::runtime_error("No pending responses");
-    _respDataQueue.pop();
-}
-
-ResponseData& ClientState::backResponseData()
-{
-    if (_respDataQueue.empty())
-        throw std::runtime_error("No response data in queue to peek.");
-    return _respDataQueue.back();
+	if ( m_responses.empty())
+		throw std::runtime_error("No pending responses");
+	 m_responses.pop();
 }
 
 CGIData& ClientState::createActiveCgi(RequestData& req, Client& client,
-                                      const std::string& interpreter,
-                                      const std::string& scriptPath,
-                                      ResponseData* resp)
+									  const std::string& interpreter,
+									  const std::string& scriptPath,
+									  ResponseData* resp)
 {
-    _activeCGIs.emplace_back();
-    CGIData& cgi = _activeCGIs.back();
+	m_activeCGIs.emplace_back();
+	CGIData& cgi = m_activeCGIs.back();
 
-    cgi = CGIManager::startCGI(req, client, interpreter, scriptPath);
-    cgi.response = resp;
+	cgi = CGIManager::startCGI(req, client, interpreter, scriptPath);
+	cgi.response = resp;
 
-    return cgi;
+	return cgi;
 }
 
 CGIData* ClientState::findCgiByPid(pid_t pid)
 {
-    for (auto& cgi : _activeCGIs)
-    {
-        if (cgi.pid == pid)
-            return &cgi;
-    }
-    return nullptr;
+	for (auto& cgi : m_activeCGIs)
+	{
+		if (cgi.pid == pid)
+			return &cgi;
+	}
+	return nullptr;
 }
 
 void ClientState::removeCgi(pid_t pid)
 {
-    auto it
-        = std::remove_if(_activeCGIs.begin(), _activeCGIs.end(),
-                         [pid](const CGIData& cgi) { return cgi.pid == pid; });
-    if (it != _activeCGIs.end())
-        _activeCGIs.erase(it, _activeCGIs.end());
+	auto it
+		= std::remove_if(m_activeCGIs.begin(), m_activeCGIs.end(),
+						 [pid](const CGIData& cgi) { return cgi.pid == pid; });
+	if (it != m_activeCGIs.end())
+		m_activeCGIs.erase(it, m_activeCGIs.end());
 }
 
 void ClientState::clearActiveCGIs()
 {
-    _activeCGIs.clear();
+	m_activeCGIs.clear();
 }
 
 std::vector<CGIData*> ClientState::getTimedOutCGIs(time_t now, time_t timeout)
 {
     std::vector<CGIData*> result;
 
-    for (auto& cgi : _activeCGIs)
+    for (auto& cgi : m_activeCGIs)
         if (now - cgi.start_time > timeout)
             result.push_back(&cgi);
 

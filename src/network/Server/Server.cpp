@@ -236,9 +236,9 @@ void Server::acceptNewClient(int listeningSocket, int epoll_fd)
 void Server::removeClient(Client& client)
 {
     int clientSocket = client.socket();
-    ClientState& state = m_connMgr.getClientState(clientSocket);
+    ClientState& state = m_connMgr.clientState(clientSocket);
 
-    for (auto& cgi : state.getActiveCGIs())
+    for (auto& cgi : state.activeCGIs())
     {
         if (cgi.fd_stdin != -1)
         {
@@ -302,11 +302,11 @@ void Server::fillBuffer(Client& client)
     if (!client.outBuffer().empty())
         return;
 
-    ClientState& clientState = m_connMgr.getClientState(client.socket());
+    ClientState& clientState = m_connMgr.clientState(client.socket());
 
-    while (clientState.hasPendingResponseData())
+    while (clientState.hasPendingResponse())
     {
-        ResponseData& respData = clientState.frontResponseData();
+        const ResponseData& respData = clientState.frontResponse();
 
         if (!respData.isReady)
             break;
@@ -316,7 +316,7 @@ void Server::fillBuffer(Client& client)
         client.updateLastActivity();
         client.setShouldClose(respData.shouldClose);
 
-        clientState.popFrontResponseData();
+        clientState.popFrontResponse();
 
         enableEpollOut(client.socket());
     }
@@ -384,7 +384,7 @@ void Server::checkCGITimeouts()
 
     for (auto& [fd, client] : m_clients)
     {
-        ClientState& state = m_connMgr.getClientState(fd);
+        ClientState& state = m_connMgr.clientState(fd);
         auto timedOut = state.getTimedOutCGIs(now, CGI_TIMEOUT);
 
         for (CGIData* cgi : timedOut)

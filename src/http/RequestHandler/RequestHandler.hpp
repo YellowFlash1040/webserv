@@ -14,12 +14,6 @@ namespace RequestHandler
 									const Config& config,
 									CgiRequestResult& cgiResult);
 
-	void handleInternalRedirect(const RawRequest& rawReq,
-								const Client& client,
-								const RequestContext& ctx,
-								const RawResponse& curRawResp,
-								RawResponse& redirResp,
-								CgiRequestResult& cgiResult);
 }
 
 #endif

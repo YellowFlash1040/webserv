@@ -22,7 +22,7 @@ TEST(RawRequestTest, UnsupportedHttpMethod)
 	EXPECT_TRUE(rawReq.isRequestDone());
 
 	// Method should be NONE
-	EXPECT_EQ(rawReq.getMethod(), HttpMethod::NONE);
+	EXPECT_EQ(rawReq.method(), HttpMethod::NONE);
 }
 
 TEST(RawRequestTest, NoUriAfterMethod)
@@ -70,10 +70,10 @@ TEST(RawRequestTest, UriPercentEncoding)
 	EXPECT_FALSE(rawReq.isBadRequest()); // valid request
 
 	// The normalized URI should decode %46 -> 'F'
-	EXPECT_EQ(rawReq.getUri(), "/folder/File.txt");
-	EXPECT_EQ(rawReq.getMethod(), HttpMethod::GET);
-	EXPECT_EQ(rawReq.getHeader("Host"), "localhost:8081");
-	EXPECT_EQ(rawReq.getHost(), "localhost");
+	EXPECT_EQ(rawReq.uri(), "/folder/File.txt");
+	EXPECT_EQ(rawReq.method(), HttpMethod::GET);
+	EXPECT_EQ(rawReq.header("Host"), "localhost:8081");
+	EXPECT_EQ(rawReq.host(), "localhost");
 }
 
 TEST(RawRequestTest, UriPercentEncodedEscapeRoot)
@@ -108,7 +108,7 @@ TEST(RawRequestTest, UriDoubleEncoded)
 
 	bool done = rawReq.parse();
 	EXPECT_TRUE(done);
-	EXPECT_EQ(rawReq.getUri(), "/secret.txt");
+	EXPECT_EQ(rawReq.uri(), "/secret.txt");
 }
 
 TEST(RawRequestTest, RequestWithQuery)
@@ -121,8 +121,8 @@ TEST(RawRequestTest, RequestWithQuery)
 
 	bool done = rawReq.parse();
 	EXPECT_TRUE(done);
-	EXPECT_EQ(rawReq.getUri(), "/search");
-	EXPECT_EQ(rawReq.getQuery(), "user=tamar+test&lang=en");
+	EXPECT_EQ(rawReq.uri(), "/search");
+	EXPECT_EQ(rawReq.query(), "user=tamar+test&lang=en");
 }
 
 TEST(RawRequestTest, IncompleteVersion)
@@ -153,7 +153,7 @@ TEST(RawRequestTest, WrongVersion)
 
 	rawReq.parse();
 	EXPECT_TRUE(rawReq.isRequestDone());
-	EXPECT_EQ(rawReq.getHttpVersion(), "HTTP/8.0");
+	EXPECT_EQ(rawReq.httpVersion(), "HTTP/8.0");
 	EXPECT_TRUE(rawReq.isBadRequest());
 	
 }
@@ -200,10 +200,10 @@ TEST(RawRequestTest, HostWithPort)
 	EXPECT_TRUE(done);
 
 	// The full Host header still includes the port
-	EXPECT_EQ(rawReq.getHeader("Host"), "example.com:8080");
+	EXPECT_EQ(rawReq.header("Host"), "example.com:8080");
 
 	// getHost() should return only the hostname, no port
-	EXPECT_EQ(rawReq.getHost(), "example.com");
+	EXPECT_EQ(rawReq.host(), "example.com");
 }
 
 TEST(RawRequestTest, HostWithNoPort)
@@ -220,10 +220,10 @@ TEST(RawRequestTest, HostWithNoPort)
 	EXPECT_TRUE(done);
 
 	// The full Host header still includes the port
-	EXPECT_EQ(rawReq.getHeader("Host"), "example.com");
+	EXPECT_EQ(rawReq.header("Host"), "example.com");
 
 	// getHost() should return only the hostname, no port
-	EXPECT_EQ(rawReq.getHost(), "example.com");
+	EXPECT_EQ(rawReq.host(), "example.com");
 }
 
 TEST(RawRequestTest, DuplicateHeadersDifferentValues)
@@ -259,9 +259,9 @@ TEST(RawRequestTest, HeaderWithNoValue)
 	bool done = rawReq.parse();
 	EXPECT_TRUE(done); // headers are done
 
-	EXPECT_EQ(rawReq.getHeader("Host"), "localhost:8081");
-	EXPECT_EQ(rawReq.getHeader("X-Custom-Header"), ""); // empty value
-	EXPECT_EQ(rawReq.getHeader("Connection"), "keep-alive");
+	EXPECT_EQ(rawReq.header("Host"), "localhost:8081");
+	EXPECT_EQ(rawReq.header("X-Custom-Header"), ""); // empty value
+	EXPECT_EQ(rawReq.header("Connection"), "keep-alive");
 }
 
 TEST(RawRequestTest, ParseSimpleGet)
@@ -280,13 +280,13 @@ TEST(RawRequestTest, ParseSimpleGet)
 	EXPECT_TRUE(done); // parsing completed
 
 	// Assertions
-	EXPECT_EQ(rawReq.getMethod(), HttpMethod::GET);
-	EXPECT_EQ(rawReq.getUri(), "/index.html");
-	EXPECT_EQ(rawReq.getHttpVersion(), "HTTP/1.1");
-	EXPECT_EQ(rawReq.getHeader("Host"), "localhost:8081");
-	EXPECT_EQ(rawReq.getHost(), "localhost");
-	EXPECT_EQ(rawReq.getHeader("Connection"), "keep-alive");
-	EXPECT_EQ(rawReq.getBody(), "");
+	EXPECT_EQ(rawReq.method(), HttpMethod::GET);
+	EXPECT_EQ(rawReq.uri(), "/index.html");
+	EXPECT_EQ(rawReq.httpVersion(), "HTTP/1.1");
+	EXPECT_EQ(rawReq.header("Host"), "localhost:8081");
+	EXPECT_EQ(rawReq.host(), "localhost");
+	EXPECT_EQ(rawReq.header("Connection"), "keep-alive");
+	EXPECT_EQ(rawReq.body(), "");
 }
 
 TEST(RawRequestTest, NoContentLengthNoChunkedBodyDone)
@@ -308,11 +308,11 @@ TEST(RawRequestTest, NoContentLengthNoChunkedBodyDone)
 	EXPECT_FALSE(rawReq.isBadRequest()); // request valid
 
 	// Check headers
-	EXPECT_EQ(rawReq.getHeader("Host"), "localhost");
-	EXPECT_EQ(rawReq.getHeader("Connection"), "keep-alive");
+	EXPECT_EQ(rawReq.header("Host"), "localhost");
+	EXPECT_EQ(rawReq.header("Connection"), "keep-alive");
 
 	// Body should be empty
-	EXPECT_EQ(rawReq.getBody(), "");
+	EXPECT_EQ(rawReq.body(), "");
 }
 
 //According to HTTP/1.1 spec (RFC 7230): Transfer-Encoding takes precedence over Content-Length if both are present
@@ -335,7 +335,7 @@ TEST(RawRequestTest, ContentLengthAndChunked)
 	EXPECT_TRUE(done); // parsing completed
 
 	// Body should be parsed as chunked
-	EXPECT_EQ(rawReq.getBody(), "Hello World");
+	EXPECT_EQ(rawReq.body(), "Hello World");
 }
 
 TEST(RawRequestTest, ChunkedMissingCRLFAfterSize)
@@ -408,8 +408,8 @@ TEST(RawRequestTest, ParseChunkedSingleChunk)
 	bool done = rawReq.parse();
 	EXPECT_TRUE(done); // parsing completed
 
-	EXPECT_EQ(rawReq.getHeader("Transfer-Encoding"), "chunked");
-	EXPECT_EQ(rawReq.getBody(), "Hello World"); // the body after decoding the chunk
+	EXPECT_EQ(rawReq.header("Transfer-Encoding"), "chunked");
+	EXPECT_EQ(rawReq.body(), "Hello World"); // the body after decoding the chunk
 }
 
 TEST(RawRequestTest, ParseChunkedMultipleChunks)
@@ -433,7 +433,7 @@ TEST(RawRequestTest, ParseChunkedMultipleChunks)
 	EXPECT_TRUE(done); // parsing completed
 
 	// The body should be the concatenation of all chunks
-	EXPECT_EQ(rawReq.getBody(), "Hello World!!!");
+	EXPECT_EQ(rawReq.body(), "Hello World!!!");
 }
 
 TEST(RawRequestTest, ParseChunkedTextChunks)
@@ -459,7 +459,7 @@ TEST(RawRequestTest, ParseChunkedTextChunks)
 	bool done = rawReq.parse();
 	EXPECT_TRUE(done); // parsing completed
 
-	EXPECT_EQ(rawReq.getHeader("Transfer-Encoding"), "chunked");
+	EXPECT_EQ(rawReq.header("Transfer-Encoding"), "chunked");
 
 	// Full body should be concatenation of all chunks
 	std::string expectedBody =
@@ -470,7 +470,7 @@ TEST(RawRequestTest, ParseChunkedTextChunks)
 		"current page. A 204 response is cacheable by default, "
 		"and an ETag header is included in such cases.";
 
-	EXPECT_EQ(rawReq.getBody(), expectedBody);
+	EXPECT_EQ(rawReq.body(), expectedBody);
 }
 
 TEST(RawRequestTest, ContentLengthExactBody)
@@ -489,7 +489,7 @@ TEST(RawRequestTest, ContentLengthExactBody)
     EXPECT_TRUE(done);
     EXPECT_FALSE(rawReq.isBadRequest());
     EXPECT_TRUE(rawReq.isBodyDone());
-    EXPECT_EQ(rawReq.getBody(), "Hello");
+    EXPECT_EQ(rawReq.body(), "Hello");
 }
 
 TEST(RawRequestTest, ContentLengthBodyTooShort)
@@ -542,7 +542,7 @@ TEST(RawRequestTest, ContentLengthZero)
     EXPECT_TRUE(done);
     EXPECT_FALSE(rawReq.isBadRequest());
     EXPECT_TRUE(rawReq.isBodyDone());
-    EXPECT_EQ(rawReq.getBody(), "");
+    EXPECT_EQ(rawReq.body(), "");
 }
 
 TEST(RawRequestTest, ContentLengthExtraBytes)
@@ -560,8 +560,8 @@ TEST(RawRequestTest, ContentLengthExtraBytes)
 
     EXPECT_TRUE(done);
     EXPECT_FALSE(rawReq.isBadRequest());
-    EXPECT_EQ(rawReq.getBody(), "Hello");
-    EXPECT_EQ(rawReq.getTempBuffer(), "EXTRA"); // EXTRA should remain in temp buffer for next request
+    EXPECT_EQ(rawReq.body(), "Hello");
+    EXPECT_EQ(rawReq.tempBuffer(), "EXTRA"); // EXTRA should remain in temp buffer for next request
 }
 
 TEST(RawRequestTest, ContentLengthPartialTCPDelivery)
@@ -591,10 +591,10 @@ TEST(RawRequestTest, ContentLengthPartialTCPDelivery)
 	EXPECT_FALSE(rawReq.isBadRequest());
 
 	// Assertions on parsed request
-	EXPECT_EQ(rawReq.getMethod(), HttpMethod::POST);
-	EXPECT_EQ(rawReq.getUri(), "/submit");
-	EXPECT_EQ(rawReq.getHeader("Host"), "localhost");
-	EXPECT_EQ(rawReq.getBody(), "Hello World");
+	EXPECT_EQ(rawReq.method(), HttpMethod::POST);
+	EXPECT_EQ(rawReq.uri(), "/submit");
+	EXPECT_EQ(rawReq.header("Host"), "localhost");
+	EXPECT_EQ(rawReq.body(), "Hello World");
 }
 
 TEST(RawRequestTest, ContentLengthBodyIncrementalNotEnough)
@@ -618,7 +618,7 @@ TEST(RawRequestTest, ContentLengthBodyIncrementalNotEnough)
 
 	EXPECT_FALSE(rawReq.isBodyDone());
 	EXPECT_FALSE(done);
-	EXPECT_NE(rawReq.getBody(), body);
+	EXPECT_NE(rawReq.body(), body);
 }
 
 TEST(RawRequestTest, ContentLengthBodyIncremental)
@@ -640,7 +640,7 @@ TEST(RawRequestTest, ContentLengthBodyIncremental)
 	}
 
 	EXPECT_TRUE(rawReq.isBodyDone());
-	EXPECT_EQ(rawReq.getBody(), body);
+	EXPECT_EQ(rawReq.body(), body);
 }
 
 TEST(RawRequestTest, ContentLengthBodyIncrementalTooMuch)
@@ -662,7 +662,7 @@ TEST(RawRequestTest, ContentLengthBodyIncrementalTooMuch)
 	}
 
 	EXPECT_TRUE(rawReq.isBodyDone());
-	EXPECT_NE(rawReq.getBody(), body);
-	EXPECT_EQ(rawReq.getBody(), "Hello World");
+	EXPECT_NE(rawReq.body(), body);
+	EXPECT_EQ(rawReq.body(), "Hello World");
 }
 

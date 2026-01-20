@@ -17,22 +17,23 @@
 
 struct FileInfo
 {
-    bool exists;
-    bool isFile;
-    bool isDir;
-    bool readable;
-    bool writable;
-    bool executable;
+	bool exists;
+	bool isFile;
+	bool isDir;
+	bool readable;
+	bool writable;
+	bool executable;
 };
 
 namespace FileUtils
 {   
-    FileInfo getFileInfo(const std::string& path);
+	FileInfo getFileInfo(const std::string& path);
 
 	std::string getFirstValidIndexFile(const std::string& dirPath, const std::vector<std::string>& indexFiles);
 	std::string generateAutoindex(const std::string& dirPath);
 	std::string detectMimeType(const std::string& path);
 	void deleteFile(const std::string& path);
+	std::string getFileExtension(const std::string& uri);
 }
 
 #endif
