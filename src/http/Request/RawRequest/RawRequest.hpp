@@ -2,12 +2,7 @@
 #define RAWREQUEST_HPP
 
 #include <string>
-#include <unordered_map>
 #include <iostream>
-#include <variant>
-#include <sstream>
-#include <algorithm>
-#include <stdexcept>
 
 #include "../utils/StrUtils.hpp"
 #include "../HttpMethod/HttpMethod.hpp"
@@ -48,9 +43,10 @@ class RawRequest
 		bool m_isBadRequest;
 		bool m_shouldClose;
 
-		// -----------------------------
-		// Private Parsing Helpers
-		// -----------------------------
+		// Accessors
+		size_t contentLength() const;
+		
+		// Methods
 		void handleHeaderPart();
 		bool extractHeaderPart(std::string& headerPart);
 		void parseRequestLineAndHeaders(const std::string& headerPart);
@@ -61,45 +57,34 @@ class RawRequest
 		void finalizeHeaders();
 		void finalizeHeaderPart();
 		void appendBodyBytes(const std::string& data);
-		size_t getContentLengthValue() const;
+
 		void appendToBody(const std::string& data);
-		void setRequestDone();
 
 	public:
 		// Construction and destruction
 		RawRequest();
-		~RawRequest() = default;
 		RawRequest(const RawRequest& other) = delete;
 		RawRequest& operator=(const RawRequest& other) = delete;
 		RawRequest(RawRequest&& other) noexcept = default;
 		RawRequest& operator=(RawRequest&& other) noexcept = default;
+		~RawRequest() = default;
 
-		// -----------------------------
-		// Public Parsing / Data Methods
-		// -----------------------------
-		bool parse();
-		RequestData buildRequestData() const;
-
+		// Accessors
 		bool isHeadersDone() const;
 		bool isBodyDone() const;
 		bool isRequestDone() const;
 		bool isBadRequest() const;
 		bool shouldClose() const;
-
-		HttpMethod getMethod() const;
-		const std::string& getUri() const;
-		const std::string& getQuery() const;
-		const std::string& getHttpVersion() const;
-		const std::unordered_map<std::string, std::string>& getHeaders() const;
-		const std::string getHeader(const std::string& name) const;
-		std::string getHost() const;
-		BodyType getBodyType() const;
-		const std::string& getTempBuffer() const;
-		const std::string& getBody() const;
-
-		// -----------------------------
-		// Public Setters / Modifiers
-		// -----------------------------
+		HttpMethod method() const;
+		const std::string& uri() const;
+		const std::string& query() const;
+		const std::string& httpVersion() const;
+		const std::unordered_map<std::string, std::string>& headers() const;
+		const std::string header(const std::string& name) const; // may return ""
+		const std::string& host() const;
+		BodyType bodyType() const;
+		const std::string& tempBuffer() const;
+		const std::string& body() const;
 		void setMethod(HttpMethod method);
 		void setUri(const std::string& uri);
 		void setHeadersDone();
@@ -108,7 +93,12 @@ class RawRequest
 		void setTempBuffer(const std::string& buffer);
 		void setBody(const std::string& data);
 		void appendTempBuffer(const std::string& data);
+		void setRequestDone();
 		void markBadRequest();
+
+		// Methods
+		bool parse();
+		RequestData buildRequestData() const;
 };
 
 #endif

@@ -1,69 +1,22 @@
 #include "RawRequest.hpp"
 
+// -----------------------CONSTRUCTION AND DESTRUCTION-------------------------
+
 RawRequest::RawRequest()
 	: m_tempBuffer(), m_body(), m_chunkedBuffer(), m_conLenBuffer(), m_method(), m_uri(), m_host(), m_httpVersion(),
 	m_headers(), m_bodyType(BodyType::NO_BODY), m_headersDone(false), m_terminatingZeroMet(false), m_bodyDone(false),
 	m_requestDone(false), m_isBadRequest(false), m_shouldClose(false) {}
 
-// -----------------------------
-// Public Parsing / Data Methods
-// -----------------------------
+// ---------------------------ACCESSORS-----------------------------
 
-bool RawRequest::parse()
-{
-	// Parse headers if not done
-	if (!isHeadersDone())
-	{
-		handleHeaderPart();
-
-		if (isBadRequest())
-		{
-			DBG("[parseRawRequest] Bad request detected");
-			setRequestDone();
-			return true;
-		}
-
-		if (!isHeadersDone())
-		{
-			DBG("[parseRawRequest]: headers are not finished yet");
-			return false; // need more data
-		}
-	}
-
-	// Parse body if needed
-	if (!isBadRequest() && isHeadersDone() && !isBodyDone())
-	{
-		appendBodyBytes(getTempBuffer());
-
-		if (!isBodyDone())
-		{
-			DBG("[parseRawRequest]: body not finished yet");
-			return false; // need more data
-		}
-	}
-
-	// Full request done
-	if ((isHeadersDone() && isBodyDone()) || isBadRequest())
-	{
-		DBG("[parseRawRequest]: request done");
-		setRequestDone();
-		return true;
-	}
-
-	return false;
+bool RawRequest::isHeadersDone() const
+{ 
+	return m_headersDone;
 }
 
-RequestData RawRequest::buildRequestData() const
-{
-	RequestData data;
-
-	data.method = m_method;
-	data.uri = m_uri;
-	data.query = m_query;
-	data.httpVersion = m_httpVersion;
-	data.headers = m_headers;
-	data.body = m_body;
-	return data;
+bool RawRequest::isBodyDone() const
+{ 
+	return m_bodyDone;
 }
 
 bool RawRequest::isRequestDone() const
@@ -81,60 +34,76 @@ bool RawRequest::shouldClose() const
 	return m_shouldClose;
 }
 
-HttpMethod RawRequest::getMethod() const
+HttpMethod RawRequest::method() const
 {
 	return m_method;
 }
 
-const std::string& RawRequest::getUri() const
+const std::string& RawRequest::uri() const
 {
 	return m_uri;
 }
 
-const std::string& RawRequest::getQuery() const
+const std::string& RawRequest::query() const
 {
 	return m_query;
 }
 
-const std::string& RawRequest::getHttpVersion() const 
+const std::string& RawRequest::httpVersion() const 
 {
 	return m_httpVersion;
 }
 
-const std::unordered_map<std::string, std::string>& RawRequest::getHeaders() const
+const std::unordered_map<std::string, std::string>& RawRequest::headers() const
 {
 	return m_headers;
 }
 
-const std::string RawRequest::getHeader(const std::string& name) const
+const std::string RawRequest::header(const std::string& name) const
 {
 	auto it = m_headers.find(name);
 	return (it != m_headers.end()) ? it->second : "";
 }
 
-std::string RawRequest::getHost() const
+const std::string& RawRequest::host() const
 {
 	return m_host;
 }
 
-BodyType RawRequest::getBodyType() const
+BodyType RawRequest::bodyType() const
 {
 	return m_bodyType;
 }
 
-const std::string& RawRequest::getTempBuffer() const
+size_t RawRequest::contentLength() const
+{
+	auto clIt = m_headers.find("Content-Length");
+	if (clIt == m_headers.end())
+		return 0;
+
+	try
+	{
+		long value = std::stol(clIt->second);
+		if (value < 0)
+			throw std::invalid_argument("Negative Content-Length not allowed");
+
+		return static_cast<size_t>(value);
+	}
+	catch (const std::exception& e)
+	{
+		throw std::invalid_argument("Invalid Content-Length header: " + clIt->second);
+	}
+}
+
+const std::string& RawRequest::tempBuffer() const
 {
 	return m_tempBuffer;
 }
 
-const std::string& RawRequest::getBody() const
+const std::string& RawRequest::body() const
 {
 	return m_body;
 }
-
-// -----------------------------
-// Public Setters / Modifiers
-// -----------------------------
 
 void RawRequest::setMethod(HttpMethod method)
 {
@@ -194,9 +163,78 @@ void RawRequest::appendTempBuffer(const std::string& data)
 	m_tempBuffer += data;
 }
 
-// -----------------------------
-// Private Parsing Helpers
-// -----------------------------
+
+void RawRequest::setRequestDone()
+{
+	m_requestDone = true;
+}
+
+void RawRequest::markBadRequest()
+{
+	m_isBadRequest = true;
+	m_headersDone = true;
+	m_bodyDone = true;
+	m_requestDone = true;
+}
+
+// ---------------------------METHODS-----------------------------
+
+bool RawRequest::parse()
+{
+	// Parse headers if not done
+	if (!isHeadersDone())
+	{
+		handleHeaderPart();
+
+		if (isBadRequest())
+		{
+			DBG("[parseRawRequest] Bad request detected");
+			setRequestDone();
+			return true;
+		}
+
+		if (!isHeadersDone())
+		{
+			DBG("[parseRawRequest]: headers are not finished yet");
+			return false; // need more data
+		}
+	}
+
+	// Parse body if needed
+	if (!isBadRequest() && isHeadersDone() && !isBodyDone())
+	{
+		appendBodyBytes(tempBuffer());
+
+		if (!isBodyDone())
+		{
+			DBG("[parseRawRequest]: body not finished yet");
+			return false; // need more data
+		}
+	}
+
+	// Full request done
+	if ((isHeadersDone() && isBodyDone()) || isBadRequest())
+	{
+		DBG("[parseRawRequest]: request done");
+		setRequestDone();
+		return true;
+	}
+
+	return false;
+}
+
+RequestData RawRequest::buildRequestData() const
+{
+	RequestData data;
+
+	data.method = m_method;
+	data.uri = m_uri;
+	data.query = m_query;
+	data.httpVersion = m_httpVersion;
+	data.headers = m_headers;
+	data.body = m_body;
+	return data;
+}
 
 void RawRequest::handleHeaderPart()
 {
@@ -343,12 +381,12 @@ void RawRequest::parseAndStoreHeaderLine(const std::string& line)
 
 void RawRequest::finalizeHeaders()
 {
-	if (StrUtils::equalsIgnoreCase(getHeader("Transfer-Encoding"), "chunked"))
+	if (StrUtils::equalsIgnoreCase(header("Transfer-Encoding"), "chunked"))
 		m_bodyType = BodyType::CHUNKED;
-	else if (!getHeader("Content-Length").empty())
+	else if (!header("Content-Length").empty())
 		m_bodyType = BodyType::SIZED;
 
-	if (StrUtils::equalsIgnoreCase(getHeader("Connection"), "close"))
+	if (StrUtils::equalsIgnoreCase(header("Connection"), "close"))
 		m_shouldClose = true;
 
 	m_headersDone = true;
@@ -378,7 +416,7 @@ void RawRequest::appendBodyBytes(const std::string& data)
 					data,
 					m_conLenBuffer,
 					m_tempBuffer,
-					getContentLengthValue(),
+					contentLength(),
 					m_bodyDone
 				);
 
@@ -418,26 +456,6 @@ void RawRequest::appendBodyBytes(const std::string& data)
 
 }
 
-size_t RawRequest::getContentLengthValue() const
-{
-	auto clIt = m_headers.find("Content-Length");
-	if (clIt == m_headers.end())
-		return 0;
-
-	try
-	{
-		long value = std::stol(clIt->second);
-		if (value < 0)
-			throw std::invalid_argument("Negative Content-Length not allowed");
-
-		return static_cast<size_t>(value);
-	}
-	catch (const std::exception& e)
-	{
-		throw std::invalid_argument("Invalid Content-Length header: " + clIt->second);
-	}
-}
-
 void RawRequest::appendToBody(const std::string& data)
 {
 	DBG("[appendToBody]: Appending " << data.size() << " bytes to _body");
@@ -447,25 +465,3 @@ void RawRequest::appendToBody(const std::string& data)
 	DBG("[appendToBody]: _body now = |" << _body << "|");
 }
 
-bool RawRequest::isHeadersDone() const
-{ 
-	return m_headersDone;
-}
-
-bool RawRequest::isBodyDone() const
-{ 
-	return m_bodyDone;
-}
-
-void RawRequest::setRequestDone()
-{
-	m_requestDone = true;
-}
-
-void RawRequest::markBadRequest()
-{
-	m_isBadRequest = true;
-	m_headersDone = true;
-	m_bodyDone = true;
-	m_requestDone = true;
-}

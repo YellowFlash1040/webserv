@@ -68,7 +68,7 @@ size_t ConnectionManager::processReqs(Client& client, const std::string& data)
 		parsedCount++;
 
 		// Check for leftovers (data after a complete request)
-		std::string leftovers = rawReq.getTempBuffer();
+		std::string leftovers = rawReq.tempBuffer();
 		if (!leftovers.empty())
 		{
 			DBG("[processReqs]: leftovers exist, adding new RawRequest: |"
@@ -110,7 +110,7 @@ void ConnectionManager::genResps(Client& client)
 		// Convert RawResponse to ResponseData
 		ResponseData data = rawResp.toResponseData();
 
-		if (rawReq.getMethod() == HttpMethod::HEAD)
+		if (rawReq.method() == HttpMethod::HEAD)
 			data.body.clear();
 
 		if (cgiResult.spawnCgi)

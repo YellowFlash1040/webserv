@@ -58,7 +58,7 @@ namespace PrintUtils
 		<< "\nRequest Done: " << (req.isRequestDone() ? "true" : "false")
 		);
 
-		for (const auto& kv : req.getHeaders())
+		for (const auto& kv : req.headers())
 		{
 			DBG("  " << kv.first << ": " << kv.second);
 			(void)kv;

@@ -31,7 +31,7 @@ namespace RequestHandler
 									 const Config& config,
 									CgiRequestResult& cgiResult)
 	{
-		RequestContext ctx = config.createRequestContext(client.getListeningEndpoint(), rawReq.getHost(), rawReq.getUri());
+		RequestContext ctx = config.createRequestContext(client.getListeningEndpoint(), rawReq.host(), rawReq.uri());
 		RawResponse curRawResp;
 
 		ResponseGenerator::genResponse(rawReq, ctx, curRawResp, cgiResult);
@@ -39,7 +39,7 @@ namespace RequestHandler
 		if (curRawResp.isInternalRedirect())
 		{
 			std::string newUri = curRawResp.getErrorPageUri(ctx.error_pages, curRawResp.getStatusCode());
-			RequestContext newCtx = config.createRequestContext(client.getListeningEndpoint(), rawReq.getHost(), newUri);
+			RequestContext newCtx = config.createRequestContext(client.getListeningEndpoint(), rawReq.host(), newUri);
 			RawResponse redirResp;
 
 			handleInternalRedirect(rawReq, newCtx, curRawResp, redirResp, cgiResult);
