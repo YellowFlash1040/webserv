@@ -35,6 +35,7 @@ class ConnectionManager
 		void genResps(Client& client);
 
 	public:
+		// Construction and destruction
 		ConnectionManager() = delete;
 		ConnectionManager(const Config& config);
 		~ConnectionManager() = default;

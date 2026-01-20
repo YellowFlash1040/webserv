@@ -28,6 +28,7 @@ class ClientState
 		std::vector<CGIData> m_activeCGIs;
 
 	public:
+		// Construction and destruction
 		ClientState();
 		~ClientState();
 		ClientState(const ClientState& other) = default;
