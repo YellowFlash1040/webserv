@@ -357,13 +357,6 @@ void RawRequest::finalizeHeaders()
 
 void RawRequest::finalizeHeaderPart()
 {
-	if (_bodyType == BodyType::NO_BODY)
-	{
-		DBG("No body, marking body done and request done");
-		_bodyDone = true;
-		_requestDone = true;
-	}
-
 	try
 	{
 		_uri = UriUtils::normalizePath(_uri);
