@@ -12,7 +12,6 @@
 #include "../utils/StrUtils.hpp"
 #include "../HttpMethod/HttpMethod.hpp"
 #include "../RequestData/RequestData.hpp"
-#include "../../BodyType/BodyType.hpp"
 #include "../utils/UriUtils.hpp"
 #include "debug.hpp"
 #include "BodyParser.hpp"
