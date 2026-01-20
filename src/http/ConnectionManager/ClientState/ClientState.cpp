@@ -78,7 +78,7 @@ RawRequest& ClientState::addRawRequest()
 	return m_rawRequests.back();
 }
 
-RawRequest ClientState::popFirstCompleteRawRequest()
+RawRequest ClientState::popFrontRawRequest()
 {
 	if (m_rawRequests.empty() || !m_rawRequests.front().isRequestDone())
 		throw std::runtime_error("No complete RawRequest available");

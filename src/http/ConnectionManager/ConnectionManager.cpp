@@ -95,7 +95,7 @@ void ConnectionManager::genResps(Client& client)
     while (clientState.hasCompleteRawRequest())
     {
         // Pop the first complete raw request
-        RawRequest rawReq = clientState.popFirstCompleteRawRequest();
+        RawRequest rawReq = clientState.popFrontRawRequest();
         PrintUtils::printRawRequest(rawReq);
 
         CgiRequestResult cgiResult;

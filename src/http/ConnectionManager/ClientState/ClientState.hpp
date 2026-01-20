@@ -46,7 +46,7 @@ class ClientState
 		// Methods
 		RawRequest& addRawRequest();
 		void enqueueResponseData(const ResponseData& resp);
-		RawRequest popFirstCompleteRawRequest();
+		RawRequest popFrontRawRequest();
 		void popFrontResponseData();
 
 		ResponseData& backResponseData();
