@@ -2,20 +2,20 @@
 
 RawResponse::RawResponse()
 	: 
-	  _statusCode(HttpStatusCode::None),
-	  _statusText(""),
-	  _headers(),
-	  _body(),
-	  _isInternalRedirect(false),
-	  _mimeType(""),
-	  _fileSize(0)
+	  m_statusCode(HttpStatusCode::None),
+	  m_statusText(""),
+	  m_headers(),
+	  m_body(),
+	  m_isInternalRedirect(false),
+	  m_mimeType(""),
+	  m_fileSize(0)
 {
 	setDefaultHeaders();
 }
 
 HttpStatusCode RawResponse::getStatusCode() const
 {
-	return _statusCode;
+	return m_statusCode;
 }
 
 std::string getCurrentHttpDate()
@@ -35,30 +35,36 @@ std::string getCurrentHttpDate()
 	return oss.str();
 }
 
-const std::string& RawResponse::getStatusText() const { return _statusText; }
-const std::unordered_map<std::string, std::string>& RawResponse::getHeaders() const { return _headers; }
+const std::string& RawResponse::getStatusText() const
+{
+	return m_statusText;
+}
+
+const std::unordered_map<std::string, std::string>& RawResponse::getHeaders() const
+{
+	return m_headers;
+}
 
 bool RawResponse::hasHeader(const std::string& key) const
 {
-	return _headers.find(key) != _headers.end();
+	return m_headers.find(key) != m_headers.end();
 }
 
-	
-	void RawResponse::setMimeType(const std::string& mime)
-	{
-		_mimeType = mime;
-	}
+void RawResponse::setMimeType(const std::string& mime)
+{
+	m_mimeType = mime;
+}
 
 void RawResponse::addHeader(const std::string& key, const std::string& value)
 {
 	if (!hasHeader(key))
-		_headers[key] = value;
+		m_headers[key] = value;
 }
 
 void RawResponse::setBody(const std::string& body)
 {
-	_body = body;
-	_headers["Content-Length"] = std::to_string(body.size());
+	m_body = body;
+	m_headers["Content-Length"] = std::to_string(body.size());
 }
 
 void RawResponse::setDefaultHeaders()
@@ -66,7 +72,6 @@ void RawResponse::setDefaultHeaders()
 	addHeader("Date", getCurrentHttpDate());
 	addHeader("Server", "APT-Server/1.0");
 }
-
 
 void RawResponse::handleCgiScript()
 {
@@ -76,12 +81,10 @@ void RawResponse::handleCgiScript()
 	setBody("CGI script would be executed\n");
 }
 
-
-
 bool RawResponse::shouldClose() const
 {
-	auto it = _headers.find("Connection");
-	return it != _headers.end() && it->second == "close";
+	auto it = m_headers.find("Connection");
+	return it != m_headers.end() && it->second == "close";
 }
 
 ResponseData RawResponse::toResponseData() const
@@ -89,71 +92,70 @@ ResponseData RawResponse::toResponseData() const
 	ResponseData data;
 
 	// Basic status info
-	data.statusCode = static_cast<int>(_statusCode);
-	data.statusText = codeToText(_statusCode);
-	data.headers = _headers;
+	data.statusCode = static_cast<int>(m_statusCode);
+	data.statusText = codeToText(m_statusCode);
+	data.headers = m_headers;
 	data.shouldClose = shouldClose();
 
 	// Determine if we should include a body
-	bool noBody = (_statusCode == HttpStatusCode::NoContent) || 
-				  (_statusCode == HttpStatusCode::NotModified) || 
-				  (static_cast<int>(_statusCode) >= 100 && static_cast<int>(_statusCode) < 200);
+	bool noBody = (m_statusCode == HttpStatusCode::NoContent) || 
+				  (m_statusCode == HttpStatusCode::NotModified) || 
+				  (static_cast<int>(m_statusCode) >= 100 && static_cast<int>(m_statusCode) < 200);
 
-		if (!noBody)
-			data.body = _body;
-		else
-			data.body.clear();
+	if (!noBody)
+		data.body = m_body;
+	else
+		data.body.clear();
 
-		if (!noBody)
-			data.headers["Content-Length"] = std::to_string(data.body.size());
+	if (!noBody)
+		data.headers["Content-Length"] = std::to_string(data.body.size());
 
-		data.headers["Content-Type"] = _mimeType;
+	data.headers["Content-Type"] = m_mimeType;
 
-		return data;
+	return data;
 
 }
 
 bool RawResponse::isInternalRedirect() const
 {
-	return _isInternalRedirect;
+	return m_isInternalRedirect;
 }
 
 void RawResponse::setInternalRedirect(bool val)
 {
-	_isInternalRedirect = val;
+	m_isInternalRedirect = val;
 }
-
-
 
 std::string RawResponse::getHeader(const std::string& key) const
 {
-	auto it = _headers.find(key);
-	return it != _headers.end() ? it->second : "";
+	auto it = m_headers.find(key);
+	return it != m_headers.end() ? it->second : "";
 }
 
 const std::string& RawResponse::getBody() const
 {
-	return _body;
+	return m_body;
 }
 
 const std::string& RawResponse::getMimeType() const
 {
-	return _mimeType;
+	return m_mimeType;
 }
 
 void RawResponse::setStatusCode(HttpStatusCode code)
 {
-	_statusCode = code; _statusText = codeToText(code);
+	m_statusCode = code; 
+	m_statusText = codeToText(code);
 }
 
 void RawResponse::setFileSize(size_t size)
 {
-	_fileSize = size;
+	m_fileSize = size;
 }
 
 size_t RawResponse::getFileSize() const
 {
-	return _fileSize;
+	return m_fileSize;
 }
 
 std::string RawResponse::getErrorPageUri(const std::map<HttpStatusCode, std::string>& error_pages,
@@ -196,26 +198,24 @@ void RawResponse::addErrorDetails(const RequestContext& ctx,
 
 void RawResponse::addDefaultError(HttpStatusCode code)
 {
-	DBG("[addDefaultError] Called for code " 
+	DBG("[addDefaultError] Called for code "
 		<< static_cast<int>(code) << " (" << codeToText(code) << ")");
 	
 	setStatusCode(code);
-		
-	// _statusText = codeToText(code);
 
 	std::string htmlBody =
 		"<html>\n"
-		"<head><title>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</title></head>\n"
+		"<head><title>" + std::to_string(static_cast<int>(code)) + " " + m_statusText + "</title></head>\n"
 		"<body>\n"
-		"<center><h1>" + std::to_string(static_cast<int>(code)) + " " + _statusText + "</h1></center>\n"
+		"<center><h1>" + std::to_string(static_cast<int>(code)) + " " + m_statusText + "</h1></center>\n"
 		"<center><h3>(Default Error Page)</h3></center>\n"
 		"<hr><center>APT-Server/1.0</center>\n"
 		"</body>\n"
 		"</html>\n";
 
 	setBody(htmlBody);
-	_mimeType = "text/html";
-	addHeader("Content-Length", std::to_string(_body.size()));
+	m_mimeType = "text/html";
+	addHeader("Content-Length", std::to_string(m_body.size()));
 
 	DBG("[addDefaultError] Default error page generated, length = " 
 		<< _body.size());
@@ -228,8 +228,8 @@ bool RawResponse::parseFromCgiOutput(const std::string& cgiOutput)
 		ParsedCGI parsed = CGIParser::parse(cgiOutput);
 
 		setStatusCode(static_cast<HttpStatusCode>(parsed.status));
-		_headers = parsed.headers;
-		_body = parsed.body;
+		m_headers = parsed.headers;
+		m_body = parsed.body;
 
 		return true;
 	}

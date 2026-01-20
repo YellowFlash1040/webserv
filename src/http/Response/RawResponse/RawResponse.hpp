@@ -18,14 +18,13 @@
 class RawResponse
 {
 	private:
-		HttpStatusCode _statusCode;
-		std::string _statusText;
-		std::unordered_map<std::string, std::string> _headers;
-		std::string _body;
-		bool _isInternalRedirect;
-		
-		std::string _mimeType;      // Content type of file
-		size_t _fileSize;    // file size (always set)
+		HttpStatusCode m_statusCode;
+		std::string m_statusText;
+		std::unordered_map<std::string, std::string> m_headers;
+		std::string m_body;
+		bool m_isInternalRedirect;
+		std::string m_mimeType;
+		size_t m_fileSize;
 
 	public:
 		// Construction and destruction
