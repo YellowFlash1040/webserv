@@ -139,3 +139,14 @@ void ClientState::clearActiveCGIs()
 {
     _activeCGIs.clear();
 }
+
+std::vector<CGIData*> ClientState::getTimedOutCGIs(time_t now, time_t timeout)
+{
+    std::vector<CGIData*> result;
+
+    for (auto& cgi : _activeCGIs)
+        if (now - cgi.start_time > timeout)
+            result.push_back(&cgi);
+
+    return result;
+}

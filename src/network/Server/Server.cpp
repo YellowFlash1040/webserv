@@ -111,6 +111,7 @@ void Server::processTimer()
         std::cerr << "Warning: timerfd read returned unexpected size: " << n
                   << std::endl;
     checkClientTimeouts();
+    checkCGITimeouts();
 }
 
 void Server::processCgiInput(uint32_t ev, CGIData& cgiData)
@@ -376,6 +377,35 @@ void Server::checkClientTimeouts()
         }
     }
 }
+
+void Server::checkCGITimeouts()
+{
+    time_t now = time(NULL);
+
+    for (auto& [fd, client] : m_clients)
+    {
+        ClientState& state = m_connMgr.getClientState(fd);
+        auto timedOut = state.getTimedOutCGIs(now, CGI_TIMEOUT);
+
+        for (CGIData* cgi : timedOut)
+        {
+            kill(cgi->pid, SIGKILL);
+            waitpid(cgi->pid, NULL, WNOHANG);
+
+            cleanupCgiFds(*cgi);
+
+            if (cgi->response)
+            {
+                RawResponse raw;
+                raw.addDefaultError(HttpStatusCode::GatewayTimeout);
+                *cgi->response = raw.toResponseData();
+                cgi->response->shouldClose = true;
+            }
+            state.removeCgi(cgi->pid);
+        }
+    }
+}
+
 
 void Server::handleCgiTermination(CGIData& cgi)
 {
