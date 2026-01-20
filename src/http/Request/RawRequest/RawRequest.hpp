@@ -19,6 +19,46 @@
 
 class RawRequest
 {
+	private:
+	
+		// Properties
+		std::string m_tempBuffer;
+		std::string m_body;
+		std::string m_chunkedBuffer;
+		std::string m_conLenBuffer;
+		HttpMethod m_method;
+		std::string m_rawUri;
+		std::string m_uri;
+		std::string m_host;
+		std::string m_query;
+		std::string m_httpVersion;
+		std::unordered_map<std::string, std::string> m_headers;
+		BodyType::Type m_bodyType;
+		
+		bool m_headersDone;
+		bool m_terminatingZeroMet;
+		bool m_bodyDone;
+		bool m_requestDone;
+		bool m_isBadRequest;
+		bool m_shouldClose;
+		
+		// -----------------------------
+		// Private Parsing Helpers
+		// -----------------------------
+		void handleHeaderPart();
+		bool extractHeaderPart(std::string& headerPart);
+		void parseRequestLineAndHeaders(const std::string& headerPart);
+		void parseRequestLine(const std::string& firstLine);
+		void splitUriAndQuery();
+		void parseHeaders(std::istringstream& stream);
+		void parseAndStoreHeaderLine(const std::string& line);
+		void finalizeHeaders();
+		void finalizeHeaderPart();
+		void appendBodyBytes(const std::string& data);
+		size_t getContentLengthValue() const;
+		void appendToBody(const std::string& data);
+		void setRequestDone();
+	
 	public:
 		RawRequest();
 		~RawRequest() = default;
@@ -63,43 +103,7 @@ class RawRequest
 		void appendTempBuffer(const std::string& data);
 		void markBadRequest();
 
-	private:
-		std::string _tempBuffer;
-		std::string _body;
-		std::string _chunkedBuffer;
-		std::string _conLenBuffer;
-		HttpMethod _method;
-		std::string _rawUri;
-		std::string _uri;
-		std::string _host;
-		std::string _query;
-		std::string _httpVersion;
-		std::unordered_map<std::string, std::string> _headers;
-		BodyType::Type _bodyType;
-		
-		bool _headersDone;
-		bool _terminatingZeroMet;
-		bool _bodyDone;
-		bool _requestDone;
-		bool _isBadRequest;
-		bool _shouldClose;
-		
-		// -----------------------------
-		// Private Parsing Helpers
-		// -----------------------------
-		void handleHeaderPart();
-		bool extractHeaderPart(std::string& headerPart);
-		void parseRequestLineAndHeaders(const std::string& headerPart);
-		void parseRequestLine(const std::string& firstLine);
-		void splitUriAndQuery();
-		void parseHeaders(std::istringstream& stream);
-		void parseAndStoreHeaderLine(const std::string& line);
-		void finalizeHeaders();
-		void finalizeHeaderPart();
-		void appendBodyBytes(const std::string& data);
-		size_t getContentLengthValue() const;
-		void appendToBody(const std::string& data);
-		void setRequestDone();
+
 };
 
 #endif
