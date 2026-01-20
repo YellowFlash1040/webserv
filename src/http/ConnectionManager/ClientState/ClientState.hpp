@@ -51,6 +51,7 @@ class ClientState
 		CGIData* findCgiByPid(pid_t pid);
 		void removeCgi(pid_t pid);
 		void clearActiveCGIs();
+		std::vector<CGIData*> getTimedOutCGIs(time_t now, time_t timeout);
 };
 
 #endif

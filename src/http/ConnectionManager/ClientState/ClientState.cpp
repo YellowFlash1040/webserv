@@ -14,14 +14,15 @@ ClientState::ClientState()
 
 ClientState::~ClientState()
 {
-	for (auto& cgi : m_activeCGIs)
-	{
-		if (cgi.fd_stdin != -1)
-			close(cgi.fd_stdin);
-		if (cgi.fd_stdout != -1)
-			close(cgi.fd_stdout);
-		kill(cgi.pid, SIGTERM);
-	}
+    for (auto& cgi : m_activeCGIs)
+    {
+        if (cgi.fd_stdin != -1)
+            close(cgi.fd_stdin);
+        if (cgi.fd_stdout != -1)
+            close(cgi.fd_stdout);
+        kill(cgi.pid, SIGKILL);
+        waitpid(cgi.pid, nullptr, WNOHANG);
+    }
 }
 
 // ---------------------------ACCESSORS-----------------------------
@@ -143,4 +144,15 @@ void ClientState::removeCgi(pid_t pid)
 void ClientState::clearActiveCGIs()
 {
 	m_activeCGIs.clear();
+}
+
+std::vector<CGIData*> ClientState::getTimedOutCGIs(time_t now, time_t timeout)
+{
+    std::vector<CGIData*> result;
+
+    for (auto& cgi : m_activeCGIs)
+        if (now - cgi.start_time > timeout)
+            result.push_back(&cgi);
+
+    return result;
 }
