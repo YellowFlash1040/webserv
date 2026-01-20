@@ -102,6 +102,13 @@ ResponseData& ClientState::backResponseData()
     return _respDataQueue.back();
 }
 
+//CGI
+
+std::vector<CGIData>& ClientState::getActiveCGIs()
+{
+    return _activeCGIs;
+}
+
 CGIData& ClientState::createActiveCgi(RequestData& req, Client& client,
                                       const std::string& interpreter,
                                       const std::string& scriptPath,

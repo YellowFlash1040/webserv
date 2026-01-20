@@ -40,6 +40,7 @@ class ClientState
     bool hasCompleteRawRequest() const;
     ResponseData& frontResponseData();
     const std::queue<ResponseData>& getResponseQueue() const;
+    
     // Methods
     RawRequest& addRawRequest();
     void enqueueResponseData(const ResponseData& resp);
@@ -52,10 +53,9 @@ class ClientState
                              const std::string& interpreter,
                              const std::string& scriptPath, ResponseData* resp);
 
-    std::vector<CGIData>& getActiveCGIs() { return _activeCGIs; }
+    std::vector<CGIData>& getActiveCGIs();
     CGIData* findCgiByPid(pid_t pid);
     void removeCgi(pid_t pid);
-
     void clearActiveCGIs();
 };
 
