@@ -37,7 +37,7 @@ namespace FileUtils
 		{
 			std::string path = dir + file;
             const FileInfo info = getFileInfo(path);
-            if (info.exists && info.isFile)
+            if (info.exists && info.isFile && info.readable)
                 return path;
 		}
 
