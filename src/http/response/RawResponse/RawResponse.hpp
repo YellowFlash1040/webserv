@@ -7,12 +7,12 @@
 #include <iomanip>
 #include <fstream>
 
-#include "../../Request/RawRequest/RawRequest.hpp"
-#include "../../../config/Config/request_resolving/RequestContext/RequestContext.hpp"
-#include "../ResponseData/ResponseData.hpp"
-#include "../FileUtils/FileUtils.hpp"
-#include "../HttpMethod/HttpMethod.hpp"
-#include "../HttpStatusCode/HttpStatusCode.hpp"
+#include "RawRequest.hpp"
+#include "RequestContext.hpp"
+#include "ResponseData.hpp"
+#include "FileUtils.hpp"
+#include "HttpMethod.hpp"
+#include "HttpStatusCode.hpp"
 #include "CGIParser.hpp"
 
 class RawResponse

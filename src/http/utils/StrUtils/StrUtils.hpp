@@ -7,9 +7,9 @@
 #include <iostream>
 #include <algorithm>
 
-#include "../RawRequest/RawRequest.hpp"
-#include "../Response/RawResponse/RawResponse.hpp"
-#include "../HttpMethod/HttpMethod.hpp"
+#include "RawRequest.hpp"
+#include "RawResponse.hpp"
+#include "HttpMethod.hpp"
 
 namespace StrUtils
 {

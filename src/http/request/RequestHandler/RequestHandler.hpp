@@ -1,10 +1,10 @@
 #ifndef REQUESTHANDLER_HPP
 #define REQUESTHANDLER_HPP
 
-#include "../ResponseGenerator/ResponseGenerator.hpp"
+#include "ResponseGenerator.hpp"
 #include "Config.hpp"
-#include "../../config/Config/request_resolving/RequestContext/RequestContext.hpp"
-#include "../network/Client/Client.hpp"
+#include "RequestContext.hpp"
+#include "Client.hpp"
 #include "CgiRequestResult.hpp"
 
 namespace RequestHandler
