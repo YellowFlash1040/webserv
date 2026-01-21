@@ -18,7 +18,7 @@ class ClientState
 {
 	private:
 		// Properties
-		std::deque<RawRequest> m_requests;
+		std::queue<RawRequest> m_requests;
 		std::queue<ResponseData> m_responses;
 		std::vector<CGIData> m_activeCGIs;
 

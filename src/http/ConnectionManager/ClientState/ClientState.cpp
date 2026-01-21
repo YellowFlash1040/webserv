@@ -9,7 +9,7 @@ ClientState::ClientState()
 	// The first empty request so getLatestRawReq() is always valid
 	DBG("[ClientState Constructor] Creating first empty RawRequest so "
 		"getLatestRawReq() is always valid");
-	m_requests.emplace_back();
+	m_requests.emplace();
 }
 
 ClientState::~ClientState()
@@ -29,10 +29,7 @@ ClientState::~ClientState()
 
 bool ClientState::hasCompleteRequest() const
 {
-	for (const auto& rawRequest : m_requests)
-		if (rawRequest.isRequestDone())
-			return true;
-	return false;
+	return !m_requests.empty() && m_requests.front().isRequestDone();
 }
 
 bool ClientState::hasPendingResponse() const
@@ -47,7 +44,7 @@ RawRequest& ClientState::backRequest()
 	if (m_requests.empty())
 	{
 		DBG("[getLatestRawReq] _rawRequests empty, creating a new RawRequest");
-		m_requests.emplace_back(); // default-construct a new request
+		m_requests.emplace(); // default-construct a new request
 	}
 	return m_requests.back();
 }
@@ -81,7 +78,7 @@ std::vector<CGIData>& ClientState::activeCGIs()
 RawRequest& ClientState::addRequest()
 {
 	DBG("[addRawRequest]: made a new request");
-	m_requests.emplace_back();
+	m_requests.emplace();
 	return m_requests.back();
 }
 
@@ -97,7 +94,7 @@ RawRequest ClientState::popFrontRequest()
 		throw std::runtime_error("No complete RawRequest available");
 
 	RawRequest completed = std::move(m_requests.front());
-	m_requests.pop_front();
+	m_requests.pop();
 	return completed;
 }
 
