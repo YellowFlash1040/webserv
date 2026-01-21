@@ -329,6 +329,35 @@ Expected result: HTTP status <strong>403 Forbidden</strong>. The server should d
 
 <pre><code>curl -i http://localhost:7071/dir_not_accessible/</code></pre>
 
+<p>
+Run the following commands <strong>once before starting the tests</strong>.
+They create files and directories with specific permission restrictions
+required for the permission-related test cases above.
+</p>
+
+<pre><code>
+# DELETE: file without permissions
+touch ./assets/www/site3/delete_no_permission/no_permission_file.txt
+chmod 000 ./assets/www/site3/delete_no_permission/no_permission_file.txt
+
+# Index file exists but is not readable
+touch ./assets/www/site3/index_not_readable/unreadable.txt
+chmod 000 ./assets/www/site3/index_not_readable/unreadable.txt
+
+# Index file not readable, autoindex ON
+touch ./assets/www/site3/index_not_readable_autoindex/unreadable.txt
+chmod 000 ./assets/www/site3/index_not_readable_autoindex/unreadable.txt
+
+# Unreadable standalone file
+touch ./assets/www/site3/unreadable.txt
+chmod 000 ./assets/www/site3/unreadable.txt
+
+# Directory not accessible, files inside are readable
+mkdir -p ./assets/www/site3/dir_not_accessible
+echo "This file is fine" > ./assets/www/site3/dir_not_accessible/file.txt
+chmod 644 ./assets/www/site3/dir_not_accessible/file.txt
+chmod 000 ./assets/www/site3/dir_not_accessible
+</code></pre>
 
 </body>
 </html>
