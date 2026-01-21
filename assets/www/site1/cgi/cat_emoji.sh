@@ -29,6 +29,8 @@ button { padding: 0.5rem 1rem; font-size: 1rem; margin-top: 1rem; cursor: pointe
 <form method="get">
     <button type="submit">Generate Another</button>
 </form>
+<br/>
+<a href="/">Back to home</a>
 </body>
 </html>
 HTML
