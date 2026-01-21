@@ -163,7 +163,6 @@ void RawRequest::appendTempBuffer(const std::string& data)
 	m_tempBuffer += data;
 }
 
-
 void RawRequest::setRequestDone()
 {
 	m_requestDone = true;
@@ -453,7 +452,6 @@ void RawRequest::appendBodyBytes(const std::string& data)
 		DBG("[appendBodyBytes] Bad request: " << e.what());
 		markBadRequest(); // sets _requestDone and prepares 400 response
 	}
-
 }
 
 void RawRequest::appendToBody(const std::string& data)
