@@ -205,7 +205,7 @@
 <body>
     <div class="container">
         <h1>📁 File Manager</h1>
-        <p class="subtitle">View and manage your uploaded files</p>
+        <p class="subtitle">View and delete your uploaded files</p>
 
         <div class="controls">
             <div class="file-count" id="fileCount">Loading files...</div>
@@ -234,7 +234,7 @@
             fileCount.textContent = 'Loading files...';
 
             try {
-                const response = await fetch('/files/');
+                const response = await fetch('/uploads/');
                 if (!response.ok) throw new Error('Failed to fetch files');
 
                 const html = await response.text();
@@ -242,9 +242,17 @@
                 // Parse HTML to extract filenames from <a> tags
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
-                const links = doc.querySelectorAll('li a');
+                const links = doc.querySelectorAll('a');
 
-                const files = Array.from(links).map(link => link.textContent);
+                const files = Array.from(links)
+                    .map(link => link.textContent.trim())
+                    .filter(filename =>
+                        filename &&
+                        filename !== '.' &&
+                        filename !== '..' &&
+                        filename !== '../' &&
+                        !filename.endsWith('/')
+                    );
 
                 if (files.length === 0) {
                     fileContainer.innerHTML = '<div class="empty">No files uploaded yet</div>';
@@ -266,7 +274,7 @@
 
                     if (isImage(filename)) {
                         const img = document.createElement('img');
-                        img.src = `/files/${encodeURIComponent(filename)}`;
+                        img.src = `/uploads/${encodeURIComponent(filename)}`;
                         img.alt = filename;
                         img.onerror = () => {
                             preview.innerHTML = '<div class="file-icon">📄</div>';
@@ -289,14 +297,14 @@
                     downloadBtn.textContent = '⬇️';
                     downloadBtn.title = 'Download';
                     downloadBtn.onclick = () => {
-                        window.open(`/files/${encodeURIComponent(filename)}`, '_blank');
+                        window.open(`/uploads/${encodeURIComponent(filename)}`, '_blank');
                     };
 
                     const deleteBtn = document.createElement('button');
                     deleteBtn.className = 'delete-btn';
                     deleteBtn.textContent = '🗑️';
                     deleteBtn.title = 'Delete';
-                    deleteBtn.onclick = () => deleteFile(filename);
+                    deleteBtn.onclick = () => deleteFile(filename, card);
 
                     actions.appendChild(downloadBtn);
                     actions.appendChild(deleteBtn);
@@ -317,13 +325,13 @@
             }
         }
 
-        async function deleteFile(filename) {
+        async function deleteFile(filename, cardElement) {
             if (!confirm(`Are you sure you want to delete "${filename}"?`)) {
                 return;
             }
 
             try {
-                const response = await fetch(`/files/${encodeURIComponent(filename)}`, {
+                const response = await fetch(`/uploads/${encodeURIComponent(filename)}`, {
                     method: 'DELETE'
                 });
 
@@ -331,10 +339,21 @@
                     throw new Error(`Failed to delete file: ${response.statusText}`);
                 }
 
-                await loadFiles();
+                cardElement.remove();
+
+                // Update file count
+                const currentCount = parseInt(fileCount.textContent);
+                const newCount = currentCount - 1;
+                fileCount.textContent = `${newCount} file${newCount !== 1 ? 's' : ''}`;
+
+                // Show empty state if no files left
+                if (newCount === 0) {
+                    fileContainer.innerHTML = '<div class="empty">No files uploaded yet</div>';
+                }
+
             } catch (error) {
                 console.error('Error deleting file:', error);
-                alert(`❌ Error deleting file: ${error.message}`);
+                alert(`❌ Failed to delete ${filename}!`);
             }
         }
 
