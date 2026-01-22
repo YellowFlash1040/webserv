@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import cgi
 import random
 
 # List of fun cat facts
@@ -41,6 +40,9 @@ print(f"""
     <form method="get">
         <button type="submit">Get another fact</button>
     </form>
+
+    <br/>
+    <a href="/">Back to home</a>
 </body>
 </html>
 """)
