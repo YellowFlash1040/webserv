@@ -13,7 +13,7 @@
 # include<vector>
 #include <filesystem>
 
-#include "../utils/debug.hpp"
+#include "debug.hpp"
 
 struct FileInfo
 {

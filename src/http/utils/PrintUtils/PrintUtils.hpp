@@ -2,11 +2,11 @@
 #define PRINTUTILS_HPP
 
 #include <iostream>
-#include "../config/Config/request_resolving/RequestContext/RequestContext.hpp"
 
-#include "debug.hpp"
+#include "RequestContext.hpp"
 #include "RawRequest.hpp"
-#include "../../ConnectionManager/ClientState/ClientState.hpp"
+#include "ClientState.hpp"
+#include "debug.hpp"
 
 
 namespace PrintUtils

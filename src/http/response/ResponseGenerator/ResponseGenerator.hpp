@@ -1,21 +1,21 @@
 #ifndef RESPONSEGENERATOR_HPP
 #define RESPONSEGENERATOR_HPP
 
-#include "../Response/RawResponse/RawResponse.hpp"
-#include "../ConnectionManager/ClientState/ClientState.hpp"
-#include "../../network/NetworkEndpoint/NetworkEndpoint.hpp"
-#include "../Request/RawRequest/RawRequest.hpp"
-#include "../Request/RequestData/RequestData.hpp"
-#include "../../config/Config/request_resolving/RequestContext/RequestContext.hpp"
-#include "../HttpStatusCode/HttpStatusCode.hpp"
-#include "../HttpMethod/HttpMethod.hpp"
-#include "../FileUtils/FileUtils.hpp"
-#include "debug.hpp"
-#include "../utils/StrUtils.hpp"
+#include "RawResponse.hpp"
+#include "ClientState.hpp"
+#include "NetworkEndpoint.hpp"
+#include "RawRequest.hpp"
+#include "RequestData.hpp"
+#include "RequestContext.hpp"
+#include "HttpStatusCode.hpp"
+#include "HttpMethod.hpp"
+#include "FileUtils.hpp"
+#include "StrUtils.hpp"
 #include "UploadModule.hpp"
-#include "../network/Client/Client.hpp"
+#include "Client.hpp"
 #include "CgiRequestResult.hpp"
 #include "FileReader.hpp"
+#include "debug.hpp"
 
 namespace ResponseGenerator
 {
