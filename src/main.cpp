@@ -37,6 +37,8 @@ int main(int argc, char** argv)
         {
             std::cerr << "Error: " << e.what() << ": " << strerror(errno)
                       << "\n";
+            if (errno == EADDRINUSE)
+                return EXIT_FAILURE;
         }
         catch (const std::exception& e)
         {
