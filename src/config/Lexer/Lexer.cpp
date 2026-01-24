@@ -33,7 +33,7 @@ Lexer::~Lexer() {}
 std::vector<Token> Lexer::tokenize(const std::string& input)
 {
     if (input.length() == 0)
-        throw std::logic_error("input is empty");
+        throw std::logic_error("config is empty");
     return Lexer(input).tokenize();
 }
 
