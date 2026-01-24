@@ -44,6 +44,7 @@ void Server::run(void)
     for (auto& it : m_listeners)
         addFdToEPoll(it.first, EPOLLIN);
 
+    g_running = true;
     monitorEvents();
 }
 
@@ -405,7 +406,6 @@ void Server::checkCGITimeouts()
         }
     }
 }
-
 
 void Server::handleCgiTermination(CGIData& cgi)
 {

@@ -7,7 +7,7 @@ bool validateArgumentsCount(int argc, char** argv);
 bool initializeConfig(Config& config, const char* filepath);
 void setupSignalHandlers();
 
-volatile std::sig_atomic_t g_running = true;
+volatile std::sig_atomic_t g_running = false;
 
 void stopServer(int)
 {
@@ -37,8 +37,6 @@ int main(int argc, char** argv)
         {
             std::cerr << "Error: " << e.what() << ": " << strerror(errno)
                       << "\n";
-            if (errno == EADDRINUSE)
-                return EXIT_FAILURE;
         }
         catch (const std::exception& e)
         {
@@ -48,7 +46,7 @@ int main(int argc, char** argv)
         if (!g_running)
             break;
     }
-    return EXIT_SUCCESS;
+    return EXIT_FAILURE;
 }
 
 bool validateArgumentsCount(int argc, char** argv)
