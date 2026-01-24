@@ -72,6 +72,12 @@ bool initializeConfig(Config& config, const char* filepath)
         std::cerr << "\033[1m" << filepath << ":\033[0m" << e.what() << '\n';
         return false;
     }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Error: " << e.what() << "\n";
+        return false;
+    }
+
     return true;
 }
 
