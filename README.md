@@ -4,6 +4,10 @@ An HTTP server inspired by NGINX, written in C++, and designed to run on Linux.
 
 This project is part of the [Codam](https://www.codam.nl/en/) curriculum, [42 School](https://42.fr/en/homepage/) campus.
 
+<p align="center">
+<img src="assets/webserv.png" alt="Web server" />
+</p>
+
 ## Features
 
 - HTTP/1.1 compliant server basics
